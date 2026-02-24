@@ -1,0 +1,43 @@
+/* Fondo verde */
+.login-body {
+  margin: 0;
+  background:  #041E17;
+  font-family: Arial, sans-serif;
+}
+
+/* Centrar */
+.login-container { 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Logo */
+.login-logo {
+  width: 110px;
+  margin-bottom: 10px;
+}
+
+
+/* Botones */
+.login-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+/* Botón verde */
+.btn-login {
+  background: #0b3a2c !important;
+  color: white !important;
+  padding: 8px 20px !important;
+  border-radius: 20px !important;
+}
+
+/* Botón dorado */
+.btn-register {
+  background: #b38b2a !important;
+  color: white !important;
+  padding: 8px 20px !important;
+  border-radius: 20px !important;
+}

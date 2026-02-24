@@ -1,10 +1,9 @@
 
-
 import { useState } from 'react'
-
 import { Button, Card, Badge, Table } from 'react-bootstrap'
 import ModalForm from '../components/ModalForm'
 import TablaForm from '../components/TablaForm'
+import "../css/App.css"
 
 
 
