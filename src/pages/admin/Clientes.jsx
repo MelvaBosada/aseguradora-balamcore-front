@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import '../../css/Clientes.css'; 
-import logo from "../../assets/Logo.png"; // Cambiado de ../assets a ../../assets
+import logo from "../../assets/Logo.png";
+import TablaForm from '../../components/TablaForm'; // Ajusta la ruta según tu estructura
 
 const Clientes = () => {
   const [clientes, setClientes] = useState([
@@ -55,6 +56,19 @@ const Clientes = () => {
       correo: "ejemplo@gmail.com"
     }
   ]);
+
+  // Definimos las columnas como un array
+  const columnas = [
+    "ID",
+    "Nombre",
+    "Apellido",
+    "Teléfono",
+    "CURP",
+    "RFC",
+    "Domicilio",
+    "Correo",
+    "Acciones"
+  ];
 
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -172,62 +186,17 @@ const Clientes = () => {
       {/* Línea divisoria después de búsqueda */}
       <hr className="mt-0 mb-4" />
 
-      {/* Tabla */}
-      <div className="table-responsive mb-4">
-        <table className="table table-bordered table-striped align-middle">
-          <thead className="table-light">
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Apellido</th>
-              <th>Teléfono</th>
-              <th>CURP</th>
-              <th>RFC</th>
-              <th>Domicilio</th>
-              <th>Correo</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredClientes.map((cliente) => (
-              <tr key={cliente.id}>
-                <td>{cliente.id}</td>
-                <td>{cliente.nombre}</td>
-                <td>{cliente.apellido}</td>
-                <td>{cliente.telefono}</td>
-                <td>{cliente.curp}</td>
-                <td>{cliente.rfc}</td>
-                <td>{cliente.domicilio}</td>
-                <td>{cliente.correo}</td>
-                <td>
-                  <button 
-                    className="btn btn-link p-0 me-2 text-decoration-none text-dark"
-                    onClick={() => handleEditar(cliente)}
-                    title="Editar"
-                  >
-                    ✏️
-                  </button>
-                  <button 
-                    className="btn btn-link p-0 text-decoration-none text-dark"
-                    onClick={() => handleEliminarClick(cliente)}
-                    title="Eliminar"
-                  >
-                    🗑️
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filteredClientes.length === 0 && (
-              <tr>
-                <td colSpan="9" className="text-center py-3">
-                  No se encontraron clientes
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      {/* Tabla usando el componente TablaForm */}
+      <div className="mb-4">
+        <TablaForm 
+          columna={columnas}
+          data={filteredClientes}
+          onEditar={handleEditar}
+          onEliminar={handleEliminarClick}
+        />
       </div>
 
+      
 
       {/* Modal de Agregar/Editar Cliente */}
       {showModal && (
