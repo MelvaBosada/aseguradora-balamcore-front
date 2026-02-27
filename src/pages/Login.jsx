@@ -1,102 +1,123 @@
-import { Box, TextField, Button, Typography, Paper, Snackbar, Alert } from "@mui/material";
+import { Box, TextField, Typography, Paper, Snackbar, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import "../css/Login.css";
 import { useEffect, useState } from "react";
-import logo from "../assets/logo.png";
-import ButtonVerdeForm from "../components/ButtonVerdeForm"
+import logo from "../assets/logoSin.png";
+import Letrascolores from "../assets/LetrasColor.png";
+import ButtonVerdeForm from "../components/ButtonVerdeForm";
 
-function Login() {
+function Login({ onGoToRegister }) {
+  const navigate = useNavigate();
 
-    useEffect(() => {
-        document.body.className = "login-body";
-        return () => (document.body.className = "");
-    }, []);
+  const [correo, setCorreo]   = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError]     = useState(false);
+  const [open, setOpen]       = useState(false);
+  const [mensaje, setMensaje] = useState("");
+  const [isAnimating, setIsAnimating] = useState(false);
 
-    const navigate = useNavigate();
+  useEffect(() => {
+    document.body.className = "login-body";
 
-    {/* estados */ }
-    const [correo, setCorreo] = useState("");
-    const [password, setPassword] = useState("");
-    const [error, setError] = useState(false);
-    const [open, setOpen] = useState(false);
-    const [mensaje, setMensaje] = useState("");
+    // Arranca la animación de las letras viajeras
+    const timer = setTimeout(() => setIsAnimating(true), 1400);
 
-
-    {/* Validaciones de usuario */ }
-    const handleLogin = () => {
-        if (correo === "admin" && password === "12345") {
-            setMensaje("Se ha iniciado tu sesión correctamente");
-            setOpen(true);
-            setError(false);
-
-            setTimeout(() => {
-                navigate("/home");
-            }, 1000);
-
-        } else {
-            setMensaje("Los datos que ingresaste son incorrectos");
-            setOpen(true);
-            setError(true);
-        }
+    return () => {
+      clearTimeout(timer);
+      document.body.className = "";
     };
+  }, []);
 
+  const handleLogin = () => {
+    if (correo === "admin" && password === "12345") {
+      setMensaje("Sesión iniciada correctamente");
+      setError(false);
+      setOpen(true);
+      setTimeout(() => navigate("/admin"), 1000);
+    } else {
+      setMensaje("Datos incorrectos");
+      setError(true);
+      setOpen(true);
+      setCorreo("");
+      setPassword("");
+    }
+  };
 
-    return (
-        <Box className="login-container">
-            <Paper elevation={6} sx={{ padding: 5, width: 410, borderRadius: "80px", textAlign: "center", gap: 3 }}>
+  const handleTyping = (e, setter) => {
+    setter(e.target.value);
+    if (error) setError(false);
+  };
 
-                <img src={logo} alt="logo" className="login-logo" />
+  return (
+    <div className="auth-content">
 
-                <Typography variant="h5" sx={{ fontFamily: "Anek Bangla, sans-serif", fontWeight: 700, color: "#000000" }}>
-                    Inicio de Sesión
-                </Typography>
+      {/* ── Letras viajeras (fixed, por encima de todo) ── */}
+      <div className={`interpolator-track ${isAnimating ? "state-form" : "state-center"}`}>
+        <img src={Letrascolores} alt="BalamCore" className="letras-viajeras" />
+      </div>
 
-                <Typography variant="body2" sx={{ fontFamily: "Abel", color: "#2c2b2b", mb: 3 }}>
-                    Ingresa tus datos para iniciar sesión
-                </Typography>
+      {/* ── Formulario ── */}
+      <div className={`login-appearance ${isAnimating ? "visible" : ""}`}>
+        <Paper elevation={15} className="login-paper-premium">
 
-                <TextField label="Ingesa tu correo electronico" fullWidth margin="normal" size="small"
-                    value={correo}
-                    onChange={(e) => setCorreo(e.target.value)}
-                    error={error} helperText={error ? "Usuario incorrecto" : ""} />
+          <div className="brand-zone with-letters">
+            <img src={logo} alt="logo" className="logo-jaguar" />
+            <div className="letras-target-slot" />
+          </div>
 
-                <TextField label="Ingresa tu contraseña" type="password" fullWidth margin="normal" size="small"
-                    sx={{ mb: 5 }}
-                    value={password} onChange={(e) => setPassword(e.target.value)}
-                    error={error} helperText={error ? "Contraseña incorrecta" : ""} />
+          <Typography variant="h5" className="title-bold">
+            Inicio de Sesión
+          </Typography>
 
-                <Box className="login-buttons"  sx={{ mb: 1 }}>
-                    <ButtonVerdeForm colorType="green" onClick={handleLogin}>
-                        Iniciar Sesión
-                    </ButtonVerdeForm>
+          <Typography variant="body2" className="subtitle-slim">
+            Ingresa tus datos para continuar
+          </Typography>
 
-                    <ButtonVerdeForm colorType="gold" onClick={() => navigate("/register")}>
-                        Registrarse
-                    </ButtonVerdeForm>
+          <Box className="form-stack">
+            <TextField
+              label="Correo electrónico"
+              fullWidth
+              margin="dense"
+              value={correo}
+              error={error}
+              onChange={(e) => handleTyping(e, setCorreo)}
+            />
+            <TextField
+              label="Contraseña"
+              type="password"
+              fullWidth
+              margin="dense"
+              value={password}
+              error={error}
+              onChange={(e) => handleTyping(e, setPassword)}
+            />
+          </Box>
 
-                </Box>
+          <Box className="button-group">
+            <ButtonVerdeForm colorType="green" onClick={handleLogin}>
+              Iniciar Sesión
+            </ButtonVerdeForm>
+            <ButtonVerdeForm colorType="gold" onClick={onGoToRegister}>
+              Registrarse
+            </ButtonVerdeForm>
+          </Box>
 
-            </Paper>
+        </Paper>
+      </div>
 
+      <Snackbar
+        open={open}
+        autoHideDuration={2000}
+        onClose={() => setOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert severity={error ? "error" : "success"} variant="filled">
+          {mensaje}
+        </Alert>
+      </Snackbar>
 
-            {/* ALERTAS de MUI */}
-            <Snackbar
-                open={open}
-                autoHideDuration={2000}
-                onClose={() => setOpen(false)}
-                anchorOrigin={{ vertical: "top", horizontal: "center" }}
-            >
-                <Alert
-                    severity={error ? "error" : "success"}
-                    variant="filled"
-                    onClose={() => setOpen(false)}
-                    sx={{ width: "100%" }}
-                >
-                    {mensaje}
-                </Alert>
-            </Snackbar>
-        </Box>
-    );
+    </div>
+  );
 }
 
 export default Login;

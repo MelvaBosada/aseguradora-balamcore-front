@@ -1,43 +1,343 @@
-/* Fondo verde */
-.login-body {
-  margin: 0;
-  background:  #041E17;
-  font-family: Arial, sans-serif;
+/* ===================================================
+   LOGIN.CSS — BalamCore Auth · Clean Architecture
+   =================================================== */
+
+/* ── Variables ── */
+:root {
+  --bg-dark: #041E17;
+  --card-radius: 36px;
+  --card-width: 420px;
+  --green: #1a6b46;
+  --gold: #c9a84c;
+  --shadow: 0 32px 80px rgba(0, 0, 0, 0.55);
+  --flip-duration: 0.85s;
 }
 
-/* Centrar */
-.login-container { 
+/* ── Body ── */
+.login-body {
+  margin: 0;
+  background: var(--bg-dark);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===================================================
+   ESCENA PRINCIPAL
+   =================================================== */
+.auth-scene {
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 40px 20px;
+  box-sizing: border-box;
 }
 
-/* Logo */
-.login-logo {
-  width: 110px;
-  margin-bottom: 10px;
+/* ===================================================
+   TARJETA FLIP
+   =================================================== */
+.auth-card {
+  width: var(--card-width);
+  max-width: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform var(--flip-duration) cubic-bezier(0.4, 0, 0.2, 1);
+  /* La altura es determinada por la cara activa */
 }
 
+.auth-card.flipped {
+  transform: rotateY(180deg);
+}
 
-/* Botones */
-.login-buttons {
+/* ── Caras ── */
+.auth-face {
+  width: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* La cara frontal es normal (in-flow) */
+.auth-front {
+  position: relative;
+}
+
+/* La cara trasera está rotada y encima, absoluta */
+.auth-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  transform: rotateY(180deg);
+}
+
+/* ── Contenido de cada cara ── */
+.auth-content {
+  width: 100%;
+  position: relative;
+}
+
+/* ===================================================
+   PAPEL / CARD INTERIOR
+   =================================================== */
+.login-paper-premium {
+  padding: 40px 36px 36px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: var(--card-radius) !important;
+  background: #ffffff !important;
+  text-align: center;
+  box-shadow: var(--shadow) !important;
+}
+
+/* ===================================================
+   ZONA DE MARCA (logo + letras viajeras)
+   =================================================== */
+.brand-zone {
   display: flex;
-  justify-content: space-between;
-  margin-top: 20px;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  min-height: 130px;
+  margin-bottom: 8px;
 }
 
-/* Botón verde */
-.btn-login {
-  background: #0b3a2c !important;
-  color: white !important;
-  padding: 8px 20px !important;
-  border-radius: 20px !important;
+.logo-jaguar {
+  width: 80px;
+  margin-bottom: 6px;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.5s ease-out 1.6s, transform 0.5s ease-out 1.6s;
 }
 
-/* Botón dorado */
-.btn-register {
-  background: #b38b2a !important;
-  color: white !important;
-  padding: 8px 20px !important;
-  border-radius: 20px !important;
+.login-appearance.visible .logo-jaguar {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Espacio reservado para las letras que "aterrizan" */
+.letras-target-slot {
+  height: 40px;
+  width: 100%;
+}
+
+/* ===================================================
+   LETRAS VIAJERAS — Motor de Interpolación
+   =================================================== */
+.interpolator-track {
+  position: fixed; /* fixed para que sea relativo al viewport */
+  left: 50%;
+  z-index: 1000;
+  pointer-events: none;
+  transition: top var(--flip-duration) cubic-bezier(0.645, 0.045, 0.355, 1),
+              transform var(--flip-duration) cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+.letras-viajeras {
+  display: block;
+  width: 320px;
+  opacity: 0;
+  filter: blur(12px);
+  animation: introFade 0.9s ease-out 0.3s forwards;
+  transition: width var(--flip-duration) cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+@keyframes introFade {
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+/* Estado inicial: centrado en pantalla */
+.state-center {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Estado final: dentro del formulario */
+.state-form {
+  top: calc(50% - 115px); /* sube para quedar en la brand-zone */
+  transform: translate(-50%, 0);
+}
+
+.state-form .letras-viajeras {
+  width: 160px;
+}
+
+/* ===================================================
+   ANIMACIÓN DE APARICIÓN DEL FORMULARIO
+   =================================================== */
+.login-appearance {
+  opacity: 0;
+  transform: translateY(18px) scale(0.97);
+  transition: opacity 0.7s ease-out 0.7s,
+              transform 0.7s ease-out 0.7s;
+}
+
+.login-appearance.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* El registro siempre visible (sin animación intro) */
+.auth-back .login-appearance {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+/* ===================================================
+   TIPOGRAFÍA
+   =================================================== */
+.title-bold {
+  font-weight: 800 !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+  color: #111 !important;
+}
+
+.subtitle-slim {
+  color: #777 !important;
+  margin-bottom: 20px !important;
+  font-size: 0.875rem !important;
+}
+
+/* ===================================================
+   FORMULARIO
+   =================================================== */
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.password-row {
+  display: flex;
+  gap: 10px;
+}
+
+.password-row .MuiFormControl-root {
+  flex: 1;
+}
+
+/* ===================================================
+   BOTONES
+   =================================================== */
+.button-group {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ===================================================
+   RESPONSIVO
+   =================================================== */
+
+/* Tablet / Mobile grande */
+@media (max-width: 600px) {
+  .login-paper-premium {
+    padding: 30px 22px 28px;
+    border-radius: 26px !important;
+  }
+
+  .brand-zone {
+    min-height: 110px;
+  }
+
+  .logo-jaguar {
+    width: 68px;
+  }
+
+  /* Letras intro */
+  .letras-viajeras {
+    width: 230px;
+  }
+
+  .state-form .letras-viajeras {
+    width: 130px;
+  }
+
+  /* Aterrizaje un poco más arriba en móvil */
+  .state-form {
+    top: calc(50% - 120px);
+  }
+
+  /* Passwords en columna en móvil chico */
+  .password-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .button-group > button {
+    width: 100%;
+    max-width: 220px;
+  }
+}
+
+/* Mobile pequeño */
+@media (max-width: 432px) {
+  .auth-scene {
+    padding: 24px 14px;
+  }
+
+  .login-paper-premium {
+    padding: 24px 16px 22px;
+    border-radius: 22px !important;
+  }
+
+  .letras-viajeras {
+    width: 190px;
+  }
+
+  .state-form .letras-viajeras {
+    width: 115px;
+  }
+
+  .state-form {
+    top: calc(50% - 140px);
+  }
+
+  .brand-zone {
+    min-height: 95px;
+  }
+}
+
+
+
+/* Mobile pequeño */
+@media (max-width: 390px) {
+  .auth-scene {
+    padding: 24px 14px;
+  }
+
+  .login-paper-premium {
+    padding: 24px 16px 22px;
+    border-radius: 22px !important;
+  }
+
+  .letras-viajeras {
+    width: 190px;
+  }
+
+  .state-form .letras-viajeras {
+    width: 115px;
+  }
+
+  .state-form {
+    top: calc(50% - 140px);
+  }
+
+  .brand-zone {
+    min-height: 95px;
+  }
 }
