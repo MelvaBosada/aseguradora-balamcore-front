@@ -1,155 +1,245 @@
-import { Box, TextField, Typography, Paper, Snackbar, Alert } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import "../css/Login.css";
+import { Box, TextField, Typography, Paper, Snackbar, Alert, InputAdornment } from "@mui/material";
 import { useEffect, useState } from "react";
+import "../css/Login.css";
+import "../css/Register.css";
 import logo from "../assets/logo.png";
 import ButtonVerdeForm from "../components/ButtonVerdeForm";
+import StepVerification from "../components/StepVerification";
+import StepCompany from "../components/StepCompany";
 
-function Register() {
+/* ── Ícono mail ── */
+const IconMail = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <rect x="2" y="4" width="20" height="16" rx="3" />
+    <path d="M2 7l10 7 10-7" />
+  </svg>
+);
+
+/* ── Ícono check éxito ── */
+const IconCheck = () => (
+  <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="11" fill="#e8f5ee" stroke="#1a6b46" strokeWidth="1.5" />
+    <path d="M7.5 12.5l3 3 6-6" stroke="#1a6b46" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+/* ══════════════════════════════
+   STEPPER PRINCIPAL (3 pasos)
+══════════════════════════════ */
+const STEPS = ["Cuenta", "Verificación", "Empresa"];
+
+function StepperBar({ current }) {
+  return (
+    <div className="reg-stepper">
+      <div className="reg-track">
+        <div className="reg-track-fill" style={{ width: `${(current / (STEPS.length - 1)) * 100}%` }} />
+      </div>
+      {STEPS.map((label, i) => {
+        const done   = i < current;
+        const active = i === current;
+        return (
+          <div key={i} className="reg-step-item">
+            <div className={`reg-dot ${done ? "done" : ""} ${active ? "active" : ""}`}>
+              {done ? "✓" : i + 1}
+            </div>
+            <span className={`reg-step-label ${active ? "active" : done ? "done" : ""}`}>
+              {label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ══════════════════════════════
+   PASO 1 — Credenciales
+══════════════════════════════ */
+function StepCredentials({ data, onChange, onNext, onBack, fieldError }) {
+  return (
+    <div className="reg-body">
+      <Typography variant="h5" className="title-bold">Crear Cuenta</Typography>
+      <Typography variant="body2" className="subtitle-slim">
+        Ingresa tu correo y una contraseña segura
+      </Typography>
+
+      <Box className="form-stack" sx={{ mt: 1 }}>
+        <TextField
+          label="Correo electrónico"
+          name="correo"
+          fullWidth
+          margin="dense"
+          value={data.correo}
+          error={fieldError && !data.correo}
+          onChange={onChange}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start" sx={{ color: "#bbb" }}>
+                <IconMail />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <Box className="password-row">
+          <TextField
+            label="Contraseña"
+            name="password"
+            type="password"
+            fullWidth
+            margin="dense"
+            value={data.password}
+            error={fieldError && (!data.password || data.password !== data.confirmar)}
+            onChange={onChange}
+          />
+          <TextField
+            label="Repetir contraseña"
+            name="confirmar"
+            type="password"
+            fullWidth
+            margin="dense"
+            value={data.confirmar}
+            error={fieldError && data.password !== data.confirmar}
+            onChange={onChange}
+          />
+        </Box>
+      </Box>
+
+      <Box className="button-group">
+        <ButtonVerdeForm colorType="gold" onClick={onBack}>Volver</ButtonVerdeForm>
+        <ButtonVerdeForm colorType="green" onClick={onNext}>Siguiente →</ButtonVerdeForm>
+      </Box>
+    </div>
+  );
+}
+
+/* ══════════════════════════════
+   PANTALLA ÉXITO
+══════════════════════════════ */
+function StepSuccess({ onBackToLogin }) {
+  return (
+    <div className="reg-body reg-success">
+      <div className="success-check">
+        <IconCheck />
+      </div>
+      <Typography variant="h5" className="title-bold" sx={{ mt: 1.5 }}>
+        ¡Registro completado!
+      </Typography>
+      <Typography variant="body2" className="subtitle-slim" sx={{ px: 1 }}>
+        Tu cuenta y empresa fueron registradas. Un administrador revisará tu solicitud y te notificará por correo.
+      </Typography>
+      <div style={{ marginTop: 28 }}>
+        <ButtonVerdeForm colorType="green" onClick={onBackToLogin}>
+          Ir al inicio de sesión
+        </ButtonVerdeForm>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════
+   REGISTER PRINCIPAL
+══════════════════════════════ */
+function Register({ onBackToLogin }) {
+  const [step, setStep]       = useState(0);
+  const [dir, setDir]         = useState("fwd");
+  const [animKey, setAnimKey] = useState(0);
+
+  const [creds, setCreds] = useState({ correo: "", password: "", confirmar: "" });
+  const [fieldError, setFieldError] = useState(false);
+  const [snack, setSnack] = useState({ open: false, msg: "", type: "error" });
 
   useEffect(() => {
     document.body.className = "login-body";
-    return () => (document.body.className = "");
+    return () => { document.body.className = ""; };
   }, []);
 
-  const navigate = useNavigate();
-
-  //array estados
-  const [form, setForm] = useState({
-    nombre: "",
-    rfc: "",
-    correo: "",
-    password: "",
-    confirmar: ""
-  });
-
-  const [errors, setErrors] = useState({});
-  const [open, setOpen] = useState(false);
-  const [mensaje, setMensaje] = useState("");
-  const [tipoAlerta, setTipoAlerta] = useState("success");
-
-  // inputs
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const go = (nextStep, direction = "fwd") => {
+    setDir(direction);
+    setAnimKey((k) => k + 1);
+    setStep(nextStep);
+    setFieldError(false);
   };
 
-  // validaciones
-  const validar = () => {
-    let err = {};
+  const toast = (msg, type = "error") => setSnack({ open: true, msg, type });
 
-    if (!form.nombre.trim())
-      err.nombre = "Nombre obligatorio";
-
-    if (!form.rfc)
-      err.rfc = "RFC obligatorio";
-    else if (!(form.rfc.length === 12 || form.rfc.length === 13))
-      err.rfc = "RFC debe tener 12 o 13 caracteres";
-
-    if (!form.correo.includes("@"))
-      err.correo = "Correo inválido";
-
-    if (form.password.length < 5)
-      err.password = "Mínimo 5 caracteres";
-
-    if (form.password !== form.confirmar)
-      err.confirmar = "Las contraseñas no coinciden";
-
-    setErrors(err);
-    return Object.keys(err).length === 0;
-  };
-
-  //Boton que inicia la de crear cuenta
-  const handleRegister = () => {
-    if (validar()) {
-      setMensaje("Cuenta creada correctamente");
-      setTipoAlerta("success");
-      setOpen(true);
-
-      setTimeout(() => {
-        navigate("/home");
-      }, 1500);
-    } else {
-      setMensaje("La información que brindaste es erronea");
-      setTipoAlerta("error");
-      setOpen(true);
+  /* Validación paso 1 */
+  const handleStep1Next = () => {
+    if (!creds.correo || !creds.password || !creds.confirmar) {
+      setFieldError(true);
+      toast("Completa todos los campos");
+      return;
     }
+    if (!/\S+@\S+\.\S+/.test(creds.correo)) { toast("Correo inválido"); return; }
+    if (creds.password.length < 5)          { toast("Mínimo 5 caracteres"); return; }
+    if (creds.password !== creds.confirmar) { setFieldError(true); toast("Las contraseñas no coinciden"); return; }
+    go(1);
   };
+
+  const animClass = dir === "fwd" ? "step-enter-right" : "step-enter-left";
 
   return (
-    <Box className="login-container">
-      <Paper elevation={6} sx={{ padding: 5, width: 550, borderRadius: "80px", textAlign: "center" }}>
+    <div className="auth-content">
+      <div className="login-appearance visible">
+        <Paper elevation={15} className="login-paper-premium reg-paper">
 
-        <img src={logo} alt="logo" className="login-logo" />
+          {/* Logo */}
+          <div className="brand-zone reg-brand">
+            <img
+              src={logo}
+              alt="logo"
+              className="logo-jaguar reg-logo"
+            />
+          </div>
 
-        <Typography variant="h5" sx={{ fontFamily: "Anek Bangla", fontWeight: 700 }}>
-          Registro
-        </Typography>
+          {/* Stepper principal — visible en pasos 0, 1, 2 */}
+          {step < 3 && <StepperBar current={step} />}
 
-        <Typography variant="body2" sx={{ fontFamily: "Abel", mb: 3 }}>
-          Ingresa tus datos para crear una sesión
-        </Typography>
+          {/* Contenido animado */}
+          <div key={animKey} className={`step-anim ${animClass}`}>
 
-        {/* NOMBRE */}
-        <TextField label="Ingresa tu nombre completo" name="nombre"fullWidth margin="normal" size="small"
-          value={form.nombre}
-          onChange={handleChange}
-          error={!!errors.nombre}
-          helperText={errors.nombre}
-        />
+            {step === 0 && (
+              <StepCredentials
+                data={creds}
+                onChange={(e) => setCreds({ ...creds, [e.target.name]: e.target.value })}
+                onNext={handleStep1Next}
+                onBack={onBackToLogin}
+                fieldError={fieldError}
+              />
+            )}
 
-        {/* RFC */}
-        <TextField label="Ingresa tu RFC" name="rfc" fullWidth margin="normal" size="small"
-          value={form.rfc}
-          onChange={handleChange}
-          error={!!errors.rfc}
-          helperText={errors.rfc}
-        />
+            {step === 1 && (
+              <StepVerification
+                correo={creds.correo}
+                onNext={() => go(2)}
+                onBack={() => go(0, "back")}
+                mockCode="123456"
+              />
+            )}
 
-        {/* CORREO */}
-        <TextField label="Ingresa tu correo electrónico" name="correo" fullWidth margin="normal" size="small"
-          value={form.correo}
-          onChange={handleChange}
-          error={!!errors.correo}
-          helperText={errors.correo}
-        />
+            {step === 2 && (
+              <StepCompany
+                onFinish={() => go(3)}
+                onBack={() => go(1, "back")}
+              />
+            )}
 
-        {/* PASSWORD */}
-        <TextField label="Ingresa tu contraseña" name="password" type="password" fullWidth margin="normal" size="small"
-          value={form.password}
-          onChange={handleChange}
-          error={!!errors.password}
-          helperText={errors.password}
-        />
+            {step === 3 && (
+              <StepSuccess onBackToLogin={onBackToLogin} />
+            )}
 
-        {/* CONFIRMAR */}
-        <TextField label="Confirma tu contraseña" name="confirmar" type="password" fullWidth margin="normal" size="small"
-          sx={{ mb: 5 }}
-          value={form.confirmar}
-          onChange={handleChange}
-          error={!!errors.confirmar}
-          helperText={errors.confirmar}
-        />
+          </div>
+        </Paper>
+      </div>
 
-        <Box sx={{ display: "flex", justifyContent: "center" }}>
-          <ButtonVerdeForm onClick={handleRegister}>
-            Crear Cuenta
-          </ButtonVerdeForm>
-        </Box>
-
-      </Paper>
-
-      {/* ALERTAS */}
       <Snackbar
-        open={open}
+        open={snack.open}
         autoHideDuration={2500}
-        onClose={() => setOpen(false)}
+        onClose={() => setSnack({ ...snack, open: false })}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={tipoAlerta} variant="filled">
-          {mensaje}
-        </Alert>
+        <Alert severity={snack.type} variant="filled">{snack.msg}</Alert>
       </Snackbar>
-    </Box>
+    </div>
   );
 }
 

@@ -1,27 +1,50 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+
+import MenuIcon from "@mui/icons-material/Menu";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import LogoutIcon from "@mui/icons-material/Logout";
+
+import IconButton from "../IconButton";
 import "./layout.css";
 
-const Topbar = () => {
+const Topbar = ({ onToggleSidebar }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+
+  const userRef = useRef(null);
+  const notifRef = useRef(null);
+
   const navigate = useNavigate();
 
-  
-  const fechaActual = new Date().toLocaleDateString("es-MX", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  /* 👉 CERRAR AL HACER CLICK FUERA */
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        userRef.current &&
+        !userRef.current.contains(e.target) &&
+        notifRef.current &&
+        !notifRef.current.contains(e.target)
+      ) {
+        setShowUserMenu(false);
+        setShowNotifMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const toggleUserMenu = () => {
-    setShowUserMenu((prev) => !prev);
+    setShowUserMenu(!showUserMenu);
     setShowNotifMenu(false);
   };
 
   const toggleNotifMenu = () => {
-    setShowNotifMenu((prev) => !prev);
+    setShowNotifMenu(!showNotifMenu);
     setShowUserMenu(false);
   };
 
@@ -29,49 +52,85 @@ const Topbar = () => {
     navigate("/");
   };
 
+  const fechaActual = new Date().toLocaleDateString("es-MX", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <div className="topbar">
-      {/* IZQUIERDA */}
+
+      {/* LEFT */}
       <div className="topbar-left">
-        <h3>Hola bienvenido, Administrador</h3>
-        <small style={{ textTransform: "capitalize" }}>
-          {fechaActual}
-        </small>
+        <button className="menu-toggle" onClick={onToggleSidebar}>
+          <MenuIcon />
+        </button>
+
+        <div>
+          <h3>Hola bienvenido, Administrador</h3>
+          <small style={{ textTransform: "capitalize" }}>
+            {fechaActual}
+          </small>
+        </div>
       </div>
 
-      {/* DERECHA */}
+      {/* RIGHT */}
       <div className="topbar-right">
-        <div className="dropdown-container">
-          <button className="icon-button" onClick={toggleNotifMenu}>
-            🔔
-          </button>
+
+        {/* NOTIFICACIONES */}
+        <div className="dropdown-container" ref={notifRef}>
+          <IconButton
+            icon={<NotificationsIcon style={{ color: "white" }} />}
+            onClick={toggleNotifMenu}
+          />
 
           {showNotifMenu && (
             <div className="topbar-dropdown">
-              <div className="dropdown-title">Notificaciones</div>
-              <div className="dropdown-item empty">
-                No hay notificaciones
-              </div>
+              <div>No hay notificaciones</div>
             </div>
           )}
         </div>
 
-        <div className="dropdown-container">
+        {/* USUARIO */}
+        <div className="dropdown-container" ref={userRef}>
           <button className="user-button" onClick={toggleUserMenu}>
+            <AccountCircleIcon style={{ marginRight: 6 }} />
             Administrador
+            <ExpandMoreIcon
+              style={{
+                marginLeft: 4,
+                transition: "0.3s",
+                transform: showUserMenu
+                  ? "rotate(180deg)"
+                  : "rotate(0deg)",
+              }}
+            />
           </button>
 
           {showUserMenu && (
             <div className="topbar-dropdown">
-              <div className="dropdown-title">Perfil actual</div>
-              <div className="dropdown-item">Administrador</div>
-              <hr />
+              <div className="dropdown-user">
+                <div className="dropdown-avatar">
+                  <AccountCircleIcon />
+                </div>
+                <div className="dropdown-user-info">
+                  <h4>Administrador</h4>
+                  <span>Ocupación: Admin</span>
+                </div>
+              </div>
+
+              <div className="dropdown-divider"></div>
+
               <button className="logout-btn" onClick={handleLogout}>
-                Cerrar sesión
+                <LogoutIcon style={{ marginRight: 6 }} />
+                Cerrar Sesión
               </button>
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
