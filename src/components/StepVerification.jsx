@@ -112,10 +112,10 @@ function StepVerification({ correo = "", onNext, onBack, mockCode = "123456" }) 
 
       <Box className="button-group" sx={{ mt: 2 }}>
         <ButtonVerdeForm colorType="gold" onClick={onBack}>
-          ← Volver
+          Volver
         </ButtonVerdeForm>
         <ButtonVerdeForm colorType="green" onClick={handleVerify}>
-          Verificar →
+          Verificar
         </ButtonVerdeForm>
       </Box>
     </div>

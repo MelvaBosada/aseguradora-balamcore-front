@@ -1,72 +1,42 @@
-import React from "react";
-import "../css/BalamCoreModal.css"
+import "../css/BalamCoreModal.css";
 import logo from "../assets/Logo.png";
 
-function EditModal({
-  open,
-  onClose,
-  onSave,
-  editingCliente,
-  formData,
-  onChange
-}) {
+function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos, formData, onChange }) {
   if (!open) return null;
 
   return (
-    <div className="balam-overlay">
+    <div className="balam-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="balam-modal">
 
         {/* HEADER */}
         <div className="balam-header">
-          <img src={logo} alt="Logo" className="balam-logo" />
+          <img src={logo} alt="BalamCore" className="balam-logo" />
           <div>
-            <h2>
-              {editingCliente
-                ? "Editar cliente"
-                : "Agregar nuevo cliente"}
-            </h2>
-            <p>
-              {editingCliente
-                ? "Modifica los datos del cliente"
-                : "Ingresa los datos para registrar el cliente"}
-            </p>
+            <h2>{titulo}</h2>
+            <p>{subtitulo}</p>
           </div>
         </div>
 
         {/* BODY */}
         <div className="balam-body">
-          {[
-            { label: "Nombre", name: "nombre", type: "text" },
-            { label: "Apellido", name: "apellido", type: "text" },
-            { label: "Teléfono", name: "telefono", type: "text" },
-            { label: "Fecha Alta", name: "fechaAlta", type: "date" },
-            { label: "Correo", name: "correo", type: "email" },
-            { label: "CURP", name: "curp", type: "text" },
-            { label: "RFC", name: "rfc", type: "text" }
-          ].map(function (campo) {
-            return (
-              <div key={campo.name} className="balam-field">
-                <label>{campo.label}</label>
-                <input
-                  type={campo.type}
-                  name={campo.name}
-                  value={formData[campo.name] || ""}
-                  onChange={onChange}
-                  placeholder={`Ingresa ${campo.label}`}
-                />
-              </div>
-            );
-          })}
+          {campos?.map((campo) => (
+            <div key={campo.name} className="balam-field">
+              <label>{campo.label}</label>
+              <input
+                type={campo.type}
+                name={campo.name}
+                value={formData[campo.name] || ""}
+                onChange={onChange}
+                placeholder={`Ingresa ${campo.label.toLowerCase()}`}
+              />
+            </div>
+          ))}
         </div>
 
         {/* FOOTER */}
         <div className="balam-footer">
-          <button className="balam-btn cancel" onClick={onClose}>
-            Cancelar
-          </button>
-          <button className="balam-btn save" onClick={onSave}>
-            {editingCliente ? "Guardar Cambios" : "Agregar Cliente"}
-          </button>
+          <button className="balam-btn cancel" onClick={onClose}>Cancelar</button>
+          <button className="balam-btn save" onClick={onSave}>{btnTexto}</button>
         </div>
 
       </div>
