@@ -2,30 +2,24 @@ import { Box, TextField, Typography, Paper, Snackbar, Alert } from "@mui/materia
 import { useNavigate } from "react-router-dom";
 import "../css/Login.css";
 import { useEffect, useState } from "react";
-import logo from "../assets/logoSin.png";
-import Letrascolores from "../assets/LetrasColor.png";
+import logoSin    from "../assets/LogoSin.png";
+import LetrasColor from "../assets/LetrasColor.png";
 import ButtonVerdeForm from "../components/ButtonVerdeForm";
 
 function Login({ onGoToRegister }) {
   const navigate = useNavigate();
 
-  const [correo, setCorreo]   = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError]     = useState(false);
-  const [open, setOpen]       = useState(false);
-  const [mensaje, setMensaje] = useState("");
+  const [correo,      setCorreo]      = useState("");
+  const [password,    setPassword]    = useState("");
+  const [error,       setError]       = useState(false);
+  const [open,        setOpen]        = useState(false);
+  const [mensaje,     setMensaje]     = useState("");
   const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
     document.body.className = "login-body";
-
-    // Arranca la animación de las letras viajeras
     const timer = setTimeout(() => setIsAnimating(true), 1400);
-
-    return () => {
-      clearTimeout(timer);
-      document.body.className = "";
-    };
+    return () => { clearTimeout(timer); document.body.className = ""; };
   }, []);
 
   const handleLogin = () => {
@@ -51,24 +45,28 @@ function Login({ onGoToRegister }) {
   return (
     <div className="auth-content">
 
-      {/* ── Letras viajeras (fixed, por encima de todo) ── */}
+      {/* LogoSinLetras viaja desde centro hacia la brand-zone */}
       <div className={`interpolator-track ${isAnimating ? "state-form" : "state-center"}`}>
-        <img src={Letrascolores} alt="BalamCore" className="letras-viajeras" />
+        <img src={logoSin} alt="BalamCore logo" className="logo-viajero" />
       </div>
 
-      {/* ── Formulario ── */}
+      {/* Formulario */}
       <div className={`login-appearance ${isAnimating ? "visible" : ""}`}>
         <Paper elevation={15} className="login-paper-premium">
 
-          <div className="brand-zone with-letters">
-            <img src={logo} alt="logo" className="logo-jaguar" />
-            <div className="letras-target-slot" />
+          {/* Brand zone: espacio para el logo viajero + letras fijas debajo */}
+          <div className="brand-zone">
+            <div className="logo-slot" /> {/* espacio reservado para el logo viajero */}
+            <img
+              src={LetrasColor}
+              alt="BalamCore"
+              className="letras-fijas"
+            />
           </div>
 
           <Typography variant="h5" className="title-bold">
             Inicio de Sesión
           </Typography>
-
           <Typography variant="body2" className="subtitle-slim">
             Ingresa tus datos para continuar
           </Typography>
@@ -115,7 +113,6 @@ function Login({ onGoToRegister }) {
           {mensaje}
         </Alert>
       </Snackbar>
-
     </div>
   );
 }

@@ -61,7 +61,7 @@ const Sidebar = ({ open, onClose }) => {
             <NavLink to="/admin/siniestros" className="submenu-item" onClick={closeAll}>Siniestros</NavLink>
             <NavLink to="/admin/indemnizaciones" className="submenu-item" onClick={closeAll}>Indemnizaciones</NavLink>
             <NavLink to="/admin/pagos" className="submenu-item" onClick={closeAll}>Pagos</NavLink>
-            <NavLink to="/admin/solicitudesP" className="submenu-item" onClick={closeAll}>Renovaciones</NavLink>
+           
           </div>
         </div>
 
@@ -79,19 +79,21 @@ const Sidebar = ({ open, onClose }) => {
             <NavLink to="/admin/coberturas" className="submenu-item" onClick={closeAll}>Coberturas</NavLink>
             <NavLink to="/admin/evaluaciones" className="submenu-item" onClick={closeAll}>Evaluaciones</NavLink>
             <NavLink to="/admin/perfiles" className="submenu-item" onClick={closeAll}>Perfiles</NavLink>
+            <NavLink to="/admin/permisos" className="submenu-item" onClick={closeAll}>Permisos</NavLink>
           </div>
         </div>
 
         {/* REPORTES */}
         <div className="menu-section">
           <div className="menu-section-title" onClick={() => toggleMenu("reportes")}>
-            <span><BarChartIcon /> Reportes</span>
+            <span><BarChartIcon /> Reportes y Avisos</span>
             <ExpandMoreIcon className={openMenu === "reportes" ? "rotate" : ""}/>
           </div>
 
           <div className={`submenu ${openMenu === "reportes" ? "open" : ""}`}>
             <NavLink to="/admin/reportes" className="submenu-item" onClick={closeAll}>Reportes</NavLink>
             <NavLink to="/admin/polizasV" className="submenu-item" onClick={closeAll}>Pólizas por vencer</NavLink>
+             <NavLink to="/admin/solicitudesP" className="submenu-item" onClick={closeAll}>Renovaciones</NavLink>
           </div>
         </div>
 

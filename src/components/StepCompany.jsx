@@ -1,15 +1,8 @@
 import { useState } from "react";
-import { Box, TextField, Typography, InputAdornment, Snackbar, Alert } from "@mui/material";
+import { Box, TextField, Typography, Snackbar, Alert } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ButtonVerdeForm from "./ButtonVerdeForm";
 
-/* ── Íconos SVG inline ── */
-const IconBuilding = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <path d="M9 21V9h6v12M3 9h18" />
-  </svg>
-);
 const IconUpload = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -18,168 +11,15 @@ const IconUpload = () => (
   </svg>
 );
 
-/* ── Mini stepper interno ── */
-const COMPANY_STEPS = ["Identificación", "Contacto", "Perfil"];
-
-function CompanyMiniStepper({ current }) {
-  return (
-    <div className="company-mini-stepper">
-      {COMPANY_STEPS.map((label, i) => (
-        <div key={i} className="company-mini-item">
-          <div className={`company-mini-dot ${i < current ? "done" : ""} ${i === current ? "active" : ""}`}>
-            {i < current ? "✓" : i + 1}
-          </div>
-          {i < COMPANY_STEPS.length - 1 && (
-            <div className={`company-mini-line ${i < current ? "done" : ""}`} />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ── Sub-paso 1: Nombre + RFC ── */
-function SubStepIdentidad({ data, onChange, onNext, onBack, fieldError }) {
-  return (
-    <div className="reg-body">
-      <Typography variant="h5" className="title-bold">Datos de Empresa</Typography>
-
-      <Box className="form-stack" sx={{ mt: 1, textAlign: "left" }}>
-        <TextField
-          label="Nombre de empresa *"
-          name="nombre"
-          fullWidth
-          margin="dense"
-          value={data.nombre}
-          error={fieldError && !data.nombre}
-          onChange={onChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start" sx={{ color: "#bbb" }}>
-                <IconBuilding />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <TextField
-          label="RFC *"
-          name="rfc"
-          fullWidth
-          margin="dense"
-          value={data.rfc}
-          error={fieldError && !data.rfc}
-          onChange={onChange}
-          inputProps={{ style: { textTransform: "uppercase" } }}
-        />
-      </Box>
-
-      <Box className="button-group">
-        <ButtonVerdeForm colorType="gold" onClick={onBack}>← Volver</ButtonVerdeForm>
-        <ButtonVerdeForm colorType="green" onClick={onNext}>Siguiente →</ButtonVerdeForm>
-      </Box>
-    </div>
-  );
-}
-
-/* ── Sub-paso 2: Teléfono + Dirección ── */
-function SubStepContacto({ data, onChange, onNext, onBack }) {
-  return (
-    <div className="reg-body">
-      <Typography variant="h5" className="title-bold">Contacto</Typography>
-
-      <Box className="form-stack" sx={{ mt: 1, textAlign: "left" }}>
-        <TextField
-          label="Teléfono"
-          name="telefono"
-          fullWidth
-          margin="dense"
-          value={data.telefono}
-          onChange={onChange}
-          inputProps={{ inputMode: "tel" }}
-        />
-        <TextField
-          label="Dirección"
-          name="direccion"
-          margin="dense"
-          multiline
-          value={data.direccion}
-          onChange={onChange}
-          sx={{ width: "100%" }}
-        />
-      </Box>
-
-      <Box className="button-group">
-        <ButtonVerdeForm colorType="gold" onClick={onBack}>← Volver</ButtonVerdeForm>
-        <ButtonVerdeForm colorType="green" onClick={onNext}>Siguiente →</ButtonVerdeForm>
-      </Box>
-    </div>
-  );
-}
-
-/* ── Sub-paso 3: Logo ── */
-function SubStepPerfil({ onLogoChange, logoPreview, onSubmit, onBack }) {
-  return (
-    <div className="reg-body">
-      <Typography variant="h5" className="title-bold">Perfil de Empresa</Typography>
-
-      <Box className="form-stack" sx={{ mt: 1, textAlign: "left" }}>
-        <div className="logo-upload-zone">
-          <input
-            id="logo-input"
-            type="file"
-            accept="image/*"
-            style={{ display: "none" }}
-            onChange={onLogoChange}
-          />
-          <label htmlFor="logo-input" className="logo-upload-label">
-            {logoPreview ? (
-              <>
-                <img src={logoPreview} alt="logo empresa" className="logo-preview-img" />
-                <span className="upload-hint" style={{ marginTop: 6 }}>Clic para cambiar</span>
-              </>
-            ) : (
-              <>
-                <span className="upload-icon-wrap"><IconUpload /></span>
-                <span className="upload-text">Subir logo de empresa</span>
-                <span className="upload-hint">PNG, JPG · máx 2MB · opcional</span>
-              </>
-            )}
-          </label>
-        </div>
-      </Box>
-
-      <Box className="button-group">
-        <ButtonVerdeForm colorType="gold" onClick={onBack}>Volver</ButtonVerdeForm>
-        <ButtonVerdeForm colorType="green" onClick={onSubmit}>Finalizar</ButtonVerdeForm>
-      </Box>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════
-   COMPONENTE PRINCIPAL — StepCompany
-══════════════════════════════════════════════════ */
 function StepCompany({ onFinish, onBack }) {
   const navigate = useNavigate();
 
-  const [subStep, setSubStep]       = useState(0);
-  const [animKey, setAnimKey]       = useState(0);
-  const [dir, setDir]               = useState("fwd");
-  const [fieldError, setFieldError] = useState(false);
-  const [snackOpen, setSnackOpen]   = useState(false);
-
   const [data, setData] = useState({
-    nombre: "", rfc: "",
-    telefono: "", direccion: "",
+    nombre: "", rfc: "", telefono: "", direccion: "",
   });
   const [logoPreview, setLogoPreview] = useState(null);
-
-  const go = (next, direction = "fwd") => {
-    setDir(direction);
-    setAnimKey((k) => k + 1);
-    setSubStep(next);
-    setFieldError(false);
-  };
+  const [fieldError,  setFieldError]  = useState(false);
+  const [snackOpen,   setSnackOpen]   = useState(false);
 
   const handleChange = (e) => {
     setData({ ...data, [e.target.name]: e.target.value });
@@ -191,53 +31,116 @@ function StepCompany({ onFinish, onBack }) {
     if (f) setLogoPreview(URL.createObjectURL(f));
   };
 
-  const handleStep0Next = () => {
+  const handleSubmit = () => {
     if (!data.nombre || !data.rfc) { setFieldError(true); return; }
-    go(1);
-  };
-
-  /* ── Finalizar: muestra snackbar y redirige a /admin ── */
-  const handleStep2Submit = () => {
-    if (onFinish) onFinish(data, logoPreview); // por si el padre quiere hacer algo
+    if (onFinish) onFinish(data, logoPreview);
     setSnackOpen(true);
-    setTimeout(() => navigate("/admin"), 4000);
+    setTimeout(() => navigate("/"), 4000);
   };
-
-  const animClass = dir === "fwd" ? "step-enter-right" : "step-enter-left";
 
   return (
-    <div>
-      <CompanyMiniStepper current={subStep} />
+    <>
+      {/* ── Overlay que agranda el modal cuando llega a este paso ── */}
+      <style>{`
+        .reg-paper {
+          max-width: 680px !important;
+          width: 100% !important;
+          transition: max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @media (max-width: 720px) {
+          .reg-paper { max-width: 100% !important; }
+        }
+      `}</style>
 
-      <div key={animKey} className={`step-anim ${animClass}`}>
-        {subStep === 0 && (
-          <SubStepIdentidad
-            data={data}
-            onChange={handleChange}
-            onNext={handleStep0Next}
-            onBack={onBack}
-            fieldError={fieldError}
-          />
-        )}
-        {subStep === 1 && (
-          <SubStepContacto
-            data={data}
-            onChange={handleChange}
-            onNext={() => go(2)}
-            onBack={() => go(0, "back")}
-          />
-        )}
-        {subStep === 2 && (
-          <SubStepPerfil
-            onLogoChange={handleLogoChange}
-            logoPreview={logoPreview}
-            onSubmit={handleStep2Submit}
-            onBack={() => go(1, "back")}
-          />
-        )}
+      <div className="reg-body" >
+        <Typography variant="h5" className="title-bold">
+          Datos de Empresa
+        </Typography>
+        <Typography variant="body2" className="subtitle-slim">
+          Ingresa la información de tu empresa para finalizar
+        </Typography>
+
+        <Box sx={{ mt: 1, textAlign: "left" }}>
+
+          {/* Fila 1: Nombre + RFC */}
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: { xs: "wrap", sm: "nowrap" } }}>
+            <TextField
+              label="Nombre de empresa *"
+              name="nombre"
+              fullWidth
+              margin="dense"
+              value={data.nombre}
+              error={fieldError && !data.nombre}
+              helperText={fieldError && !data.nombre ? "Campo requerido" : ""}
+              onChange={handleChange}
+            />
+            <TextField
+              label="RFC *"
+              name="rfc"
+              fullWidth
+              margin="dense"
+              value={data.rfc}
+              error={fieldError && !data.rfc}
+              helperText={fieldError && !data.rfc ? "Campo requerido" : ""}
+              onChange={handleChange}
+              inputProps={{ style: { textTransform: "uppercase" } }}
+            />
+          </Box>
+
+          {/* Fila 2: Teléfono + Dirección */}
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: { xs: "wrap", sm: "nowrap" } }}>
+            <TextField
+              label="Teléfono"
+              name="telefono"
+              fullWidth
+              margin="dense"
+              value={data.telefono}
+              onChange={handleChange}
+              inputProps={{ inputMode: "tel" }}
+            />
+            <TextField
+              label="Dirección"
+              name="direccion"
+              fullWidth
+              margin="dense"
+              value={data.direccion}
+              onChange={handleChange}
+            />
+          </Box>
+
+          {/* Upload logo */}
+          <div className="logo-upload-zone" style={{ marginTop: 10 }}>
+            <input
+              id="logo-input"
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={handleLogoChange}
+            />
+            <label htmlFor="logo-input" className="logo-upload-label">
+              {logoPreview ? (
+                <>
+                  <img src={logoPreview} alt="logo empresa" className="logo-preview-img" />
+                  <span className="upload-hint" style={{ marginTop: 6 }}>Clic para cambiar</span>
+                </>
+              ) : (
+                <>
+                  <span className="upload-icon-wrap"><IconUpload /></span>
+                  <span className="upload-text">Subir logo de empresa</span>
+                  <span className="upload-hint">PNG, JPG · máx 2MB · opcional</span>
+                </>
+              )}
+            </label>
+          </div>
+
+        </Box>
+
+        <Box className="button-group">
+          <ButtonVerdeForm colorType="gold"  onClick={onBack}>Volver</ButtonVerdeForm>
+          <ButtonVerdeForm colorType="green" onClick={handleSubmit}>Finalizar</ButtonVerdeForm>
+        </Box>
       </div>
 
-      {/* Snackbar de éxito */}
       <Snackbar
         open={snackOpen}
         autoHideDuration={1500}
@@ -245,10 +148,10 @@ function StepCompany({ onFinish, onBack }) {
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert severity="success" variant="filled" sx={{ fontWeight: 600 }}>
-          ✓ ¡Cuenta creada correctamente!
+          ¡Cuenta creada correctamente!
         </Alert>
       </Snackbar>
-    </div>
+    </>
   );
 }
 

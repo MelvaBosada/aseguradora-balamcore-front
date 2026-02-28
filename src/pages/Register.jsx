@@ -7,7 +7,6 @@ import ButtonVerdeForm from "../components/ButtonVerdeForm";
 import StepVerification from "../components/StepVerification";
 import StepCompany from "../components/StepCompany";
 
-/* ── Ícono mail ── */
 const IconMail = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
     <rect x="2" y="4" width="20" height="16" rx="3" />
@@ -15,7 +14,6 @@ const IconMail = () => (
   </svg>
 );
 
-/* ── Ícono check éxito ── */
 const IconCheck = () => (
   <svg width="56" height="56" viewBox="0 0 24 24" fill="none">
     <circle cx="12" cy="12" r="11" fill="#e8f5ee" stroke="#1a6b46" strokeWidth="1.5" />
@@ -23,9 +21,6 @@ const IconCheck = () => (
   </svg>
 );
 
-/* ══════════════════════════════
-   STEPPER PRINCIPAL (3 pasos)
-══════════════════════════════ */
 const STEPS = ["Cuenta", "Verificación", "Empresa"];
 
 function StepperBar({ current }) {
@@ -52,9 +47,6 @@ function StepperBar({ current }) {
   );
 }
 
-/* ══════════════════════════════
-   PASO 1 — Credenciales
-══════════════════════════════ */
 function StepCredentials({ data, onChange, onNext, onBack, fieldError }) {
   return (
     <div className="reg-body">
@@ -62,91 +54,50 @@ function StepCredentials({ data, onChange, onNext, onBack, fieldError }) {
       <Typography variant="body2" className="subtitle-slim">
         Ingresa tu correo y una contraseña segura
       </Typography>
-
       <Box className="form-stack" sx={{ mt: 1 }}>
         <TextField
-          label="Correo electrónico"
-          name="correo"
-          fullWidth
-          margin="dense"
-          value={data.correo}
-          error={fieldError && !data.correo}
-          onChange={onChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start" sx={{ color: "#bbb" }}>
-                <IconMail />
-              </InputAdornment>
-            ),
-          }}
+          label="Correo electrónico" name="correo" fullWidth margin="dense"
+          value={data.correo} error={fieldError && !data.correo} onChange={onChange}
+          InputProps={{ startAdornment: <InputAdornment position="start" sx={{ color: "#bbb" }}><IconMail /></InputAdornment> }}
         />
         <Box className="password-row">
-          <TextField
-            label="Contraseña"
-            name="password"
-            type="password"
-            fullWidth
-            margin="dense"
-            value={data.password}
-            error={fieldError && (!data.password || data.password !== data.confirmar)}
-            onChange={onChange}
-          />
-          <TextField
-            label="Repetir contraseña"
-            name="confirmar"
-            type="password"
-            fullWidth
-            margin="dense"
-            value={data.confirmar}
-            error={fieldError && data.password !== data.confirmar}
-            onChange={onChange}
-          />
+          <TextField label="Contraseña" name="password" type="password" fullWidth margin="dense"
+            value={data.password} error={fieldError && (!data.password || data.password !== data.confirmar)} onChange={onChange} />
+          <TextField label="Repetir contraseña" name="confirmar" type="password" fullWidth margin="dense"
+            value={data.confirmar} error={fieldError && data.password !== data.confirmar} onChange={onChange} />
         </Box>
       </Box>
-
       <Box className="button-group">
-        <ButtonVerdeForm colorType="gold" onClick={onBack}>Volver</ButtonVerdeForm>
-        <ButtonVerdeForm colorType="green" onClick={onNext}>Siguiente →</ButtonVerdeForm>
+        <ButtonVerdeForm colorType="gold"  onClick={onBack}>Volver</ButtonVerdeForm>
+        <ButtonVerdeForm colorType="green" onClick={onNext}>Siguiente</ButtonVerdeForm>
       </Box>
     </div>
   );
 }
 
-/* ══════════════════════════════
-   PANTALLA ÉXITO
-══════════════════════════════ */
 function StepSuccess({ onBackToLogin }) {
   return (
     <div className="reg-body reg-success">
-      <div className="success-check">
-        <IconCheck />
-      </div>
-      <Typography variant="h5" className="title-bold" sx={{ mt: 1.5 }}>
-        ¡Registro completado!
-      </Typography>
+      <div className="success-check"><IconCheck /></div>
+      <Typography variant="h5" className="title-bold" sx={{ mt: 1.5 }}>¡Registro completado!</Typography>
       <Typography variant="body2" className="subtitle-slim" sx={{ px: 1 }}>
         Tu cuenta y empresa fueron registradas. Un administrador revisará tu solicitud y te notificará por correo.
       </Typography>
       <div style={{ marginTop: 28 }}>
-        <ButtonVerdeForm colorType="green" onClick={onBackToLogin}>
-          Ir al inicio de sesión
-        </ButtonVerdeForm>
+        <ButtonVerdeForm colorType="green" onClick={onBackToLogin}>Ir al inicio de sesión</ButtonVerdeForm>
       </div>
     </div>
   );
 }
 
-/* ══════════════════════════════
-   REGISTER PRINCIPAL
-══════════════════════════════ */
-function Register({ onBackToLogin }) {
-  const [step, setStep]       = useState(0);
-  const [dir, setDir]         = useState("fwd");
-  const [animKey, setAnimKey] = useState(0);
-
-  const [creds, setCreds] = useState({ correo: "", password: "", confirmar: "" });
+/* ── REGISTER PRINCIPAL ── */
+function Register({ onBackToLogin, onStepChange }) {
+  const [step,       setStep]       = useState(0);
+  const [dir,        setDir]        = useState("fwd");
+  const [animKey,    setAnimKey]    = useState(0);
+  const [creds,      setCreds]      = useState({ correo: "", password: "", confirmar: "" });
   const [fieldError, setFieldError] = useState(false);
-  const [snack, setSnack] = useState({ open: false, msg: "", type: "error" });
+  const [snack,      setSnack]      = useState({ open: false, msg: "", type: "error" });
 
   useEffect(() => {
     document.body.className = "login-body";
@@ -158,20 +109,16 @@ function Register({ onBackToLogin }) {
     setAnimKey((k) => k + 1);
     setStep(nextStep);
     setFieldError(false);
+    onStepChange?.(nextStep); // notifica al padre para agrandar el card
   };
 
   const toast = (msg, type = "error") => setSnack({ open: true, msg, type });
 
-  /* Validación paso 1 */
-  const handleStep1Next = () => {
-    if (!creds.correo || !creds.password || !creds.confirmar) {
-      setFieldError(true);
-      toast("Completa todos los campos");
-      return;
-    }
+  const handleStep0Next = () => {
+    if (!creds.correo || !creds.password || !creds.confirmar) { setFieldError(true); toast("Completa todos los campos"); return; }
     if (!/\S+@\S+\.\S+/.test(creds.correo)) { toast("Correo inválido"); return; }
-    if (creds.password.length < 5)          { toast("Mínimo 5 caracteres"); return; }
-    if (creds.password !== creds.confirmar) { setFieldError(true); toast("Las contraseñas no coinciden"); return; }
+    if (creds.password.length < 5)           { toast("Mínimo 5 caracteres"); return; }
+    if (creds.password !== creds.confirmar)  { setFieldError(true); toast("Las contraseñas no coinciden"); return; }
     go(1);
   };
 
@@ -182,61 +129,37 @@ function Register({ onBackToLogin }) {
       <div className="login-appearance visible">
         <Paper elevation={15} className="login-paper-premium reg-paper">
 
-          {/* Logo */}
-          <div className="brand-zone reg-brand">
-            <img
-              src={logo}
-              alt="logo"
-              className="logo-jaguar reg-logo"
-            />
+          <div className="reg-brand" style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+            <img src={logo} alt="logo" className="logo-jaguar reg-logo" />
           </div>
 
-          {/* Stepper principal — visible en pasos 0, 1, 2 */}
           {step < 3 && <StepperBar current={step} />}
 
-          {/* Contenido animado */}
           <div key={animKey} className={`step-anim ${animClass}`}>
-
             {step === 0 && (
               <StepCredentials
                 data={creds}
                 onChange={(e) => setCreds({ ...creds, [e.target.name]: e.target.value })}
-                onNext={handleStep1Next}
+                onNext={handleStep0Next}
                 onBack={onBackToLogin}
                 fieldError={fieldError}
               />
             )}
-
             {step === 1 && (
-              <StepVerification
-                correo={creds.correo}
-                onNext={() => go(2)}
-                onBack={() => go(0, "back")}
-                mockCode="123456"
-              />
+              <StepVerification correo={creds.correo} onNext={() => go(2)} onBack={() => go(0, "back")} mockCode="123456" />
             )}
-
             {step === 2 && (
-              <StepCompany
-                onFinish={() => go(3)}
-                onBack={() => go(1, "back")}
-              />
+              <StepCompany onFinish={() => go(3)} onBack={() => go(1, "back")} />
             )}
-
             {step === 3 && (
               <StepSuccess onBackToLogin={onBackToLogin} />
             )}
-
           </div>
+
         </Paper>
       </div>
 
-      <Snackbar
-        open={snack.open}
-        autoHideDuration={2500}
-        onClose={() => setSnack({ ...snack, open: false })}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
+      <Snackbar open={snack.open} autoHideDuration={2500} onClose={() => setSnack({ ...snack, open: false })} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
         <Alert severity={snack.type} variant="filled">{snack.msg}</Alert>
       </Snackbar>
     </div>

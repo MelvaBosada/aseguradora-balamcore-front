@@ -1,9 +1,11 @@
 import Table from 'react-bootstrap/Table';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import IconButton from "./IconButton";
+import "../css/TablaForm.css";
 
-function TablaForm({ columna, data, campos, onEditar, onEliminar }) {
+function TablaForm({ columna, data, campos, acciones }) {
   return (
     <Table striped bordered hover responsive>
       <thead>
@@ -18,25 +20,23 @@ function TablaForm({ columna, data, campos, onEditar, onEliminar }) {
         {data.map((fila, index) => (
           <tr key={fila.id || index}>
 
-            {/* SOLO LOS CAMPOS QUE QUIERES */}
             {campos.map((campo, i) => (
               <td key={i}>{fila[campo]}</td>
             ))}
 
-            {/* ACCIONES */}
-            <td>
-              <IconButton
-                icon={<EditIcon />}
-                onClick={() => onEditar(fila)}
-                title="Editar"
-              />
-
-              <IconButton
-                icon={<DeleteIcon />}
-                onClick={() => onEliminar(fila)}
-                title="Eliminar"
-                hover="#8B1E1E"
-              />
+          <td style={{ textAlign: "center" }}>
+  <div className="tabla-acciones">
+    {acciones && acciones.map((accion, i) => (
+      <button
+        key={i}
+        className={`tabla-btn ${accion.clase}`}
+        title={accion.titulo}
+        onClick={() => accion.onClick(fila)}
+      >
+        {accion.icono}
+      </button>
+    ))}
+  </div>
             </td>
 
           </tr>

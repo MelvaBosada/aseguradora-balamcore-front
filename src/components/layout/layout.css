@@ -9,6 +9,8 @@
   --text-light: #6c757d;
   --border-soft: #e5e7eb;
   --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --sidebar-width: 270px;
+  --topbar-height: 70px;
 }
 
 /* ================= RESET ================= */
@@ -35,7 +37,7 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  width: 270px;
+  width: var(--sidebar-width);
   height: 100vh;
   background: var(--bg-sidebar);
   padding: 25px 18px;
@@ -44,6 +46,7 @@ body {
   overflow-x: hidden;
   z-index: 1200;
   box-shadow: 4px 0 25px rgba(0, 0, 0, 0.06);
+  transition: left 0.3s ease;
 }
 
 /* ===== LOGO ===== */
@@ -54,7 +57,6 @@ body {
   margin-bottom: 30px;
 }
 
-/*  LOGO MAS GRANDE */
 .logo-icon {
   width: 65px;
   height: auto;
@@ -62,13 +64,13 @@ body {
 }
 
 .logo-text {
-  width: 150px;
+  width: 600px;
   height: auto;
   object-fit: contain;
 }
 
 .logo img {
-  max-width: 100%;
+  max-width: 220%;
   height: auto;
   display: block;
 }
@@ -158,20 +160,21 @@ body {
   font-size: 18px;
   min-width: 18px;
 }
+
 /* ================= MAIN ================= */
 .main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  margin-left: 270px;
-  /* para que no tape el sidebar */
+  margin-left: var(--sidebar-width);
   height: 100vh;
   overflow: hidden;
+  transition: margin-left 0.3s ease;
 }
 
 /* ================= TOPBAR ================= */
 .topbar {
-  height: 70px;
+  height: var(--topbar-height);
   background: linear-gradient(90deg, #041E17, #08251d);
   color: white;
   display: flex;
@@ -247,6 +250,7 @@ body {
   padding: 18px;
   color: white;
   animation: fadeIn 0.25s ease;
+  z-index: 1400;
 }
 
 .dropdown-user {
@@ -308,7 +312,6 @@ body {
   padding: 22px;
   flex: 1;
   overflow-y: auto;
-  /*  scroll solo aquí */
 }
 
 /* ================= OVERLAY ================= */
@@ -327,11 +330,23 @@ body {
   pointer-events: auto;
 }
 
-/* ================= RESPONSIVE ================= */
-@media (max-width: 1024px) {
+/* ================= ANIMACION ================= */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
+/* ================= RESPONSIVE — TABLET (≤ 1024px) ================= */
+/* El sidebar se esconde y aparece el botón hamburguesa */
+@media (max-width: 1024px) {
   .sidebar {
-    left: -270px;
+    left: calc(-1 * var(--sidebar-width));
   }
 
   .sidebar.open {
@@ -347,12 +362,38 @@ body {
   }
 }
 
-/* ================= CELULAR ================= */
+/* ================= RESPONSIVE — MÓVIL (≤ 600px) ================= */
 @media (max-width: 600px) {
-
+  /* Sidebar empieza debajo del topbar para no tapar la barra */
   .sidebar {
-    top: 70px;                     /* empieza debajo del topbar */
-    height: calc(100vh - 70px);    /* que no se salga */
+    top: var(--topbar-height);
+    height: calc(100vh - var(--topbar-height));
+  }
+
+  /* El overlay también respeta el topbar */
+  .sidebar-overlay {
+    top: var(--topbar-height);
+  }
+
+  .topbar {
+    padding: 0 14px;
+  }
+
+  .topbar-left h3 {
+    font-size: 15px;
+  }
+
+  .topbar-left small {
+    font-size: 11px;
+  }
+
+  /* El dropdown se ancla al ancho de pantalla en lugar de flotar */
+  .topbar-dropdown {
+    position: fixed;
+    right: 12px;
+    left: 12px;
+    top: calc(var(--topbar-height) + 8px);
+    width: auto;
   }
 
   .logo-icon {
@@ -360,27 +401,20 @@ body {
   }
 
   .logo-text {
-    width: 170px;
+    width: 130px;
   }
+  
+}
 
-  .topbar {
-    padding: 0 14px;
+/* ================= RESPONSIVE — MUY PEQUEÑO (≤ 400px) ================= */
+@media (max-width: 400px) {
+  /* Ocultar la fecha para no reventar el topbar */
+  .topbar-left small {
+    display: none;
   }
 
   .user-button {
+    padding: 7px 10px;
     font-size: 13px;
-  }
-}
-
-/* ================= ANIMACION ================= */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }

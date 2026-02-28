@@ -97,7 +97,6 @@ const Topbar = ({ onToggleSidebar }) => {
         <div className="dropdown-container" ref={userRef}>
           <button className="user-button" onClick={toggleUserMenu}>
             <AccountCircleIcon style={{ marginRight: 6 }} />
-            Administrador
             <ExpandMoreIcon
               style={{
                 marginLeft: 4,
@@ -117,7 +116,7 @@ const Topbar = ({ onToggleSidebar }) => {
                 </div>
                 <div className="dropdown-user-info">
                   <h4>Administrador</h4>
-                  <span>Ocupación: Admin</span>
+                  <span>Ocupación: Recursos Humanos</span>
                 </div>
               </div>
 
