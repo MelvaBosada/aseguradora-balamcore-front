@@ -1,7 +1,11 @@
-// components/TablaForm.jsx
 import Table from 'react-bootstrap/Table';
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import IconButton from "./IconButton";
+import "../css/TablaForm.css";
 
-function TablaForm({columna, data, onEditar, onEliminar}) {
+function TablaForm({ columna, data, campos, acciones }) {
   return (
     <Table striped bordered hover responsive>
       <thead>
@@ -11,39 +15,37 @@ function TablaForm({columna, data, onEditar, onEliminar}) {
           ))}
         </tr>
       </thead>
+
       <tbody>
         {data.map((fila, index) => (
           <tr key={fila.id || index}>
-            {Object.keys(columna).map((key, i) => {
-              // Mapeamos las propiedades del objeto a las celdas
-              if (i < columna.length - 1) { // Última columna es Acciones
-                const propiedad = Object.keys(fila)[i];
-                return <td key={i}>{fila[propiedad]}</td>;
-              }
-              return null;
-            })}
-            <td key="acciones">
-              <button 
-                className="btn btn-link p-0 me-2 text-decoration-none text-dark"
-                onClick={() => onEditar(fila)}
-                title="Editar"
-              >
-                ✏️
-              </button>
-              <button 
-                className="btn btn-link p-0 text-decoration-none text-dark"
-                onClick={() => onEliminar(fila)}
-                title="Eliminar"
-              >
-                🗑️
-              </button>
+
+            {campos.map((campo, i) => (
+              <td key={i}>{fila[campo]}</td>
+            ))}
+
+          <td style={{ textAlign: "center" }}>
+  <div className="tabla-acciones">
+    {acciones && acciones.map((accion, i) => (
+      <button
+        key={i}
+        className={`tabla-btn ${accion.clase}`}
+        title={accion.titulo}
+        onClick={() => accion.onClick(fila)}
+      >
+        {accion.icono}
+      </button>
+    ))}
+  </div>
             </td>
+
           </tr>
         ))}
+
         {data.length === 0 && (
           <tr>
             <td colSpan={columna.length} className="text-center py-3">
-              No se encontro a nadie
+              No se encontró a nadie
             </td>
           </tr>
         )}

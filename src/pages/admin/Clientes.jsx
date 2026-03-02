@@ -1,111 +1,78 @@
 import { useState } from 'react';
-import '../../css/Clientes.css'; 
-import logo from "../../assets/Logo.png";
-import TablaForm from '../../components/TablaForm'; // Ajusta la ruta según tu estructura
+import '../../css/Clientes.css';
+
+import AddIcon        from "@mui/icons-material/Add";
+import EditIcon       from "@mui/icons-material/Edit";
+import DeleteIcon     from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import SearchIcon     from "@mui/icons-material/Search";
+import PersonIcon     from "@mui/icons-material/Person";
+import PhoneIcon      from "@mui/icons-material/Phone";
+import EmailIcon      from "@mui/icons-material/Email";
+import HomeIcon       from "@mui/icons-material/Home";
+import BadgeIcon      from "@mui/icons-material/Badge";
+
+import PrimaryButton       from "../../components/PrimaryButton";
+import TablaForm           from "../../components/TablaForm";
+import ConfirmDeleteModal  from "../../components/ConfirmDeleteModal";
+import EditModal           from "../../components/EditModal";
+import ClienteDetalleModal from "../../components/ClienteDetalleModal";
+import Paginacion          from "../../components/Paginacion";
+
+const ITEMS_PER_PAGE = 8;
+
+const campos   = ["nombre", "apellido", "telefono", "rfc", "correo"];
+const columnas = ["Nombre", "Apellido", "Teléfono", "RFC", "Correo", "Acciones"];
+
+// Campos del formulario — se pasan al EditModal genérico
+const FORM_CAMPOS = [
+  { label: "Nombre",     name: "nombre",    type: "text"  },
+  { label: "Apellido",   name: "apellido",  type: "text"  },
+  { label: "Teléfono",   name: "telefono",  type: "text"  },
+  { label: "Fecha Alta", name: "fechaAlta", type: "date"  },
+  { label: "Correo",     name: "correo",    type: "email" },
+  { label: "Domicilio",  name: "domicilio", type: "text"  },
+  { label: "CURP",       name: "curp",      type: "text"  },
+  { label: "RFC",        name: "rfc",       type: "text"  },
+];
+
+const FORM_VACIO = { nombre: "", apellido: "", telefono: "", curp: "", rfc: "", domicilio: "", correo: "", fechaAlta: "" };
 
 const Clientes = () => {
   const [clientes, setClientes] = useState([
-    {
-      id: 1,
-      nombre: "Maria",
-      apellido: "Mendez",
-      telefono: "9993456789",
-      curp: "SIE884FGHTI59R3G",
-      rfc: "4DFGT3456JGF",
-      domicilio: "Calle 50",
-      correo: "ejemplo@gmail.com"
-    },
-    {
-      id: 2,
-      nombre: "Juan Carlos",
-      apellido: "Gonzales",
-      telefono: "8994567812",
-      curp: "DHFG5678ORE34RD",
-      rfc: "SGD5651100IUU",
-      domicilio: "Calle 90",
-      correo: "ejemplo@gmail.com"
-    },
-    {
-      id: 3,
-      nombre: "Jacob M.",
-      apellido: "Mendoza",
-      telefono: "9993456789",
-      curp: "UY4S322FGHT9670K",
-      rfc: "ILIT5411034",
-      domicilio: "Avenida",
-      correo: "ejemplo@gmail.com"
-    },
-    {
-      id: 4,
-      nombre: "Miguel",
-      apellido: "Torres",
-      telefono: "9993459876",
-      curp: "SDG3456JGHC3456",
-      rfc: "JF5673112DCS",
-      domicilio: "Circuito",
-      correo: "ejemplo@gmail.com"
-    },
-    {
-      id: 5,
-      nombre: "Angel",
-      apellido: "Torres",
-      telefono: "9990340567",
-      curp: "SDG456FKH789WSDF",
-      rfc: "DFS234519076",
-      domicilio: "Calle 50",
-      correo: "ejemplo@gmail.com"
-    }
+    { id: 1,  nombre: "Maria",       apellido: "Mendez",   telefono: "9993456789", curp: "SIE884FGHTI59R3G",  rfc: "4DFGT3456JGF",  domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
+    { id: 2,  nombre: "Juan Carlos", apellido: "Gonzales", telefono: "8994567812", curp: "DHFG5678ORE34RD",   rfc: "SGD5651100IUU", domicilio: "Calle 90", correo: "ejemplo@gmail.com" },
+    { id: 3,  nombre: "Jacob M.",    apellido: "Mendoza",  telefono: "9993456789", curp: "UY4S322FGHT9670K",  rfc: "ILIT5411034",   domicilio: "Avenida",  correo: "ejemplo@gmail.com" },
+    { id: 4,  nombre: "Miguel",      apellido: "Torres",   telefono: "9993459876", curp: "SDG3456JGHC3456",   rfc: "JF5673112DCS",  domicilio: "Circuito", correo: "ejemplo@gmail.com" },
+    { id: 5,  nombre: "Angel",       apellido: "Torres",   telefono: "9990340567", curp: "SDG456FKH789WSDF",  rfc: "DFS234519076",  domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
+    { id: 6,  nombre: "Maria",       apellido: "Mendez",   telefono: "9993456789", curp: "SIE884FGHTI59R3G",  rfc: "4DFGT3456JGF",  domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
+    { id: 7,  nombre: "Juan Carlos", apellido: "Gonzales", telefono: "8994567812", curp: "DHFG5678ORE34RD",   rfc: "SGD5651100IUU", domicilio: "Calle 90", correo: "ejemplo@gmail.com" },
+    { id: 8,  nombre: "Jacob M.",    apellido: "Mendoza",  telefono: "9993456789", curp: "UY4S322FGHT9670K",  rfc: "ILIT5411034",   domicilio: "Avenida",  correo: "ejemplo@gmail.com" },
+    { id: 9,  nombre: "Miguel",      apellido: "Torres",   telefono: "9993459876", curp: "SDG3456JGHC3456",   rfc: "JF5673112DCS",  domicilio: "Circuito", correo: "ejemplo@gmail.com" },
+    { id: 10, nombre: "Angel",       apellido: "Torres",   telefono: "9990340567", curp: "SDG456FKH789WSDF",  rfc: "DFS234519076",  domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
+    { id: 11, nombre: "Angel",       apellido: "Torres",   telefono: "9990340567", curp: "SDG456FKH789WSDF",  rfc: "DFS234519076",  domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
+    { id: 12, nombre: "Maria",       apellido: "Mendez",   telefono: "9993456789", curp: "SIE884FGHTI59R3G",  rfc: "4DFGT3456JGF",  domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
+    { id: 13, nombre: "Juan Carlos", apellido: "Gonzales", telefono: "8994567812", curp: "DHFG5678ORE34RD",   rfc: "SGD5651100IUU", domicilio: "Calle 90", correo: "ejemplo@gmail.com" },
+    { id: 14, nombre: "Jacob M.",    apellido: "Mendoza",  telefono: "9993456789", curp: "UY4S322FGHT9670K",  rfc: "ILIT5411034",   domicilio: "Avenida",  correo: "ejemplo@gmail.com" },
+    { id: 15, nombre: "Miguel",      apellido: "Torres",   telefono: "9993459876", curp: "SDG3456JGHC3456",   rfc: "JF5673112DCS",  domicilio: "Circuito", correo: "ejemplo@gmail.com" },
+    { id: 16, nombre: "Angel",       apellido: "Torres",   telefono: "9990340567", curp: "SDG456FKH789WSDF",  rfc: "DFS234519076",  domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
   ]);
 
-  // Definimos las columnas como un array
-  const columnas = [
-    "ID",
-    "Nombre",
-    "Apellido",
-    "Teléfono",
-    "CURP",
-    "RFC",
-    "Domicilio",
-    "Correo",
-    "Acciones"
-  ];
+  const [showModal,        setShowModal]        = useState(false);
+  const [showDeleteModal,  setShowDeleteModal]  = useState(false);
+  const [showDetalleModal, setShowDetalleModal] = useState(false);
+  const [clienteToDelete,  setClienteToDelete]  = useState(null);
+  const [clienteDetalle,   setClienteDetalle]   = useState(null);
+  const [editingCliente,   setEditingCliente]   = useState(null);
+  const [searchTerm,       setSearchTerm]       = useState("");
+  const [currentPage,      setCurrentPage]      = useState(1);
+  const [formData,         setFormData]         = useState(FORM_VACIO);
 
-  const [showModal, setShowModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [clienteToDelete, setClienteToDelete] = useState(null);
-  const [editingCliente, setEditingCliente] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [formData, setFormData] = useState({
-    nombre: '',
-    apellido: '',
-    telefono: '',
-    curp: '',
-    rfc: '',
-    domicilio: '',
-    correo: '',
-    fechaAlta: ''
-  });
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
+  const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleNuevoCliente = () => {
     setEditingCliente(null);
-    setFormData({
-      nombre: '',
-      apellido: '',
-      telefono: '',
-      curp: '',
-      rfc: '',
-      domicilio: '',
-      correo: '',
-      fechaAlta: ''
-    });
+    setFormData(FORM_VACIO);
     setShowModal(true);
   };
 
@@ -117,9 +84,7 @@ const Clientes = () => {
 
   const handleGuardar = () => {
     if (editingCliente) {
-      setClientes(clientes.map(c => 
-        c.id === editingCliente.id ? { ...formData, id: editingCliente.id } : c
-      ));
+      setClientes(clientes.map(c => c.id === editingCliente.id ? { ...formData, id: editingCliente.id } : c));
     } else {
       const newId = Math.max(...clientes.map(c => c.id), 0) + 1;
       setClientes([...clientes, { ...formData, id: newId }]);
@@ -127,11 +92,7 @@ const Clientes = () => {
     setShowModal(false);
   };
 
-  const handleEliminarClick = (cliente) => {
-    setClienteToDelete(cliente);
-    setShowDeleteModal(true);
-  };
-
+  const handleEliminarClick     = (c) => { setClienteToDelete(c); setShowDeleteModal(true); };
   const handleConfirmarEliminar = () => {
     if (clienteToDelete) {
       setClientes(clientes.filter(c => c.id !== clienteToDelete.id));
@@ -139,226 +100,110 @@ const Clientes = () => {
       setClienteToDelete(null);
     }
   };
+  const handleVerDetalle = (c) => { setClienteDetalle(c); setShowDetalleModal(true); };
 
-  const filteredClientes = clientes.filter(cliente => {
-    const searchLower = searchTerm.toLowerCase();
+  const filteredClientes = clientes.filter(c => {
+    const q= searchTerm.toLowerCase();
     return (
-      cliente.nombre.toLowerCase().includes(searchLower) ||
-      cliente.apellido.toLowerCase().includes(searchLower) ||
-      cliente.telefono.includes(searchTerm) ||
-      cliente.correo.toLowerCase().includes(searchLower) ||
-      cliente.rfc.toLowerCase().includes(searchLower) ||
-      cliente.curp.toLowerCase().includes(searchLower)
+      c.nombre.toLowerCase().includes(q)   ||
+      c.apellido.toLowerCase().includes(q) ||
+      c.telefono.includes(searchTerm)       ||
+      c.correo.toLowerCase().includes(q)   ||
+      c.rfc.toLowerCase().includes(q)
     );
   });
 
+  const totalPages = Math.ceil(filteredClientes.length / ITEMS_PER_PAGE);
+  const paginated  = filteredClientes.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const handleSearch = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
+
+  const detalleItems = clienteDetalle ? [
+    { icon: <PersonIcon />, label: "Nombre completo", value: `${clienteDetalle.nombre} ${clienteDetalle.apellido}` },
+    { icon: <PhoneIcon />,  label: "Teléfono",        value: clienteDetalle.telefono  },
+    { icon: <EmailIcon />,  label: "Correo",          value: clienteDetalle.correo    },
+    { icon: <HomeIcon />,   label: "Domicilio",       value: clienteDetalle.domicilio },
+    { icon: <BadgeIcon />,  label: "CURP",            value: clienteDetalle.curp      },
+    { icon: <BadgeIcon />,  label: "RFC",             value: clienteDetalle.rfc       },
+  ] : [];
+
   return (
     <div className="container py-4">
-      {/* Header con título y botón verde */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h2 fw-bold mb-0">Listado clientes</h1>
-        <button 
-          className="btn btn-imss px-4 py-2"
-          onClick={handleNuevoCliente}
-        >
-          Nuevo cliente
-        </button>
-      </div>
 
-      {/* Búsqueda */}
-      <div className="mb-4">
-        <div className="fw-bold mb-2">Búsqueda</div>
-        <div style={{ maxWidth: '250px' }}>
-          <input 
-            type="text" 
-            className="form-control form-control-sm" 
-            placeholder="Buscar cliente"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <h1 className="h2 fw-bold mb-3">Listado clientes</h1>
+      <hr className="mt-2 mb-3" />
+
+      <div className="d-flex align-items-end justify-content-between mb-4 gap-3 flex-wrap">
+        <div>
+          <div className="fw-bold mb-2">Búsqueda</div>
+          <div className="search-input-wrapper">
+            <SearchIcon className="search-icon" />
+            <input
+              type="text"
+              className="search-custom"
+              placeholder="Buscar cliente..."
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+          </div>
         </div>
+        <PrimaryButton text="Nuevo cliente" icon={<AddIcon />} onClick={handleNuevoCliente} />
       </div>
 
-      {/* Línea divisoria después de búsqueda */}
-      <hr className="mt-0 mb-4" />
-
-      {/* Tabla usando el componente TablaForm */}
       <div className="mb-4">
-        <TablaForm 
+        <TablaForm
           columna={columnas}
-          data={filteredClientes}
-          onEditar={handleEditar}
-          onEliminar={handleEliminarClick}
+          data={paginated}
+          campos={campos}
+          acciones={[
+            { titulo: "Ver",      clase: "tabla-btn-ver",  icono: <VisibilityIcon fontSize="small" />, onClick: handleVerDetalle      },
+            { titulo: "Editar",   clase: "tabla-btn-edit", icono: <EditIcon       fontSize="small" />, onClick: handleEditar           },
+            { titulo: "Eliminar", clase: "tabla-btn-del",  icono: <DeleteIcon     fontSize="small" />, onClick: handleEliminarClick    },
+          ]}
         />
       </div>
 
-      
+      <Paginacion currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
 
-      {/* Modal de Agregar/Editar Cliente */}
-      {showModal && (
-        <div className="modal-custom-overlay">
-          <div className="modal-custom">
-            <div className="modal-custom-header">
-              <img src={logo} alt="Logo" className="modal-logo" />
-              <div>
-                <h2 className="modal-custom-title">
-                  {editingCliente ? 'Editar cliente' : 'Agregar nuevo cliente'}
-                </h2>
-                <p className="modal-custom-subtitle">
-                  {editingCliente ? 'Modifica los datos del cliente' : 'Ingresa todos los datos para continuar con el proceso'}
-                </p>
-              </div>
-            </div>
-            
-            <div className="modal-custom-body">
-              <div className="modal-custom-field">
-                <label className="modal-custom-label">Nombre's</label>
-                <input
-                  type="text"
-                  className="modal-custom-input"
-                  placeholder="Ingresa el nombre"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={handleInputChange}
-                />
-              </div>
+      {/* EditModal genérico — todo viene desde aquí */}
+      <EditModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        onSave={handleGuardar}
+        editando={!!editingCliente}
+        titulo={editingCliente ? "Editar cliente" : "Agregar nuevo cliente"}
+        subtitulo={editingCliente ? "Modifica los datos del cliente" : "Ingresa los datos para registrar al cliente"}
+        btnTexto={editingCliente ? "Guardar cambios" : "Agregar cliente"}
+        campos={FORM_CAMPOS}
+        formData={formData}
+        onChange={handleInputChange}
+      />
 
-              <div className="modal-custom-field">
-                <label className="modal-custom-label">Apellidos</label>
-                <input
-                  type="text"
-                  className="modal-custom-input"
-                  placeholder="Ingresa el apellido"
-                  name="apellido"
-                  value={formData.apellido}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="modal-custom-field">
-                <label className="modal-custom-label">Numero de teléfono</label>
-                <input
-                  type="text"
-                  className="modal-custom-input"
-                  placeholder="Ingresa el número telefónico"
-                  name="telefono"
-                  value={formData.telefono}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="modal-custom-field">
-                <label className="modal-custom-label">Fecha de alta</label>
-                <input
-                  type="date"
-                  className="modal-custom-input"
-                  placeholder="Ingresa la fecha"
-                  name="fechaAlta"
-                  value={formData.fechaAlta}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="modal-custom-field">
-                <label className="modal-custom-label">Correo Electrónico</label>
-                <input
-                  type="email"
-                  className="modal-custom-input"
-                  placeholder="Ingresa el correo"
-                  name="correo"
-                  value={formData.correo}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="modal-custom-field">
-                <label className="modal-custom-label">CURP</label>
-                <input
-                  type="text"
-                  className="modal-custom-input"
-                  placeholder="Ingresa la CURP"
-                  name="curp"
-                  value={formData.curp}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div className="modal-custom-field">
-                <label className="modal-custom-label">RFC</label>
-                <input
-                  type="text"
-                  className="modal-custom-input"
-                  placeholder="Ingresa el RFC"
-                  name="rfc"
-                  value={formData.rfc}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-
-            <div className="modal-custom-footer">
-              <button 
-                className="modal-custom-btn modal-custom-btn-cancel"
-                onClick={() => setShowModal(false)}
-              >
-                Cancelar
-              </button>
-              <button 
-                className="modal-custom-btn modal-custom-btn-agregar"
-                onClick={handleGuardar}
-              >
-                {editingCliente ? 'Guardar Cambios' : 'Agregar Cliente'}
-              </button>
-            </div>
+      <ConfirmDeleteModal
+        open={showDeleteModal}
+        onClose={() => { setShowDeleteModal(false); setClienteToDelete(null); }}
+        onConfirm={handleConfirmarEliminar}
+        title="Eliminar cliente"
+        subtitle="¿Deseas eliminar este cliente del sistema?"
+      >
+        {clienteToDelete && (
+          <div>
+            <p><strong>{clienteToDelete.nombre} {clienteToDelete.apellido}</strong></p>
+            <p>ID: {clienteToDelete.id}</p>
+            <p>Teléfono: {clienteToDelete.telefono}</p>
+            <p>Correo: {clienteToDelete.correo}</p>
           </div>
-        </div>
-      )}
+        )}
+      </ConfirmDeleteModal>
 
-      {/* Modal de Confirmación de Eliminación */}
-      {showDeleteModal && clienteToDelete && (
-        <div className="modal-custom-overlay">
-          <div className="modal-custom modal-delete">
-            <div className="modal-custom-header">
-              <div className="modal-delete-icon">
-                🗑️
-              </div>
-              <div>
-                <h2 className="modal-custom-title modal-delete-title">Eliminar cliente</h2>
-                <p className="modal-custom-subtitle">¿Estás seguro de que deseas eliminar este cliente?</p>
-              </div>
-            </div>
-            
-            <div className="modal-custom-body modal-delete-body">
-              <div className="delete-client-info">
-                <p><strong>Cliente a eliminar:</strong></p>
-                <p className="delete-client-name">{clienteToDelete.nombre} {clienteToDelete.apellido}</p>
-                <p className="delete-client-detail">ID: {clienteToDelete.id}</p>
-                <p className="delete-client-detail">Teléfono: {clienteToDelete.telefono}</p>
-                <p className="delete-client-detail">Correo: {clienteToDelete.correo}</p>
-              </div>
-              <p className="delete-warning">Esta acción no se puede deshacer.</p>
-            </div>
+      <ClienteDetalleModal
+        open={showDetalleModal}
+        onClose={() => { setShowDetalleModal(false); setClienteDetalle(null); }}
+        titulo={clienteDetalle ? `${clienteDetalle.nombre} ${clienteDetalle.apellido}` : ""}
+        subtitulo={clienteDetalle ? `ID #${clienteDetalle.id}` : ""}
+        avatar={clienteDetalle ? `${clienteDetalle.nombre.charAt(0)}${clienteDetalle.apellido.charAt(0)}` : ""}
+        items={detalleItems}
+      />
 
-            <div className="modal-custom-footer">
-              <button 
-                className="modal-custom-btn modal-custom-btn-cancel"
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setClienteToDelete(null);
-                }}
-              >
-                Cancelar
-              </button>
-              <button 
-                className="modal-custom-btn modal-custom-btn-eliminar"
-                onClick={handleConfirmarEliminar}
-              >
-                Sí, Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

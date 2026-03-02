@@ -1,43 +1,336 @@
-/* Fondo verde */
+/* ===================================================
+   LOGIN.CSS — BalamCore Auth
+   =================================================== */
+
+:root {
+  --bg-dark:      #041E17;
+  --card-radius:  36px;
+  --card-width:   420px;
+  --green:        #1a6b46;
+  --gold:         #c9a84c;
+  --shadow:       0 32px 80px rgba(0, 0, 0, 0.55);
+  --flip-duration: 0.85s;
+}
+
 .login-body {
   margin: 0;
-  background:  #041E17;
-  font-family: Arial, sans-serif;
+  background: var(--bg-dark);
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Centrar */
-.login-container { 
+.auth-scene {
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: center;         /* default: centrado vertical */
+  padding: 40px 20px;
+  box-sizing: border-box;
+  overflow-y: auto;            /* ← CLAVE: permite scroll si el card crece */
 }
 
-/* Logo */
-.login-logo {
-  width: 110px;
-  margin-bottom: 10px;
+/* ── TARJETA FLIP ── */
+.auth-card {
+  width: var(--card-width);
+  max-width: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform var(--flip-duration) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.auth-card.flipped { transform: rotateY(180deg); }
 
-/* Botones */
-.login-buttons {
+.auth-face {
+  width: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.auth-front { position: relative; }
+
+.auth-back {
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  transform: rotateY(180deg);
+}
+
+.auth-content {
+  width: 100%;
+  position: relative;
+}
+
+/* ── PAPER ── */
+.login-paper-premium {
+  padding: 40px 36px 36px;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: var(--card-radius) !important;
+  background: #ffffff !important;
+  text-align: center;
+  box-shadow: var(--shadow) !important;
+}
+
+/* ===================================================
+   BRAND ZONE
+   Logo viajero (fixed) aterriza aquí arriba.
+   Letras fijas aparecen debajo cuando el form es visible.
+   =================================================== */
+.brand-zone {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  /* 
+    Altura total = logo (80px) + gap (8px) + letras (36px) = ~124px
+    El logo viajero cubre el logo-slot con position:fixed
+  */
+  min-height: 130px;
+  margin-bottom: 8px;
+}
+
+/* Espacio invisible que "reserva" el lugar del logo viajero */
+.logo-slot {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+
+/* Letras fijas debajo del logo */
+.letras-fijas {
+  width: 150px;
   margin-top: 20px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.5s ease-out 1.9s, transform 0.5s ease-out 1.9s;
 }
 
-/* Botón verde */
-.btn-login {
-  background: #0b3a2c !important;
-  color: white !important;
-  padding: 8px 20px !important;
-  border-radius: 20px !important;
+.login-appearance.visible .letras-fijas {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-/* Botón dorado */
-.btn-register {
-  background: #b38b2a !important;
-  color: white !important;
-  padding: 8px 20px !important;
-  border-radius: 20px !important;
+/* ===================================================
+   LOGO VIAJERO (interpolador)
+   Empieza en el centro de la pantalla y vuela hacia
+   la brand-zone del formulario
+   =================================================== */
+.interpolator-track {
+  position: fixed;
+  left: 50%;
+  z-index: 1000;
+  pointer-events: none;
+  transition:
+    top       var(--flip-duration) cubic-bezier(0.645, 0.045, 0.355, 1),
+    transform var(--flip-duration) cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+.logo-viajero {
+  display: block;
+  width: 350px;
+  opacity: 0;
+  filter: blur(10px);
+  animation: introFade 0.9s ease-out 0.3s forwards;
+  transition: width var(--flip-duration) cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+@keyframes introFade {
+  to { opacity: 1; filter: blur(0); }
+}
+
+/* Centro de pantalla — estado inicial */
+.state-center {
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Dentro del form — aterriza centrado sobre el logo-slot */
+.state-form {
+  /* 
+    El paper empieza aprox en 50% - mitad de la card.
+    La card tiene ~500px, el paper tiene padding-top 40px,
+    el logo-slot está al inicio del brand-zone.
+    Ajuste: subir ~200px desde el centro.
+  */
+  top: calc(50% - 195px);
+  transform: translate(-50%, 0);
+}
+
+.state-form .logo-viajero {
+  width: 80px;  /* mismo tamaño que logo-slot */
+}
+
+/* ===================================================
+   APARICIÓN DEL FORMULARIO
+   =================================================== */
+.login-appearance {
+  opacity: 0;
+  transform: translateY(18px) scale(0.97);
+  transition: opacity 0.7s ease-out 0.7s, transform 0.7s ease-out 0.7s;
+}
+
+.login-appearance.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Registro siempre visible */
+.auth-back .login-appearance {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+/* ===================================================
+   TIPOGRAFÍA
+   =================================================== */
+.title-bold {
+  font-weight: 800 !important;
+  margin-top: 4px !important;
+  margin-bottom: 4px !important;
+  color: #111 !important;
+}
+
+.subtitle-slim {
+  color: #777 !important;
+  margin-bottom: 20px !important;
+  font-size: 0.875rem !important;
+}
+
+/* ===================================================
+   FORMULARIO
+   =================================================== */
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.password-row { display: flex; gap: 10px; }
+.password-row .MuiFormControl-root { flex: 1; }
+
+/* ===================================================
+   BOTONES
+   =================================================== */
+.button-group {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ===================================================
+   RESPONSIVO
+   =================================================== */
+@media (max-width: 600px) {
+  .login-paper-premium {
+    padding: 30px 22px 28px;
+    border-radius: 26px !important;
+  }
+
+  .brand-zone  { min-height: 110px; }
+  .logo-slot   { width: 68px; height: 68px; }
+  .letras-fijas { width: 120px; }
+
+  .logo-viajero { width: 130px; }
+  .state-form .logo-viajero { width: 68px; }
+  .state-form { top: calc(50% - 175px); }
+
+  .password-row { flex-direction: column; gap: 4px; }
+
+  .button-group { flex-direction: column; gap: 10px; }
+  .button-group > button { width: 100%; max-width: 220px; }
+}
+
+@media (max-width: 1024px) {
+  .login-paper-premium {
+    padding: 40px 36px;
+    border-radius: 30px !important;
+  }
+
+  .brand-zone   { min-height: 120px; }
+  .logo-slot    { width: 80px; height: 80px; }
+  .letras-fijas { width: 150px; }
+
+  .logo-viajero { width: 200px; }
+  .state-form .logo-viajero { width: 80px; }
+  .state-form { top: calc(50% - 220px); }
+
+  /* En 1024 los botones y password siguen en fila horizontal */
+  .password-row { flex-direction: row; gap: 10px; }
+  .button-group { flex-direction: row; gap: 12px; }
+  .button-group > button { width: auto; }
+}
+
+@media (max-width: 412px) {
+  .auth-scene { padding: 24px 14px; }
+
+  .login-paper-premium {
+    padding: 24px 16px 22px;
+    border-radius: 22px !important;
+  }
+
+  .brand-zone  { min-height: 95px; }
+  .logo-slot   { width: 60px; height: 60px; }
+  .letras-fijas { width: 100px; }
+
+  .logo-viajero { width: 300px; }
+  .state-form .logo-viajero { width: 60px; }
+  .state-form { top: calc(50% - 210px); }
+}
+
+@media (max-width: 390px) {
+  .auth-scene { padding: 24px 14px; }
+
+  .login-paper-premium {
+    padding: 24px 16px 22px;
+    border-radius: 22px !important;
+  }
+
+  .brand-zone  { min-height: 90px; }
+  .logo-slot   { width: 56px; height: 56px; }
+  .letras-fijas { width: 90px; }
+
+  .logo-viajero { width: 100px; }
+  .state-form .logo-viajero { width: 56px; }
+  .state-form { top: calc(50% - 155px); }
+}
+
+
+@media (max-width: 540px) {
+  .auth-scene { padding: 24px 14px; }
+
+  .login-paper-premium {
+    padding: 24px 16px 22px;
+    border-radius: 22px !important;
+  }
+
+  .brand-zone  { min-height: 95px; }
+  .logo-slot   { width: 60px; height: 60px; }
+  .letras-fijas { width: 100px; }
+
+  .logo-viajero { width: 300px; }
+  .state-form .logo-viajero { width: 60px; }
+  .state-form { top: calc(50% - 210px); }
+}
+
+@media (max-width: 390px) {
+  .auth-scene { padding: 24px 14px; }
+
+  .login-paper-premium {
+    padding: 24px 16px 22px;
+    border-radius: 22px !important;
+  }
+
+  .brand-zone  { min-height: 90px; }
+  .logo-slot   { width: 56px; height: 56px; }
+  .letras-fijas { width: 90px; }
+
+  .logo-viajero { width: 100px; }
+  .state-form .logo-viajero { width: 56px; }
+  .state-form { top: calc(50% - 210px); }
 }
