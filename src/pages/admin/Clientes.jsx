@@ -140,10 +140,6 @@ const Clientes = () => {
     }
   };
 
-  const handleTodos = () => {
-    setSearchTerm('');
-  };
-
   const filteredClientes = clientes.filter(cliente => {
     const searchLower = searchTerm.toLowerCase();
     return (
