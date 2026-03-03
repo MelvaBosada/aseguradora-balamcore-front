@@ -69,7 +69,7 @@ const Topbar = ({ onToggleSidebar }) => {
         </button>
 
         <div>
-          <h3>Hola bienvenido, Administrador</h3>
+          <h3>Bienvenido, Administrador</h3>
           <small style={{ textTransform: "capitalize" }}>
             {fechaActual}
           </small>

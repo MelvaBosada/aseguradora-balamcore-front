@@ -90,7 +90,7 @@ const Dashboard = () => {
 
                 <div className="chart-card">
                     <h3>Pólizas por tipo</h3>
-                    <ResponsiveContainer width="100%" height={220}>
+                    <ResponsiveContainer width="100%" height={260}>
                         <PieChart>
                             <Pie
                                 data={polizasTipo}
@@ -127,33 +127,39 @@ const Dashboard = () => {
 
                 <div className="chart-card">
                     <h3>Últimos siniestros</h3>
-                    <table className="dash-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th><th>Cliente</th><th>Tipo</th><th>Fecha</th><th>Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {ultimosSiniestros.map((s) => (
-                                <tr key={s.id}>
-                                    <td><strong>{s.id}</strong></td>
-                                    <td>{s.cliente}</td>
-                                    <td>{s.tipo}</td>
-                                    <td>{s.fecha}</td>
-                                    <td>{badgeEstado(s.estado)}</td>
+                    <div className="dash-table-wrapper">
+                        <table className="dash-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th><th>Cliente</th><th>Tipo</th><th>Fecha</th><th>Estado</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {ultimosSiniestros.map((s) => (
+                                    <tr key={s.id}>
+                                        <td><strong>{s.id}</strong></td>
+                                        <td>{s.cliente}</td>
+                                        <td>{s.tipo}</td>
+                                        <td>{s.fecha}</td>
+                                        <td>{badgeEstado(s.estado)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div className="chart-card">
                     <h3>Tendencia de siniestros</h3>
-                    <ResponsiveContainer width="100%" height={220}>
-                        <LineChart data={ingresosData}>
+                    <ResponsiveContainer width="100%" height={260}>
+                        <LineChart
+                            data={ingresosData}
+                            layout="vertical"
+                            margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
+                        >
                             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                            <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
-                            <YAxis tick={{ fontSize: 12 }} />
+                            <XAxis type="number" tick={{ fontSize: 12 }} domain={[0, 'dataMax + 1000']} />
+                            <YAxis type="category" dataKey="mes" tick={{ fontSize: 12 }} width={35} />
                             <Tooltip />
                             <Line type="monotone" dataKey="siniestros" name="Siniestros"
                                 stroke="#dc2626" strokeWidth={2.5} dot={{ r: 4 }} activeDot={{ r: 6 }} />
