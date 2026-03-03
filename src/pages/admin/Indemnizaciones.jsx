@@ -12,7 +12,7 @@ import usePDFExport     from "../../components/usePDFExport";
 import "../../css/PolizasVencer.css";
 import "../../css/IndemnizacionPDF.css";
 
-/* ─── ARRAY DE DATOS (definido en la propia vista) ───────────────── */
+/* ─── ARRAY DE DATOS ───────────────── */
 const indemnizaciones = [
   {
     id: 1,
@@ -134,14 +134,14 @@ const indemnizaciones = [
   },
 ];
 
-/* ─── CONFIG TABLA ───────────────────────────────────────────────── */
+/* ─── CONFIG TABLA ───────────────────────────── */
 const ITEMS_PER_PAGE  = 8;
 const ESTATUS_OPTIONS = ["Todos", "Activo", "Pagado", "Pendiente", "Rechazado"];
 
 const campos   = ["nSiniestro", "montoAprobado", "formaPago", "titularCuenta", "nEvaluacion", "fechaPago", "numeroCuenta", "estatus"];
 const columnas = ["N° Siniestro", "Monto aprobado", "Forma de pago", "Titular de la cuenta", "N° Evaluación", "Fecha de pago", "Número de cuenta", "Estatus", "Acciones"];
 
-/* ─── VISTA ──────────────────────────────────────────────────────── */
+/* ─── VISTA ─────────────────── */
 const Indemnizaciones = () => {
   const [search,      setSearch]      = useState("");
   const [estatus,     setEstatus]     = useState("Todos");

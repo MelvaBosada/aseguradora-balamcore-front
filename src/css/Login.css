@@ -24,10 +24,10 @@
   min-height: 100dvh;
   display: flex;
   justify-content: center;
-  align-items: center;         /* default: centrado vertical */
+  align-items: center;         /* centrado vertical */
   padding: 40px 20px;
   box-sizing: border-box;
-  overflow-y: auto;            /* ← CLAVE: permite scroll si el card crece */
+  overflow-y: auto;            /* permite scroll si el card crece */
 }
 
 /* ── TARJETA FLIP ── */

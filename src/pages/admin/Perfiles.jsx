@@ -1,21 +1,20 @@
 import { useState } from "react";
-import AddIcon    from "@mui/icons-material/Add";
-import EditIcon   from "@mui/icons-material/Edit";
+import AddIcon from "@mui/icons-material/Add";
+import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 
-import PrimaryButton        from "../../components/PrimaryButton";
-import TablaForm            from "../../components/TablaForm";
-import EditModal            from "../../components/EditModal";
-import ConfirmDeleteModal   from "../../components/ConfirmDeleteModal";
+import PrimaryButton from "../../components/PrimaryButton";
+import TablaForm from "../../components/TablaForm";
+import EditModal from "../../components/EditModal";
+import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import AsignarPermisosModal from "../../components/AsignarPermisosModal";
-import Paginacion           from "../../components/Paginacion";
+import Paginacion from "../../components/Paginacion";
 import "../../css/Clientes.css";
 
 /* ─── CONFIG ─────────────────────────────────────────────────────── */
-const ITEMS_PER_PAGE = 8;
 
-const campos   = ["id", "nombre"];
+const campos = ["id", "nombre"];
 const columnas = ["ID", "Nombre", "Acciones"];
 
 const FORM_CAMPOS = [
@@ -40,17 +39,19 @@ const PERMISOS_DISPONIBLES = [
 const Perfiles = () => {
   const [perfiles, setPerfiles] = useState([
     { id: 1, nombre: "Administrador", permisos: ["Gestión de clientes", "Gestión de pólizas", "Administración de usuarios"] },
-    { id: 2, nombre: "Ajustador",     permisos: ["Gestión de siniestros", "Gestión de indemnizaciones", "Ver reportes"]     },
+    { id: 2, nombre: "Ajustador", permisos: ["Gestión de siniestros", "Gestión de indemnizaciones", "Ver reportes"] },
   ]);
 
-  const [showModal,         setShowModal]         = useState(false);
-  const [showDeleteModal,   setShowDeleteModal]   = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPermisosModal, setShowPermisosModal] = useState(false);
-  const [perfilToDelete,    setPerfilToDelete]    = useState(null);
-  const [perfilPermisos,    setPerfilPermisos]    = useState(null);
-  const [editingPerfil,     setEditingPerfil]     = useState(null);
-  const [currentPage,       setCurrentPage]       = useState(1);
-  const [formData,          setFormData]          = useState(FORM_VACIO);
+  const [perfilToDelete, setPerfilToDelete] = useState(null);
+  const [perfilPermisos, setPerfilPermisos] = useState(null);
+  const [editingPerfil, setEditingPerfil] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [formData, setFormData] = useState(FORM_VACIO);
+  // Cambia la constante por un estado
+  const [itemsPerPage, setItemsPerPage] = useState(8);
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -78,7 +79,7 @@ const Perfiles = () => {
     setShowModal(false);
   };
 
-  const handleEliminarClick     = (p) => { setPerfilToDelete(p); setShowDeleteModal(true); };
+  const handleEliminarClick = (p) => { setPerfilToDelete(p); setShowDeleteModal(true); };
   const handleConfirmarEliminar = () => {
     setPerfiles(perfiles.filter(p => p.id !== perfilToDelete.id));
     setShowDeleteModal(false);
@@ -94,8 +95,10 @@ const Perfiles = () => {
     setPerfilPermisos(null);
   };
 
-  const totalPages = Math.ceil(perfiles.length / ITEMS_PER_PAGE);
-  const paginated  = perfiles.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  // Recalcula con el estado — reemplaza las dos líneas con filtered
+const totalPages = Math.ceil(perfiles.length / itemsPerPage);
+const paginated  = perfiles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
 
   return (
     <div className="container py-4">
@@ -112,14 +115,20 @@ const Perfiles = () => {
           data={paginated}
           campos={campos}
           acciones={[
-            { titulo: "Asignar permisos", clase: "tabla-btn-ver",  icono: <LockOpenIcon fontSize="small" />, onClick: handleAsignarPermisos },
-            { titulo: "Editar",           clase: "tabla-btn-edit", icono: <EditIcon     fontSize="small" />, onClick: handleEditar          },
-            { titulo: "Eliminar",         clase: "tabla-btn-del",  icono: <DeleteIcon   fontSize="small" />, onClick: handleEliminarClick   },
+            { titulo: "Asignar permisos", clase: "tabla-btn-ver", icono: <LockOpenIcon fontSize="small" />, onClick: handleAsignarPermisos },
+            { titulo: "Editar", clase: "tabla-btn-edit", icono: <EditIcon fontSize="small" />, onClick: handleEditar },
+            { titulo: "Eliminar", clase: "tabla-btn-del", icono: <DeleteIcon fontSize="small" />, onClick: handleEliminarClick },
           ]}
         />
       </div>
 
-      <Paginacion currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      <Paginacion
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={setItemsPerPage}
+      />
 
       <EditModal
         open={showModal}
