@@ -9,7 +9,7 @@ const Paginacion = ({ currentPage, totalPages, onPageChange, itemsPerPage, onIte
     <div className="paginacion-wrapper">
 
       <div className="paginacion-filas">
-        <span>Filas por página:</span>
+        <span>Mostrar:</span>
         <select
           className="pag-select"
           value={itemsPerPage}

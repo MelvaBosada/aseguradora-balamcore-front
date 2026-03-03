@@ -43,68 +43,198 @@
 }
 
 .pag-arrow { color: #374151; }
-
-
+/* Contenedor principal: Usamos Grid para asegurar el centrado real */
+/* Contenedor: 3 columnas (Vacio - Paginado - Select) */
 .paginacion-wrapper {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; 
   align-items: center;
-  justify-content: center;
-  position: relative;
   margin-top: 24px;
+  width: 100%;
+  gap: 12px;
+  padding: 0 15px;
 }
 
+/* Paginado al Centro (Columna 2) */
 .paginacion {
+  grid-column: 2;
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
   justify-content: center;
 }
 
+/* Selector a la Derecha (Columna 3) */
 .paginacion-filas {
+  grid-column: 3;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end; 
+  gap: 10px;
   font-size: 13.5px;
   font-weight: 600;
   color: #374151;
-  position: absolute;
-  right: 0;
+  white-space: nowrap;
 }
 
+/* --- DISEÑO DEL SELECT (Igual al Paginado) --- */
 .pag-select {
   height: 36px;
   padding: 0 32px 0 12px;
   border-radius: 10px;
   border: 1.5px solid #E5E7EB;
+  background-color: #fff;
+  /* El iconito de la flecha */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231f2d2a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-  background-color: #fff;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%231f2d2a' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
+  
   color: #1f2d2a;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   outline: none;
-  transition: all 0.2s cubic-bezier(.4,0,.2,1);
-  box-shadow: 0 1px 3px rgba(15,76,58,0.06);
 }
 
-.pag-select:hover,
-.pag-select:focus {
-  background-color: #e8f5ef;
+/* HOVER Y FOCUS (Efecto Verde BalamCore) */
+.pag-select:hover, .pag-select:focus {
+  background-color: rgba(15, 76, 58, 0.05);
   border-color: #0F4C3A;
   color: #0F4C3A;
+  /* Cambiamos el color de la flechita en hover a verde */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%230F4C3A' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(15,76,58,0.13);
 }
 
+/* --- RESPONSIVO PARA TODAS LAS PANTALLAS --- */
+
+/* Pantallas medianas y pequeñas (Tablets/Celulares grandes) */
+@media (max-width: 600px) {
+  .paginacion-wrapper {
+    gap: 8px;
+    padding: 0 8px;
+    /* Mantenemos el grid: el texto "Filas:" sigue visible aquí */
+    grid-template-columns: 1fr auto 1fr; 
+  }
+}
+
+/* Pantallas pequeñas (Celulares estándar hasta 400px) */
+@media (max-width: 412px) {
+  /* 1. AQUÍ QUITAMOS EL TEXTO PARA GANAR ESPACIO */
+  .paginacion-filas span {
+    display: none;
+  }
+
+  /* 2. Reducimos tamaños para que todo quepa en la misma fila */
+  .pag-btn, .pag-select {
+    height: 32px;
+    font-size: 11px; /* Bajamos un punto la fuente */
+    border-radius: 8px;
+  }
+  
+  .pag-btn {
+    min-width: 30px; /* Botones más compactos */
+    padding: 0;
+  }
+
+  .pag-select {
+    width: 60px; /* Lo hacemos más flaco */
+    padding: 0 20px 0 8px;
+    background-position: right 6px center;
+  }
+
+  .paginacion {
+    gap: 4px; /* Pegamos más los números */
+  }
+}
+
+
+@media (max-width: 430px) {
+  /* 1. AQUÍ QUITAMOS EL TEXTO PARA GANAR ESPACIO */
+  .paginacion-filas span {
+    display: none;
+  }
+
+  /* 2. Reducimos tamaños para que todo quepa en la misma fila */
+  .pag-btn, .pag-select {
+    height: 32px;
+    font-size: 11px; /* Bajamos un punto la fuente */
+    border-radius: 8px;
+  }
+  
+  .pag-btn {
+    min-width: 30px; /* Botones más compactos */
+    padding: 0;
+  }
+
+  .pag-select {
+    width: 60px; /* Lo hacemos más flaco */
+    padding: 0 20px 0 8px;
+    background-position: right 6px center;
+  }
+
+  .paginacion {
+    gap: 4px; /* Pegamos más los números */
+  }
+}
+
+
+/* Pantallas ultra mini (250px a 200px) */
+@media (max-width: 250px) {
+  /* Ocultamos flechas ( < > ) para que los números no se amontonen */
+  .pag-arrow {
+    display: none;
+  }
+  
+  .paginacion {
+    gap: 2px;
+  }
+
+  .pag-btn {
+    min-width: 26px;
+    height: 28px;
+  }
+}
+/* --- SELECTOR CON COLOR DE MARCA --- */
+.pag-select {
+  height: 24px;
+  padding: 0 24px 0 14px;
+  border-radius: 12px;
+  border: 1.5px solid #0F4C3A; /* Borde del mismo verde */
+  background-color: #0F4C3A; /* Fondo Verde BalamCore */
+  
+  /* Icono de flecha en BLANCO para que resalte */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23ffffff' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  -webkit-appearance: none;
+  appearance: none;
+  
+  color: #ffffff; /* Texto en blanco */
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 10px rgba(15, 76, 58, 0.2); /* Sombra verde sutil */
+  outline: none;
+}
+
+/* --- HOVER (Se aclara un poco o brilla) --- */
+.pag-select:hover {
+  background-color: #14634c; /* Un verde un poquito más claro al pasar el mouse */
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(15, 76, 58, 0.3);
+  color: #ffffff; /* Texto en blanco */
+}
+
+/* --- IMPORTANTE: Color de las opciones dentro del menú --- */
 .pag-select option {
-  background-color: #fff;
-  color: #1f2d2a;
+  background-color: #ffffff; /* El fondo de la lista desplegada debe ser blanco */
+  color: #1f2d2a; /* Texto oscuro para que se lea al abrirlo */
   font-weight: 600;
 }
