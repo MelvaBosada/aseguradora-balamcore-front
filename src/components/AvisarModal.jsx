@@ -71,7 +71,6 @@ function AvisarModal({ open, onClose, poliza }) {
               <div className="avisar-info-row">
                 <span className="avisar-info-label">Correo</span>
                 <span className="avisar-info-value avisar-email">
-                  <EmailIcon style={{ fontSize: 14 }} />
                   {poliza.correo || "cliente@correo.com"}
                 </span>
               </div>
@@ -93,7 +92,7 @@ function AvisarModal({ open, onClose, poliza }) {
           <div className="balam-footer" style={{ borderTop: "1px solid #E5E7EB" }}>
             <button className="balam-btn cancel" onClick={onClose}>Cancelar</button>
             <button className="balam-btn save avisar-send-btn" onClick={handleEnviar} disabled={loading}>
-              {loading ? "Enviando..." : <><SendIcon style={{ fontSize: 16 }} /> Enviar correo</>}
+              {loading ? "Enviando..." : <> Enviar correo</>}
             </button>
           </div>
 

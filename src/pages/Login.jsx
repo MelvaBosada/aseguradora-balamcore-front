@@ -95,7 +95,7 @@ function Login({ onGoToRegister }) {
             <ButtonVerdeForm colorType="green" onClick={handleLogin}>
               Iniciar Sesión
             </ButtonVerdeForm>
-            <ButtonVerdeForm colorType="gold" onClick={onGoToRegister}>
+            <ButtonVerdeForm colorType="green" onClick={onGoToRegister}>
               Registrarse
             </ButtonVerdeForm>
           </Box>

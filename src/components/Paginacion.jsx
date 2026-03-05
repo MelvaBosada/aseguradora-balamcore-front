@@ -1,58 +1,55 @@
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { useState } from "react";
+import ArrowLeftIcon from '@mui/icons-material/ArrowLeft';
+import ArrowRightIcon from '@mui/icons-material/ArrowRight';
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import "../css/Paginacion.css";
 
 const OPCIONES_FILAS = [5, 8, 10, 15, 20, 50, 100, 200];
 
 const Paginacion = ({ currentPage, totalPages, onPageChange, itemsPerPage, onItemsPerPageChange }) => {
+  const [selectOpen, setSelectOpen] = useState(false);
+
   return (
     <div className="paginacion-wrapper">
 
-      <div className="paginacion-filas">
-        <span>Mostrar:</span>
-        <select
-          className="pag-select"
-          value={itemsPerPage}
-          onChange={(e) => {
-            onItemsPerPageChange(Number(e.target.value));
-            onPageChange(1); // reset a página 1
-          }}
-        >
-          {OPCIONES_FILAS.map(n => (
-            <option key={n} value={n}>{n}</option>
-          ))}
-        </select>
+      <div className="paginacion">
+        <button className="pag-btn pag-arrow" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>
+          <ArrowLeftIcon fontSize="small" />
+        </button>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+          <button key={page} className={`pag-btn ${currentPage === page ? "active" : ""}`} onClick={() => onPageChange(page)}>
+            {page}
+          </button>
+        ))}
+        <button className="pag-btn pag-arrow" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+          <ArrowRightIcon fontSize="small" />
+        </button>
       </div>
 
-      {totalPages > 1 && (
-        <div className="paginacion">
-          <button
-            className="pag-btn pag-arrow"
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 1}
+      <div className="paginacion-filas">
+        <span>Mostrar:</span>
+        <div className="pag-select-wrapper">
+          <select
+            className="pag-select"
+            value={itemsPerPage}
+            onMouseDown={() => setSelectOpen(true)}
+            onBlur={() => setSelectOpen(false)}
+            onChange={(e) => {
+              onItemsPerPageChange(Number(e.target.value));
+              onPageChange(1);
+              setSelectOpen(false);
+            }}
           >
-            <ChevronLeftIcon fontSize="small" />
-          </button>
-
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-            <button
-              key={page}
-              className={`pag-btn ${currentPage === page ? "active" : ""}`}
-              onClick={() => onPageChange(page)}
-            >
-              {page}
-            </button>
-          ))}
-
-          <button
-            className="pag-btn pag-arrow"
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            <ChevronRightIcon fontSize="small" />
-          </button>
+            {OPCIONES_FILAS.map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+          <ArrowDropDownIcon
+            className="pag-select-icon"
+            style={{ transform: selectOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+          />
         </div>
-      )}
+      </div>
 
     </div>
   );

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import '../../css/Clientes.css';
 
-import AddIcon from "@mui/icons-material/Add";
+import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -150,7 +150,7 @@ const Clientes = () => {
             />
           </div>
         </div>
-        <PrimaryButton text="Nuevo cliente" icon={<AddIcon />} onClick={handleNuevoCliente} />
+        <PrimaryButton text="Nuevo cliente" icon={<AddCircleOutlinedIcon />} onClick={handleNuevoCliente} />
       </div>
 
       <div className="mb-4">

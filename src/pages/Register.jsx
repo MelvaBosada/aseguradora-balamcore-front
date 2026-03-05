@@ -68,7 +68,7 @@ function StepCredentials({ data, onChange, onNext, onBack, fieldError }) {
         </Box>
       </Box>
       <Box className="button-group">
-        <ButtonVerdeForm colorType="gold"  onClick={onBack}>Volver</ButtonVerdeForm>
+        <ButtonVerdeForm colorType="green"  onClick={onBack}>Volver</ButtonVerdeForm>
         <ButtonVerdeForm colorType="green" onClick={onNext}>Siguiente</ButtonVerdeForm>
       </Box>
     </div>
