@@ -1,0 +1,209 @@
+/* css/Polizas.css */
+.polizas-container {
+  padding: 24px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.polizas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.polizas-titulo {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a2b3c;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
+}
+
+.polizas-subtitulo {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin: 0;
+  max-width: 600px;
+}
+
+/* Buscador */
+.polizas-buscador {
+  margin-bottom: 28px;
+  max-width: 450px;
+}
+
+.buscador-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.buscador-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  font-size: 1.2rem;
+}
+
+.buscador-input {
+  width: 100%;
+  padding: 12px 16px 12px 48px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.buscador-input:focus {
+  outline: none;
+  border-color: #1a7f4c;
+  box-shadow: 0 4px 12px rgba(26, 127, 76, 0.15);
+}
+
+.buscador-input::placeholder {
+  color: #9ca3af;
+  font-size: 0.9rem;
+}
+
+/* Tabla wrapper */
+.polizas-tabla-wrapper {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+/* Personalización de la tabla */
+.table {
+  margin-bottom: 0;
+}
+
+.table thead th {
+  background-color: #f9fafb;
+  color: #4b5563;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 16px 12px;
+  border-bottom: 2px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.table tbody td {
+  padding: 14px 12px;
+  vertical-align: middle;
+  color: #1f2937;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Botones de acción personalizados para pólizas */
+.tabla-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0 4px;
+  background: transparent;
+}
+
+.btn-ver {
+  color: #1a7f4c;
+  background-color: rgba(26, 127, 76, 0.1);
+}
+
+.btn-ver:hover {
+  background-color: #1a7f4c;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(26, 127, 76, 0.3);
+}
+
+.btn-editar {
+  color: #f59e0b;
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.btn-editar:hover {
+  background-color: #f59e0b;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+}
+
+/* Mensaje vacío */
+.polizas-empty {
+  text-align: center;
+  padding: 48px 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  margin-top: 24px;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .polizas-container {
+    padding: 16px;
+  }
+  
+  .polizas-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .polizas-titulo {
+    font-size: 1.75rem;
+  }
+  
+  .polizas-buscador {
+    max-width: 100%;
+  }
+  
+  .table thead th {
+    font-size: 0.75rem;
+    padding: 12px 8px;
+  }
+  
+  .table tbody td {
+    font-size: 0.8rem;
+    padding: 10px 8px;
+  }
+  
+  .tabla-btn {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-width: 480px) {
+  .polizas-titulo {
+    font-size: 1.5rem;
+  }
+  
+  .buscador-input {
+    padding: 10px 16px 10px 42px;
+    font-size: 0.85rem;
+  }
+}
