@@ -75,7 +75,7 @@ function RenovarPolizaModal({ open, onClose, onRenovar, poliza, camposNuevos }) 
             <div className="renovar-bienes-header">
               <label>Bienes asegurados</label>
               <button className="renovar-add-btn" onClick={addBien} type="button">
-                <AddIcon style={{ fontSize: 16 }} /> Agregar bien
+                 Agregar bien
               </button>
             </div>
             <div className="renovar-bienes-table">
@@ -132,7 +132,7 @@ function RenovarPolizaModal({ open, onClose, onRenovar, poliza, camposNuevos }) 
         <div className="balam-footer renovar-footer">
           <button className="balam-btn cancel" onClick={onClose}>Cancelar</button>
           <button className="balam-btn save renovar-save-btn" onClick={handleRenovar}>
-            <AutorenewIcon style={{ fontSize: 16 }} /> Renovar Póliza
+             Renovar Póliza
           </button>
         </div>
 

@@ -25,35 +25,38 @@
 
 /* VER — verde sólido → hover blanco con borde */
 .tabla-btn-ver {
-  background: #0F4C3A;
-  color: #ffffff;
-}
-.tabla-btn-ver:hover {
-  background: #ffffff;
+   background: #ffffff;
   color: #0F4C3A;
   box-shadow: 0 0 0 1.5px #0F4C3A inset;
+  
+}
+.tabla-btn-ver:hover {
+ background: #0F4C3A;
+  color: #ffffff;
 }
 
 /* EDITAR — dorado quemado → hover blanco con borde */
 .tabla-btn-edit {
-  background: #BA9241;
-  color: #ffffff;
-}
-.tabla-btn-edit:hover {
   background: #ffffff;
   color: #B8860B;
   box-shadow: 0 0 0 1.5px #B8860B inset;
+  
+}
+.tabla-btn-edit:hover {
+  background: #BA9241;
+  color: #ffffff;
 }
 
 /* ELIMINAR — rojo sólido → hover blanco con borde */
 .tabla-btn-del {
-  background: #C0392B;
-  color: #ffffff;
-}
-.tabla-btn-del:hover {
-  background: #ffffff;
+    background: #ffffff;
   color: #C0392B;
   box-shadow: 0 0 0 1.5px #C0392B inset;
+  
+}
+.tabla-btn-del:hover {
+background: #C0392B;
+  color: #ffffff;
 }
 
 /* Responsive: en pantallas muy pequeñas reducir botones */

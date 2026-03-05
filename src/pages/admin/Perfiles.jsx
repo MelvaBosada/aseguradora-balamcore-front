@@ -1,8 +1,9 @@
 import { useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
+
 
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
@@ -14,8 +15,8 @@ import "../../css/Clientes.css";
 
 /* ─── CONFIG ─────────────────────────────────────────────────────── */
 
-const campos = ["id", "nombre"];
-const columnas = ["ID", "Nombre", "Acciones"];
+const campos = ["nombre"];
+const columnas = ["Nombre", "Acciones"];
 
 const FORM_CAMPOS = [
   { label: "Nombre del perfil", name: "nombre", type: "text" },
@@ -106,7 +107,7 @@ const paginated  = perfiles.slice((currentPage - 1) * itemsPerPage, currentPage 
       <hr className="mt-2 mb-3" />
 
       <div className="d-flex align-items-end justify-content-end mb-4">
-        <PrimaryButton text="Nuevo perfil" icon={<AddIcon />} onClick={handleNuevo} />
+        <PrimaryButton text="Nuevo perfil" icon={<AddCircleOutlinedIcon/>} onClick={handleNuevo} />
       </div>
 
       <div className="mb-4">

@@ -123,7 +123,6 @@ const Topbar = ({ onToggleSidebar }) => {
               <div className="dropdown-divider"></div>
 
               <button className="logout-btn" onClick={handleLogout}>
-                <LogoutIcon style={{ marginRight: 6 }} />
                 Cerrar Sesión
               </button>
             </div>

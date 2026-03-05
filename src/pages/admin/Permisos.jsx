@@ -1,8 +1,9 @@
 import { useState } from "react";
-import AddIcon    from "@mui/icons-material/Add";
+import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import EditIcon   from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 
+import SearchIcon from "@mui/icons-material/Search";
 import PrimaryButton      from "../../components/PrimaryButton";
 import TablaForm          from "../../components/TablaForm";
 import EditModal          from "../../components/EditModal";
@@ -96,9 +97,10 @@ const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage 
       <hr className="mt-2 mb-3" />
 
       <div className="d-flex align-items-end justify-content-between mb-4 gap-3 flex-wrap">
-        <div>
+         <div>
           <div className="fw-bold mb-2">Búsqueda</div>
           <div className="search-input-wrapper">
+            <SearchIcon className="search-icon" />
             <input
               type="text"
               className="search-custom"
@@ -108,7 +110,7 @@ const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage 
             />
           </div>
         </div>
-        <PrimaryButton text="Nuevo permiso" icon={<AddIcon />} onClick={handleNuevo} />
+        <PrimaryButton text="Nuevo permiso" icon={<AddCircleOutlinedIcon />} onClick={handleNuevo} />
       </div>
 
       <div className="mb-4">
