@@ -1,51 +1,54 @@
 import { useState } from "react";
-import SearchIcon        from "@mui/icons-material/Search";
+import SearchIcon from "@mui/icons-material/Search";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import AutorenewIcon     from "@mui/icons-material/Autorenew";
-import VisibilityIcon    from "@mui/icons-material/Visibility";
-import PolicyIcon        from "@mui/icons-material/Policy";
-import BadgeIcon         from "@mui/icons-material/Badge";
-import AccessTimeIcon    from "@mui/icons-material/AccessTime";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import PolicyIcon from "@mui/icons-material/Policy";
+import BadgeIcon from "@mui/icons-material/Badge";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
-import SupportAgentIcon  from "@mui/icons-material/SupportAgent";
-import Snackbar          from "@mui/material/Snackbar";
-import Alert             from "@mui/material/Alert";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
 
-import TablaForm           from "../../components/TablaForm";
-import Paginacion          from "../../components/Paginacion";
-import AvisarModal         from "../../components/AvisarModal";
+import TablaForm from "../../components/TablaForm";
+import Paginacion from "../../components/Paginacion";
+import AvisarModal from "../../components/AvisarModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
-import RenovarPolizaModal  from "../../components/RenovarPolizaModal";
+import RenovarPolizaModal from "../../components/RenovarPolizaModal";
 
 import { polizasVencerData } from "../../components/PolizasVencerData";
 import "../../css/PolizasVencer.css";
 
-const ITEMS_PER_PAGE  = 8;
+
 const ESTATUS_OPTIONS = ["Todos", "Urgente", "Por vencer", "Normal"];
 
-const campos   = ["nPoliza",  "tipo", "vigencia",  "estatus"];
+const campos = ["nPoliza", "tipo", "vigencia", "estatus"];
 const columnas = ["N° Póliza", "Tipo", "Vigencia", "Estatus", "Acciones"];
 
 const CAMPOS_RENOVAR = [
-  { label: "Fecha de inicio",  name: "fechaInicio",   type: "date"   },
-  { label: "Fecha de corte",   name: "fechaCorte",    type: "date"   },
-  { label: "Nueva vigencia",   name: "nuevaVigencia", opciones: ["1 mes", "3 meses", "6 meses", "1 año", "2 años"], placeholder: "Selecciona vigencia" },
-  { label: "Tipo de pago",     name: "tipoPago",      opciones: ["Mensual", "Trimestral", "Semestral", "Anual"],    placeholder: "Selecciona tipo de pago" },
-  { label: "Suma asegurada",   name: "sumaAsegurada", type: "number", placeholder: "Ingresa la suma del seguro"    },
-  { label: "Monto a pagar",    name: "montoAPagar",   type: "number", placeholder: "Ingresa lo que debe de pagar" },
+  { label: "Fecha de inicio", name: "fechaInicio", type: "date" },
+  { label: "Fecha de corte", name: "fechaCorte", type: "date" },
+  { label: "Nueva vigencia", name: "nuevaVigencia", opciones: ["1 mes", "3 meses", "6 meses", "1 año", "2 años"], placeholder: "Selecciona vigencia" },
+  { label: "Tipo de pago", name: "tipoPago", opciones: ["Mensual", "Trimestral", "Semestral", "Anual"], placeholder: "Selecciona tipo de pago" },
+  { label: "Suma asegurada", name: "sumaAsegurada", type: "number", placeholder: "Ingresa la suma del seguro" },
+  { label: "Monto a pagar", name: "montoAPagar", type: "number", placeholder: "Ingresa lo que debe de pagar" },
 ];
 
 const PolizasVencer = () => {
-  const [search,      setSearch]      = useState("");
-  const [estatus,     setEstatus]     = useState("Todos");
+  const [search, setSearch] = useState("");
+  const [estatus, setEstatus] = useState("Todos");
   const [currentPage, setCurrentPage] = useState(1);
-  const [avisarOpen,  setAvisarOpen]  = useState(false);
+  const [avisarOpen, setAvisarOpen] = useState(false);
   const [detalleOpen, setDetalleOpen] = useState(false);
   const [renovarOpen, setRenovarOpen] = useState(false);
-  const [selected,    setSelected]    = useState(null);
-  const [snackOpen,     setSnackOpen]     = useState(false);
-  const [snackMsg,      setSnackMsg]      = useState("");
+  const [selected, setSelected] = useState(null);
+  const [snackOpen, setSnackOpen] = useState(false);
+  const [snackMsg, setSnackMsg] = useState("");
   const [snackSeverity, setSnackSeverity] = useState("success");
+  // Cambia la constante por un estado
+  const [itemsPerPage, setItemsPerPage] = useState(8);
+
 
   const showSnack = (msg, severity = "success") => {
     setSnackMsg(msg); setSnackSeverity(severity); setSnackOpen(true);
@@ -54,22 +57,24 @@ const PolizasVencer = () => {
   const filtered = polizasVencerData.filter((p) => {
     const q = search.toLowerCase();
     const matchSearch =
-      p.nombre.toLowerCase().includes(q)   ||
+      p.nombre.toLowerCase().includes(q) ||
       p.apellido.toLowerCase().includes(q) ||
-      p.nPoliza.toLowerCase().includes(q)  ||
-      p.tipo.toLowerCase().includes(q)     ||
+      p.nPoliza.toLowerCase().includes(q) ||
+      p.tipo.toLowerCase().includes(q) ||
       p.asesor.toLowerCase().includes(q);
     const matchEstatus = estatus === "Todos" || p.estatus === estatus;
     return matchSearch && matchEstatus;
   });
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginated  = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  // Recalcula con el estado
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginated = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleSearch  = (e) => { setSearch(e.target.value);  setCurrentPage(1); };
+
+  const handleSearch = (e) => { setSearch(e.target.value); setCurrentPage(1); };
   const handleEstatus = (e) => { setEstatus(e.target.value); setCurrentPage(1); };
 
-  const openAvisar  = (p) => { setSelected(p); setAvisarOpen(true);  };
+  const openAvisar = (p) => { setSelected(p); setAvisarOpen(true); };
   const openDetalle = (p) => { setSelected(p); setDetalleOpen(true); };
   const openRenovar = (p) => { setSelected(p); setRenovarOpen(true); };
 
@@ -79,11 +84,11 @@ const PolizasVencer = () => {
   };
 
   const detalleItems = selected ? [
-    { icon: <PolicyIcon />,        label: "N° Póliza", value: selected.nPoliza  },
-    { icon: <BadgeIcon />,         label: "Tipo",      value: selected.tipo     },
-    { icon: <AccessTimeIcon />,    label: "Vigencia",  value: selected.vigencia },
-    { icon: <CalendarTodayIcon />, label: "Vence",     value: selected.vence    },
-    { icon: <SupportAgentIcon />,  label: "Asesor",    value: selected.asesor   },
+    { icon: <PolicyIcon />, label: "N° Póliza", value: selected.nPoliza },
+    { icon: <BadgeIcon />, label: "Tipo", value: selected.tipo },
+    { icon: <AccessTimeIcon />, label: "Vigencia", value: selected.vigencia },
+    { icon: <CalendarTodayIcon />, label: "Vence", value: selected.vence },
+    { icon: <SupportAgentIcon />, label: "Asesor", value: selected.asesor },
   ] : [];
 
   return (
@@ -110,14 +115,19 @@ const PolizasVencer = () => {
       <TablaForm
         columna={columnas} data={paginated} campos={campos}
         acciones={[
-          { titulo: "Avisar",     clase: "tabla-btn-ver",  icono: <NotificationsIcon fontSize="small" />, onClick: openAvisar  },
-          { titulo: "Renovar",    clase: "tabla-btn-edit", icono: <AutorenewIcon     fontSize="small" />, onClick: openRenovar },
-          { titulo: "Ver póliza", clase: "tabla-btn-del",  icono: <VisibilityIcon    fontSize="small" />, onClick: openDetalle },
+          { titulo: "Avisar", clase: "tabla-btn-ver", icono: <NotificationsIcon fontSize="small" />, onClick: openAvisar },
+          { titulo: "Renovar", clase: "tabla-btn-edit", icono: <AutorenewIcon fontSize="small" />, onClick: openRenovar },
+          { titulo: "Ver póliza", clase: "tabla-btn-del", icono: <VisibilityIcon fontSize="small" />, onClick: openDetalle },
         ]}
       />
 
-      <Paginacion currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
-
+      <Paginacion
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={setItemsPerPage}
+      />
       <AvisarModal open={avisarOpen} onClose={() => setAvisarOpen(false)} poliza={selected} />
 
       <ClienteDetalleModal

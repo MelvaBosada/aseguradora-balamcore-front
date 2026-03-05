@@ -11,10 +11,10 @@ import Paginacion         from "../../components/Paginacion";
 import "../../css/Clientes.css";
 
 /* ─── CONFIG ─────────────────────────────────────────────────────── */
-const ITEMS_PER_PAGE = 8;
 
-const campos   = ["id", "nombre", "descripcion"];
-const columnas = ["ID", "Nombre", "Descripción", "Acciones"];
+
+const campos   = [ "nombre", "descripcion"];
+const columnas = ["Nombre", "Descripción", "Acciones"];
 
 const FORM_CAMPOS = [
   { label: "Nombre del permiso", name: "nombre",      type: "text" },
@@ -43,6 +43,9 @@ const Permisos = () => {
   const [currentPage,     setCurrentPage]     = useState(1);
   const [formData,        setFormData]        = useState(FORM_VACIO);
   const [searchTerm,      setSearchTerm]      = useState("");
+// Cambia la constante por un estado
+const [itemsPerPage, setItemsPerPage] = useState(8);
+
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -81,8 +84,10 @@ const Permisos = () => {
     p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.descripcion.toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginated  = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  // Recalcula con el estado
+const totalPages = Math.ceil(filtered.length / itemsPerPage);
+const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
   const handleSearch = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
 
   return (
@@ -118,7 +123,13 @@ const Permisos = () => {
         />
       </div>
 
-      <Paginacion currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+      <Paginacion
+  currentPage={currentPage}
+  totalPages={totalPages}
+  onPageChange={setCurrentPage}
+  itemsPerPage={itemsPerPage}
+  onItemsPerPageChange={setItemsPerPage}
+/>
 
       {/* Modal nuevo/editar — reutiliza EditModal */}
       <EditModal

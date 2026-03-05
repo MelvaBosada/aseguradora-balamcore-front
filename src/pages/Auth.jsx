@@ -13,8 +13,7 @@ function AuthPage() {
       className="auth-scene"
       style={{
         /* Cuando el card crece (paso Empresa), cambia a flex-start
-           con padding-top calculado para mantener centrado visual.
-           Esto evita que align-items:center corte el card por arriba. */
+           con padding-top calculado para mantener centrado visual.*/
         alignItems: flipped && regStep === 2 ? "flex-start" : "center",
         paddingTop: flipped && regStep === 2 ? "clamp(20px, 4vh, 60px)" : undefined,
       }}

@@ -4,22 +4,31 @@ import AutorenewIcon from "@mui/icons-material/Autorenew";
 import Snackbar      from "@mui/material/Snackbar";
 import Alert         from "@mui/material/Alert";
 
+
 import TablaForm          from "../../components/TablaForm";
 import Paginacion         from "../../components/Paginacion";
 import RenovarPolizaModal from "../../components/RenovarPolizaModal";
+
 import "../../css/PolizasVencer.css";
 
-const ITEMS_PER_PAGE = 8;
+
+
 
 const solicitudesData = [
-  { id: 1, nPoliza: "POL001", nombre: "María",       apellido: "Méndez",   tipo: "Vivienda", vigencia: "1 mes",   vence: "13-03-26", asesor: "Julian Chas", estatus: "Por vencer", correo: "maria@gmail.com"  },
-  { id: 2, nPoliza: "POL002",   nombre: "Juan Carlos", apellido: "González", tipo: "Auto",     vigencia: "12 días", vence: "15-02-26", asesor: "Julian Chas", estatus: "Urgente",    correo: "juanc@gmail.com"  },
-  { id: 3, nPoliza: "POL003",    nombre: "Laura",       apellido: "Torres",   tipo: "Hogar",    vigencia: "1 mes",   vence: "20-03-26", asesor: "Ana López",   estatus: "Por vencer", correo: "laura@gmail.com"  },
-  { id: 4, nPoliza: "POL004",       nombre: "Carlos",      apellido: "Ramírez",  tipo: "Robo",     vigencia: "5 días",  vence: "05-03-26", asesor: "Ana López",   estatus: "Urgente",    correo: "carlos@gmail.com" },
+  { id: 1, nPoliza: "POL001", nombre: "María",       apellido: "Méndez Uc",   tipo: "Vivienda", vigencia: "1 mes",   vence: "13-03-26", asesor: "Julian Chas", estatus: "Por vencer", correo: "maria@gmail.com"  },
+  { id: 2, nPoliza: "POL002", nombre: "Juan Carlos", apellido: "González Tec", tipo: "Auto",     vigencia: "12 días", vence: "15-02-26", asesor: "Julian Chas", estatus: "Urgente",    correo: "juanc@gmail.com"  },
+  { id: 3, nPoliza: "POL003", nombre: "Laura",       apellido: "Torres Cab",   tipo: "Hogar",    vigencia: "1 mes",   vence: "20-03-26", asesor: "Ana López",   estatus: "Por vencer", correo: "laura@gmail.com"  },
+  { id: 4, nPoliza: "POL004", nombre: "Carlos",      apellido: "Ramírez Tec",  tipo: "Robo",     vigencia: "5 días",  vence: "05-03-26", asesor: "Ana López",   estatus: "Urgente",    correo: "carlos@gmail.com" },
+  { id: 5,  nPoliza: "POL005",nombre: "Sofía",      apellido: "Canul Pech",    tipo: "Vida",     vigencia: "2 meses",  vence: "25-03-26", asesor: "Julian Chas", estatus: "Por vencer", correo: "sofia@gmail.com"   },
+{ id: 6,  nPoliza: "POL006", nombre: "Roberto",    apellido: "Dzul May",      tipo: "Auto",     vigencia: "8 días",   vence: "10-03-26", asesor: "Ana López",   estatus: "Urgente",    correo: "roberto@gmail.com" },
+{ id: 7,  nPoliza: "POL007", nombre: "Valentina",  apellido: "Ek Contreras",  tipo: "Vivienda", vigencia: "3 semanas", vence: "01-04-26", asesor: "Pedro Sosa",  estatus: "Por vencer", correo: "vale@gmail.com"    },
+{ id: 8,  nPoliza: "POL008", nombre: "Fernando",   apellido: "Couoh Balam",   tipo: "Hogar",    vigencia: "3 días",   vence: "05-03-26", asesor: "Pedro Sosa",  estatus: "Urgente",    correo: "fer@gmail.com"     },
+{ id: 9,  nPoliza: "POL009", nombre: "Daniela",    apellido: "Tzuc Herrera",  tipo: "Robo",     vigencia: "1 mes",    vence: "15-04-26", asesor: "Julian Chas", estatus: "Por vencer", correo: "dani@gmail.com"    },
+{ id: 10, nPoliza: "POL010", nombre: "Alejandro",  apellido: "Poot Estrella", tipo: "Vida",     vigencia: "6 días",   vence: "08-03-26", asesor: "Ana López",   estatus: "Urgente",    correo: "alex@gmail.com"    },
 ];
 
 const campos   = ["nPoliza", "nombre", "apellido", "tipo", "vigencia", "vence", "asesor", "estatus"];
-const columnas = ["N° Póliza", "Nombre", "Apellido", "Tipo", "Vigencia", "Vence", "Asesor", "Estatus", "Acciones"];
+const columnas = ["N° Póliza", "Nombre", "Apellido(s)", "Tipo", "Vigencia", "Vence", "Asesor", "Estatus", "Acciones"];
 
 const CAMPOS_RENOVAR = [
   { label: "Fecha de inicio", name: "fechaInicio",   type: "date"   },
@@ -36,6 +45,9 @@ const SolicitudesRenovacion = () => {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [selected,    setSelected]    = useState(null);
   const [snackOpen,   setSnackOpen]   = useState(false);
+  // Cambia la constante por un estado
+const [itemsPerPage, setItemsPerPage] = useState(8);
+
 
   const filtered = solicitudesData.filter((p) => {
     const q = search.toLowerCase();
@@ -47,9 +59,12 @@ const SolicitudesRenovacion = () => {
       p.asesor.toLowerCase().includes(q)
     );
   });
+  
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginated  = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+ // Recalcula con el estado
+const totalPages = Math.ceil(filtered.length / itemsPerPage);
+const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
 
   const handleSearch = (e) => { setSearch(e.target.value); setCurrentPage(1); };
 
@@ -81,10 +96,17 @@ const SolicitudesRenovacion = () => {
         columna={columnas} data={paginated} campos={campos}
         acciones={[
           { titulo: "Renovar", clase: "tabla-btn-edit", icono: <AutorenewIcon fontSize="small" />, onClick: handleRenovar },
+          
         ]}
       />
 
-      <Paginacion currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
+<Paginacion
+  currentPage={currentPage}
+  totalPages={totalPages}
+  onPageChange={setCurrentPage}
+  itemsPerPage={itemsPerPage}
+  onItemsPerPageChange={setItemsPerPage}
+/>
 
       <RenovarPolizaModal
         open={modalOpen}

@@ -44,6 +44,8 @@ body {
   border-right: 1px solid var(--border-soft);
   overflow-y: auto;
   overflow-x: hidden;
+    /* 👇 Reserva espacio fijo para el scroll */
+  scrollbar-gutter: stable;
   z-index: 1200;
   box-shadow: 4px 0 25px rgba(0, 0, 0, 0.06);
   transition: left 0.3s ease;
@@ -58,7 +60,7 @@ body {
 }
 
 .logo-icon {
-  width: 65px;
+  width: 45px;
   height: auto;
   object-fit: contain;
 }
@@ -70,7 +72,7 @@ body {
 }
 
 .logo img {
-  max-width: 220%;
+  max-width: 230%;
   height: auto;
   display: block;
 }
@@ -417,4 +419,109 @@ body {
     padding: 7px 10px;
     font-size: 13px;
   }
+}
+
+
+/* ================= TOPBAR RESPONSIVE ================= */
+@media (max-width: 600px) {
+
+  .topbar-left h3 {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+  }
+
+  .topbar-left small {
+    font-size: 10px;
+    opacity: 0.75;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+    display: block;
+  }
+
+  .user-button {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  /* Dropdown ocupa todo el ancho en móvil */
+  .topbar-dropdown {
+    position: fixed;
+    right: 12px;
+    left: 12px;
+    top: calc(var(--topbar-height) + 6px);
+    width: auto;
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .topbar-left h3 {
+    max-width: 120px;
+    font-size: 12px;
+  }
+
+  /* Oculta la fecha en pantallas muy pequeñas */
+  .topbar-left small {
+    display: none;
+  }
+}
+
+/* ================= ULTRA SMALL DEVICES (≤ 360px) ================= */
+@media (max-width: 360px) {
+
+  :root {
+    --sidebar-width: 250px; /* ligeramente más angosto */
+  }
+
+  .sidebar {
+    padding: 18px 14px;
+  }
+
+  .menu-item,
+  .menu-section-title,
+  .submenu-item {
+    padding: 10px 10px;
+    font-size: 13px;
+  }
+
+  .menu-item svg,
+  .submenu-item svg {
+    font-size: 17px;
+    min-width: 17px;
+  }
+
+  .logo-icon {
+    width: 48px;
+  }
+
+  .logo-text {
+    width: 110px;
+  }
+
+  .submenu {
+    padding-left: 4px;
+  }
+}
+
+
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(15, 76, 58, 0.35);
+  border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 76, 58, 0.55);
 }
