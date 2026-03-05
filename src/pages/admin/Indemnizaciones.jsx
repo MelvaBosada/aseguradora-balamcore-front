@@ -223,7 +223,7 @@ const Indemnizaciones = () => {
           },
           {
             titulo: "Descargar PDF",
-            clase: "tabla-btn-descargar",
+            clase: "tabla-btn-edit",
             icono: <DownloadIcon fontSize="small" />,
             onClick: handleDescargarPDF,
           },

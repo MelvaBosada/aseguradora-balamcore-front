@@ -92,15 +92,15 @@
 
 /* Espacio invisible que "reserva" el lugar del logo viajero */
 .logo-slot {
-  width: 80px;
-  height: 80px;
+  width: 70px;
+  height: 70px;
   flex-shrink: 0;
 }
 
 /* Letras fijas debajo del logo */
 .letras-fijas {
   width: 150px;
-  margin-top: 20px;
+  margin-top: 8px;
   opacity: 0;
   transform: translateY(6px);
   transition: opacity 0.5s ease-out 1.9s, transform 0.5s ease-out 1.9s;
@@ -153,7 +153,7 @@
     el logo-slot está al inicio del brand-zone.
     Ajuste: subir ~200px desde el centro.
   */
-  top: calc(50% - 195px);
+  top: calc(50% - 220px);
   transform: translate(-50%, 0);
 }
 
@@ -226,111 +226,153 @@
 /* ===================================================
    RESPONSIVO
    =================================================== */
+/* 1280px y más */
+@media (min-width: 1280px) {
+  .brand-zone   { min-height: 130px; }
+  .logo-slot    { width: 70px; height: 70px; }
+  .letras-fijas { width: 150px; margin-top: 8px; }
+  .logo-viajero { width: 350px; }
+  .state-form .logo-viajero { width: 80px; }
+  .state-form   { top: calc(50% - 220px); }
+}
+
+/* 1920px (Full HD) */
+@media (min-width: 1920px) {
+  .brand-zone   { min-height: 130px; }
+  .logo-slot    { width: 70px; height: 70px; }
+  .letras-fijas { width: 150px; margin-top: 8px; }
+  .logo-viajero { width: 350px; }
+  .state-form .logo-viajero { width: 70px; }
+  .state-form   { top: calc(50% - 220px); }
+}
+
+/* 2560px (2K/QHD) */
+@media (min-width: 2560px) {
+  .brand-zone   { min-height: 130px; }
+  .logo-slot    { width: 70px; height: 70px; }
+  .letras-fijas { width: 150px; margin-top: 8px; }
+  .logo-viajero { width: 350px; }
+  .state-form .logo-viajero { width: 70px; }
+  .state-form   { top: calc(50% - 220px); }
+}
+/* 900px */
+@media (max-width: 900px) {
+  .brand-zone   { min-height: 130px; }
+  .logo-slot    { width: 70px; height: 70px; }
+  .letras-fijas { width: 150px; margin-top: 8px; }
+  .logo-viajero { width: 300px; }
+  .state-form .logo-viajero { width: 70px; }
+  .state-form   { top: calc(50% - 220px); }
+}
+
+/* 800px */
+@media (max-width: 853px) {
+  .brand-zone   { min-height: 100px; }
+  .logo-slot    { width: 70px; height: 70px; }
+  .letras-fijas { width: 180px; margin-top: -8px; }
+  .logo-viajero { width: 260px; }
+  .state-form .logo-viajero { width: 70px; }
+  .state-form   { top: calc(50% - 210px); }
+}
+/* 800px */
+@media (max-width: 823px) {
+  .brand-zone   { min-height: 100px; }
+  .logo-slot    { width: 70px; height: 70px; }
+  .letras-fijas { width: 180px; margin-top: -8px; }
+  .logo-viajero { width: 260px; }
+  .state-form .logo-viajero { width: 70px; }
+  .state-form   { top: calc(50% - 210px); }
+}
+
+/* 700px */
+@media (max-width: 700px) {
+  .brand-zone   { min-height: 120px; }
+  .logo-slot    { width: 68px; height: 68px; }
+  .letras-fijas { width: 138px; margin-top: 8px; }
+  .logo-viajero { width: 220px; }
+  .state-form .logo-viajero { width: 68px; }
+  .state-form   { top: calc(50% - 210px); }
+}
+
+/* 600px */
 @media (max-width: 600px) {
+  .auth-scene { padding: 30px 20px; }
   .login-paper-premium {
     padding: 30px 22px 28px;
     border-radius: 26px !important;
   }
-
-  .brand-zone  { min-height: 110px; }
-  .logo-slot   { width: 68px; height: 68px; }
-  .letras-fijas { width: 120px; }
-
-  .logo-viajero { width: 130px; }
-  .state-form .logo-viajero { width: 68px; }
-  .state-form { top: calc(50% - 175px); }
-
+  .brand-zone   { min-height: 115px; }
+  .logo-slot    { width: 65px; height: 65px; }
+  .letras-fijas { width: 130px; margin-top: 7px; }
+  .logo-viajero { width: 180px; }
+  .state-form .logo-viajero { width: 65px; }
+  .state-form   { top: calc(50% - 200px); }
   .password-row { flex-direction: column; gap: 4px; }
-
   .button-group { flex-direction: column; gap: 10px; }
   .button-group > button { width: 100%; max-width: 220px; }
 }
 
-@media (max-width: 1024px) {
+/* 500px */
+@media (max-width: 540px) {
+  .auth-scene { padding: 24px 16px; }
   .login-paper-premium {
-    padding: 40px 36px;
-    border-radius: 30px !important;
+    padding: 26px 18px 24px;
+    border-radius: 24px !important;
   }
-
-  .brand-zone   { min-height: 120px; }
-  .logo-slot    { width: 80px; height: 80px; }
-  .letras-fijas { width: 150px; }
-
-  .logo-viajero { width: 200px; }
-  .state-form .logo-viajero { width: 80px; }
-  .state-form { top: calc(50% - 220px); }
-
-  /* En 1024 los botones y password siguen en fila horizontal */
-  .password-row { flex-direction: row; gap: 10px; }
-  .button-group { flex-direction: row; gap: 12px; }
-  .button-group > button { width: auto; }
+  .brand-zone   { min-height: 110px; }
+  .logo-slot    { width: 62px; height: 62px; }
+  .letras-fijas { width: 122px; margin-top: 7px; }
+  .logo-viajero { width: 150px; }
+  .state-form .logo-viajero { width: 62px; }
+  .state-form   { top: calc(50% - 225px); }
 }
 
+/* 400px */
 @media (max-width: 412px) {
   .auth-scene { padding: 24px 14px; }
-
   .login-paper-premium {
     padding: 24px 16px 22px;
     border-radius: 22px !important;
   }
-
-  .brand-zone  { min-height: 95px; }
-  .logo-slot   { width: 60px; height: 60px; }
-  .letras-fijas { width: 100px; }
-
-  .logo-viajero { width: 300px; }
-  .state-form .logo-viajero { width: 60px; }
-  .state-form { top: calc(50% - 210px); }
+  .brand-zone   { min-height: 100px; }
+  .logo-slot    { width: 58px; height: 58px; }
+  .letras-fijas { width: 110px; margin-top: 6px; }
+  .logo-viajero { width: 120px; }
+  .state-form .logo-viajero { width: 58px; }
+  .state-form   { top: calc(50% - 222px); }
 }
 
-@media (max-width: 390px) {
-  .auth-scene { padding: 24px 14px; }
-
+/* 3px */
+@media (max-width: 300px) {
+  .auth-scene { padding: 16px 10px; }
   .login-paper-premium {
-    padding: 24px 16px 22px;
-    border-radius: 22px !important;
+    padding: 20px 12px 18px;
+    border-radius: 18px !important;
   }
-
-  .brand-zone  { min-height: 90px; }
-  .logo-slot   { width: 56px; height: 56px; }
-  .letras-fijas { width: 90px; }
-
+  .brand-zone   { min-height: 88px; }
+  .logo-slot    { width: 50px; height: 50px; }
+  .letras-fijas { width: 90px; margin-top: 5px; }
   .logo-viajero { width: 100px; }
-  .state-form .logo-viajero { width: 56px; }
-  .state-form { top: calc(50% - 155px); }
+  .state-form .logo-viajero { width: 50px; }
+  .state-form   { top: calc(50% - 165px); }
+  .title-bold   { font-size: 1.1rem !important; }
+  .subtitle-slim { font-size: 0.75rem !important; }
 }
 
-
-@media (max-width: 540px) {
-  .auth-scene { padding: 24px 14px; }
-
+/* 200px */
+@media (max-width: 200px) {
+  .auth-scene { padding: 10px 6px; }
   .login-paper-premium {
-    padding: 24px 16px 22px;
-    border-radius: 22px !important;
+    padding: 14px 8px 12px;
+    border-radius: 14px !important;
   }
-
-  .brand-zone  { min-height: 95px; }
-  .logo-slot   { width: 60px; height: 60px; }
-  .letras-fijas { width: 100px; }
-
-  .logo-viajero { width: 300px; }
-  .state-form .logo-viajero { width: 60px; }
-  .state-form { top: calc(50% - 210px); }
-}
-
-@media (max-width: 390px) {
-  .auth-scene { padding: 24px 14px; }
-
-  .login-paper-premium {
-    padding: 24px 16px 22px;
-    border-radius: 22px !important;
-  }
-
-  .brand-zone  { min-height: 90px; }
-  .logo-slot   { width: 56px; height: 56px; }
-  .letras-fijas { width: 90px; }
-
-  .logo-viajero { width: 100px; }
-  .state-form .logo-viajero { width: 56px; }
-  .state-form { top: calc(50% - 210px); }
+  .brand-zone   { min-height: 72px; }
+  .logo-slot    { width: 40px; height: 40px; }
+  .letras-fijas { width: 70px; margin-top: 4px; }
+  .logo-viajero { width: 80px; }
+  .state-form .logo-viajero { width: 40px; }
+  .state-form   { top: calc(50% - 145px); }
+  .title-bold   { font-size: 0.95rem !important; }
+  .subtitle-slim { font-size: 0.7rem !important; margin-bottom: 10px !important; }
+  .button-group { gap: 6px; }
 }

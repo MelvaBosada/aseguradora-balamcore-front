@@ -1,4 +1,5 @@
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
+
 import "../css/BalamCoreModal.css";
 
 function ConfirmDeleteModal({ open, onClose, onConfirm, title, subtitle, children }) {
@@ -11,7 +12,7 @@ function ConfirmDeleteModal({ open, onClose, onConfirm, title, subtitle, childre
         <div className="modal-balam-delete-inner">
 
           <div className="modal-balam-icon">
-            <DeleteOutlineIcon />
+            <DeleteRoundedIcon />
           </div>
 
           <h2 className="modal-balam-title">{title}</h2>
