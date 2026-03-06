@@ -14,14 +14,13 @@ import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import InfoIcon from "@mui/icons-material/Info";
 import ReportIcon from "@mui/icons-material/Report";
 import AssessmentIcon from "@mui/icons-material/Assessment";
-import NoteAddIcon from "@mui/icons-material/NoteAdd";
-
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
 import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
+import AssignmentAddIcon from '@mui/icons-material/AssignmentAdd';
 
 /* COLUMNAS SIMPLIFICADAS */
 const campos = [
@@ -391,96 +390,14 @@ const Siniestros = () => {
             },
             {
               titulo: "Nueva evaluación",
-              clase: "tabla-btn-evaluacion",
-              icono: <NoteAddIcon fontSize="small" />,
+              clase: "tabla-btn-ver", // Misma clase que "Ver detalle"
+              icono: <AssignmentAddIcon fontSize="small" />, // Mismo ícono
               onClick: handleNuevaEvaluacion
             }
           ]}
         />
         
-        {/* Estilos para badges */}
-        <style>{`
-          .table tbody tr td:nth-child(4) {
-            text-align: center;
-          }
-          .table tbody tr td:nth-child(5) {
-            text-align: center;
-          }
-          .badge-prioridad-alta {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            display: inline-block;
-          }
-          .badge-prioridad-media {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            display: inline-block;
-          }
-          .badge-prioridad-baja {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            display: inline-block;
-          }
-          .badge-activa {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            display: inline-block;
-          }
-          .badge-proxima {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            display: inline-block;
-          }
-          .badge-vencida {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            display: inline-block;
-          }
-          .tabla-btn-evaluacion {
-            color: #1a7f4c;
-            background-color: rgba(26, 127, 76, 0.1);
-            width: 34px;
-            height: 34px;
-            border-radius: 8px;
-            border: none;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin: 0 4px;
-          }
-          .tabla-btn-evaluacion:hover {
-            background-color: #1a7f4c;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(26, 127, 76, 0.3);
-          }
-        `}</style>
+       
       </div>
 
       <Paginacion
