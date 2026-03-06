@@ -57,7 +57,7 @@ const Sidebar = ({ open, onClose }) => {
           </div>
 
           <div className={`submenu ${openMenu === "operaciones" ? "open" : ""}`}>
-            <NavLink to="/admin/poliza" className="submenu-item" onClick={closeAll}>Pólizas</NavLink>
+            <NavLink to="/admin/polizas" className="submenu-item" onClick={closeAll}>Pólizas</NavLink>
             <NavLink to="/admin/siniestros" className="submenu-item" onClick={closeAll}>Siniestros</NavLink>
             <NavLink to="/admin/indemnizaciones" className="submenu-item" onClick={closeAll}>Indemnizaciones</NavLink>
             <NavLink to="/admin/pagos" className="submenu-item" onClick={closeAll}>Pagos</NavLink>

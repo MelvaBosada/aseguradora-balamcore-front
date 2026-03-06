@@ -105,7 +105,7 @@ const Clientes = () => {
   const handleVerDetalle = (c) => { setClienteDetalle(c); setShowDetalleModal(true); };
 
   const filteredClientes = clientes.filter(c => {
-    const q = searchTerm.toLowerCase();
+    const q= searchTerm.toLowerCase();
     return (
       c.nombre.toLowerCase().includes(q) ||
       c.apellido.toLowerCase().includes(q) ||
