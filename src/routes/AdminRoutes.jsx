@@ -11,7 +11,11 @@ import Perfiles from "../pages/admin/Perfiles";
 import Permisos from "../pages/admin/Permisos";
 import Siniestros from "../pages/admin/Siniestros";
 import Evaluaciones from "../pages/admin/Evaluaciones";
-
+import Pagos from "../pages/admin/Pagos";
+import Coberturas from "../pages/admin/Coberturas";
+import Bienes from "../pages/admin/Bienes";
+import Reporte from "../pages/admin/Reporte";
+import Empleados from "../pages/admin/Empleados";
 export const AdminRoutes = (
   <>
     <Route path="/admin" element={<DashboardLayout />}>
@@ -25,6 +29,11 @@ export const AdminRoutes = (
       <Route path="permisos" element={<Permisos />} />
       <Route path="siniestros" element={<Siniestros />} />
       <Route path="evaluaciones" element={<Evaluaciones />} />
+      <Route path="pagos" element={<Pagos/>} />
+      <Route path="coberturas" element={<Coberturas/>}/>
+      <Route path="bienes" element={<Bienes/>}/>
+      <Route path="reportes" element={<Reporte/>}/>
+      <Route path="empleados" element={<Empleados/>}/>
     </Route>
   </>
 );

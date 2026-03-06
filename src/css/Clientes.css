@@ -284,3 +284,30 @@
   color: #aaa;
   font-size: 13px;
 }
+
+/* Seleccionamos el botón de agregar para eliminar márgenes laterales */
+.btn-accion-siniestro {
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  /* Borde azul igual a los otros */
+  border: 1.5px solid #1e64c8 !important; 
+  background-color: #ffffff !important;
+  color: #1e64c8 !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+  
+  
+  margin: 0 2px !important; 
+}
+
+.tabla-acciones-container {
+  display: flex !important;
+  gap: 4px !important; 
+  align-items: center;
+}
