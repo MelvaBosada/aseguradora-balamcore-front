@@ -34,6 +34,7 @@ export const AdminRoutes = (
       <Route path="bienes" element={<Bienes/>}/>
       <Route path="reportes" element={<Reporte/>}/>
       <Route path="empleados" element={<Empleados/>}/>
+    
     </Route>
   </>
 );

@@ -42,23 +42,6 @@ const polizasData = [
   { id: 5, nPoliza: "185", cliente: "Angel Torres", fechaInicio: "30-9-2025", fechaFinal: "11-9-2040", estatus: "Cancelado", sumaAsegurada: "$50 000", formaPago: "mensual", tipoPago: "efectivo", montoPrima: "$800", observaciones: "Observaciones 5" }
 ];
 
-// Función para determinar la clase del badge según el estatus
-const getBadgeClass = (estatus) => {
-  switch(estatus) {
-    case "Activa":
-      return "badge-activa";
-    case "Por vencer":
-      return "badge-proxima";
-    case "Vencida":
-      return "badge-vencida";
-    case "Renovada":
-      return "badge-renovada";
-    case "Cancelado":
-      return "badge-cancelada";
-    default:
-      return "";
-  }
-};
 
 // Campos del formulario para pólizas
 const FORM_CAMPOS = [
