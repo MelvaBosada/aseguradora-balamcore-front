@@ -41,11 +41,16 @@ function Login({ onGoToRegister }) {
 
     try {
       // 2. Manda correo y password al backend Laravel
-      const res = await axios.post("http://localhost:8000/api/login", {
-        correo,
-        password,
-      });
-
+      const res = await axios.post(
+  "http://localhost:8000/api/login",
+  {
+    correo,
+    password,
+  },
+  {
+    withCredentials: true,
+  }
+);
       // 3. Guarda el usuario en localStorage
       localStorage.setItem("usuario", JSON.stringify(res.data.usuario));
 
