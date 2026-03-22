@@ -14,7 +14,7 @@ const IconUpload = () => (
 // Validaciones
 const validar = (data) => {
   const errores = {};
-  if (!data.nombre.trim())       errores.nombre       = "Requerido";
+  if (!data.nombre.trim()) errores.nombre = "Requerido";
   if (!data.razon_social.trim()) errores.razon_social = "Requerido";
 
   const rfcLimpio = data.rfc.trim().toUpperCase();
@@ -24,18 +24,18 @@ const validar = (data) => {
     errores.rfc = "Formato inválido (ej. XAXX010101000)";
   }
 
-  if (!data.telefono.trim())     errores.telefono     = "Requerido";
+  if (!data.telefono.trim()) errores.telefono = "Requerido";
   if (data.telefono.trim() && !/^\d{10}$/.test(data.telefono.trim()))
-                                 errores.telefono     = "Debe tener 10 dígitos";
-  if (!data.domicilio.trim())    errores.domicilio    = "Requerido";
-  if (!data.municipio.trim())    errores.municipio    = "Requerido";
-  if (!data.estado.trim())       errores.estado       = "Requerido";
+    errores.telefono = "Debe tener 10 dígitos";
+  if (!data.domicilio.trim()) errores.domicilio = "Requerido";
+  if (!data.municipio.trim()) errores.municipio = "Requerido";
+  if (!data.estado.trim()) errores.estado = "Requerido";
   if (!data.codigo_postal.trim()) errores.codigo_postal = "Requerido";
   if (data.codigo_postal.trim() && !/^\d{5}$/.test(data.codigo_postal.trim()))
-                                  errores.codigo_postal = "Debe tener 5 dígitos";
+    errores.codigo_postal = "Debe tener 5 dígitos";
 
   if (data.sitio_web.trim() && !/^https?:\/\/.+/.test(data.sitio_web.trim()))
-                                 errores.sitio_web    = "Debe iniciar con http:// o https://";
+    errores.sitio_web = "Debe iniciar con http:// o https://";
 
   return errores;
 };
@@ -47,12 +47,12 @@ function StepCompany({ onFinish, onBack, correo, password }) {
     estado: "", codigo_postal: "", pais: "México",
     observaciones: "",
   });
-  const [errores,     setErrores]     = useState({});
-  const [logoFile,    setLogoFile]    = useState(null);
+  const [errores, setErrores] = useState({});
+  const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
-  const [loading,     setLoading]     = useState(false);
-  const [loadingCP,   setLoadingCP]   = useState(false);
-  const [snack,       setSnack]       = useState({ open: false, msg: "", type: "success" });
+  const [loading, setLoading] = useState(false);
+  const [loadingCP, setLoadingCP] = useState(false);
+  const [snack, setSnack] = useState({ open: false, msg: "", type: "success" });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -74,8 +74,8 @@ function StepCompany({ onFinish, onBack, correo, password }) {
         setData((prev) => ({
           ...prev,
           municipio: lugar["place name"] || prev.municipio,
-          estado:    lugar["state"]      || prev.estado,
-          pais:      "México",
+          estado: lugar["state"] || prev.estado,
+          pais: "México",
         }));
         // Limpia errores de campos autocompletados
         setErrores((prev) => ({ ...prev, municipio: null, estado: null }));
@@ -107,7 +107,7 @@ function StepCompany({ onFinish, onBack, correo, password }) {
     try {
       const formData = new FormData();
       Object.entries(data).forEach(([key, val]) => formData.append(key, val));
-      formData.append("correo",   correo);
+      formData.append("correo", correo);
       formData.append("password", password);
       if (logoFile) formData.append("logo", logoFile);
 
@@ -122,7 +122,7 @@ function StepCompany({ onFinish, onBack, correo, password }) {
       if (error.response?.status === 422) {
         const backendErrors = error.response.data.errors;
         if (backendErrors) {
-          // Mapea errores del backend a los campos
+          //errores del backend a los campos
           const nuevosErrores = {};
           Object.keys(backendErrors).forEach((campo) => {
             nuevosErrores[campo] = backendErrors[campo][0];

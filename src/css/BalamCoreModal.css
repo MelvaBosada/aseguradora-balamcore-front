@@ -300,3 +300,103 @@
   .modal-balam-footer { flex-direction: column-reverse; }
   .modal-balam-footer .balam-btn { width: 100%; }
 }
+
+
+
+/* ── MODAL WIDE (3 columnas) ──────────────────────── */
+.balam-modal-wide {
+  max-width: 860px;
+}
+
+.balam-body-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 28px;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* Sección con título */
+.balam-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.balam-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bc-green);
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--bc-green-light);
+}
+
+/* Grid de 3 columnas */
+.balam-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 18px;
+}
+
+/* Campo que ocupa toda la fila */
+.balam-full {
+  grid-column: 1 / -1;
+}
+
+/* Select */
+.balam-select {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--bc-border);
+  font-size: 13.5px;
+  color: var(--bc-text);
+  background: #fafafa;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%230F4C3A' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.balam-select:focus {
+  outline: none;
+  border-color: var(--bc-green);
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+}
+
+/* Textarea */
+.balam-textarea {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--bc-border);
+  font-size: 13.5px;
+  color: var(--bc-text);
+  background: #fafafa;
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.balam-textarea:focus {
+  outline: none;
+  border-color: var(--bc-green);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+}
+
+/* ── RESPONSIVE ───────────────────────────────────── */
+@media (max-width: 860px) {
+  .balam-modal-wide { max-width: 100%; }
+  .balam-fields-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .balam-fields-grid { grid-template-columns: 1fr; }
+  .balam-body-sections { padding: 18px; }
+}
