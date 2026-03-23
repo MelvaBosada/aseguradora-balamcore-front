@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import "../css/Login.css";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import logoSin     from "../assets/LogoSin.png";
+import logoSin from "../assets/LogoSin.png";
 import LetrasColor from "../assets/LetrasColor.png";
 import ButtonVerdeForm from "../components/ButtonVerdeForm";
 
@@ -11,12 +11,12 @@ function Login({ onGoToRegister }) {
   const navigate = useNavigate();
 
   // ── Estados ──────────────────────────────────────────────────
-  const [correo,      setCorreo]      = useState("");
-  const [password,    setPassword]    = useState("");
-  const [error,       setError]       = useState(false);   // true = inputs rojos
-  const [open,        setOpen]        = useState(false);   // controla el snackbar
-  const [mensaje,     setMensaje]     = useState("");      // texto del snackbar
-  const [loading,     setLoading]     = useState(false);   // true mientras espera al backend
+  const [correo, setCorreo] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(false);   // true = inputs rojos
+  const [open, setOpen] = useState(false);   // controla el snackbar
+  const [mensaje, setMensaje] = useState("");      // texto del snackbar
+  const [loading, setLoading] = useState(false);   // true mientras espera al backend
   const [isAnimating, setIsAnimating] = useState(false);   // animación del logo
 
   // ── Animación del logo al cargar ─────────────────────────────
@@ -42,17 +42,23 @@ function Login({ onGoToRegister }) {
     try {
       // 2. Manda correo y password al backend Laravel
       const res = await axios.post(
-  "http://localhost:8000/api/login",
-  {
-    correo,
-    password,
-  },
-  {
-    withCredentials: true,
-  }
-);
-      // 3. Guarda el usuario en localStorage
+        "http://localhost:8000/api/login",
+        {
+          correo,
+          password,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      // 3. Guarda el usuario y permisos en localStorage
+      localStorage.setItem("token", res.data.token);
       localStorage.setItem("usuario", JSON.stringify(res.data.usuario));
+      localStorage.setItem("permisos", JSON.stringify(res.data.permisos));
+
+      // Setea el token globalmente para todas las peticiones axios
+axios.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
 
       // 4. Muestra mensaje de éxito
       setMensaje("Sesión iniciada correctamente");

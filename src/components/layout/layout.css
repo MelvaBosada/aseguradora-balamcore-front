@@ -150,7 +150,8 @@ body {
 }
 
 .submenu.open {
-  max-height: 500px;
+  max-height: 500px; 
+   padding: 2px 8px 2px 8px;
 }
 
 .submenu-item {

@@ -1,10 +1,9 @@
 import "../css/BalamCoreModal.css";
 import logo from "../assets/Logo.png";
 
-function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos, formData, onChange }) {
+function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos, formData, onChange, errores = {} }) {
   if (!open) return null;
 
-  // Agrupa campos por sección si tienen `seccion`
   const secciones = campos?.reduce((acc, campo) => {
     const sec = campo.seccion || "General";
     if (!acc[sec]) acc[sec] = [];
@@ -29,14 +28,15 @@ function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos,
         <div className="balam-body balam-body-sections">
           {Object.entries(secciones).map(([seccion, camposSec]) => (
             <div key={seccion} className="balam-section">
-              {/* Título de sección solo si no es "General" */}
               {seccion !== "General" && (
                 <div className="balam-section-title">{seccion}</div>
               )}
               <div className="balam-fields-grid">
                 {camposSec.map((campo) => (
                   <div key={campo.name} className={`balam-field ${campo.fullWidth ? "balam-full" : ""}`}>
-                    <label>{campo.label}</label>
+                    <label style={{ color: errores[campo.name] ? "#C0392B" : "" }}>
+                      {campo.label}
+                    </label>
 
                     {/* SELECT */}
                     {campo.type === "select" ? (
@@ -45,6 +45,7 @@ function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos,
                         value={formData[campo.name] || ""}
                         onChange={onChange}
                         className="balam-select"
+                        style={{ borderColor: errores[campo.name] ? "#C0392B" : "" }}
                       >
                         <option value="">Selecciona...</option>
                         {campo.options?.map((opt) => (
@@ -55,7 +56,6 @@ function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos,
                       </select>
 
                     ) : campo.type === "textarea" ? (
-                      /* TEXTAREA */
                       <textarea
                         name={campo.name}
                         value={formData[campo.name] || ""}
@@ -63,18 +63,27 @@ function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos,
                         placeholder={`Ingresa ${campo.label.toLowerCase()}`}
                         className="balam-textarea"
                         rows={3}
+                        style={{ borderColor: errores[campo.name] ? "#C0392B" : "" }}
                       />
 
                     ) : (
-                      /* INPUT normal */
                       <input
                         type={campo.type}
                         name={campo.name}
                         value={formData[campo.name] || ""}
                         onChange={onChange}
                         placeholder={`Ingresa ${campo.label.toLowerCase()}`}
+                        style={{ borderColor: errores[campo.name] ? "#C0392B" : "" }}
                       />
                     )}
+
+                    {/* MENSAJE DE ERROR */}
+                    {errores[campo.name] && (
+                      <span style={{ color: "#C0392B", fontSize: 11, marginTop: 3 }}>
+                        {errores[campo.name]}
+                      </span>
+                    )}
+
                   </div>
                 ))}
               </div>
