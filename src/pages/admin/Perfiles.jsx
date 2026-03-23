@@ -41,7 +41,7 @@ const Perfiles = () => {
           axios.get(`${API}/permisos`),
         ]);
         setPerfiles(resRoles.data);
-        setPermisosDisponibles(resPermisos.data.map(p => p.nombre));
+        setPermisosDisponibles(resPermisos.data); // objetos completos {id, nombre, clave}
       } catch (err) {
         console.error("Error al cargar datos:", err);
       }
@@ -102,7 +102,7 @@ const Perfiles = () => {
   const handleAsignarPermisos = async (perfil) => {
     try {
       const res = await axios.get(`${API}/roles/${perfil.id}/permisos`);
-      setPermisosDelPerfil(res.data.map(p => p.nombre));
+      setPermisosDelPerfil(res.data.map(p => p.id)); // array de ids [1, 3, 5]
       setPerfilPermisos(perfil);
       setShowPermisosModal(true);
     } catch (err) {
@@ -110,14 +110,11 @@ const Perfiles = () => {
     }
   };
 
-  const handleGuardarPermisos = async (nuevosPermisos) => {
+  const handleGuardarPermisos = async (idsSeleccionados) => {
     try {
-      const resPermisos = await axios.get(`${API}/permisos`);
-      const ids = resPermisos.data
-        .filter(p => nuevosPermisos.includes(p.nombre))
-        .map(p => p.id);
-
-      await axios.post(`${API}/roles/${perfilPermisos.id}/permisos`, { permisos: ids });
+      await axios.post(`${API}/roles/${perfilPermisos.id}/permisos`, {
+        permisos: idsSeleccionados,
+      });
       setShowPermisosModal(false);
       setPerfilPermisos(null);
     } catch (err) {

@@ -37,35 +37,36 @@ const FORM_VACIO = {
   cuenta_bancaria: "", clabe_interbancaria: "",
   cedula_profesional: "", especialidad: "",
   contacto_emergencia_nombre: "", contacto_emergencia_parentesco: "",
-  contacto_emergencia_telefono: "", id_usuario: "",
+  contacto_emergencia_telefono: "",
+  password: "",
+  id_rol: "",
 };
 
-// Función que genera los campos con roles dinámicos
 const generarCampos = (roles) => [
   // ── Datos personales ──────────────────────────────
   { seccion: "Datos personales", label: "Nombre",             name: "nombre",              type: "text"   },
-  { seccion: "Datos personales", label: "Apellidos",            name: "apellidos",            type: "text"   },
-  { seccion: "Datos personales", label: "Fecha nacimiento",    name: "fecha_nacimiento",    type: "date"   },
-  { seccion: "Datos personales", label: "Género",              name: "genero",              type: "select",
+  { seccion: "Datos personales", label: "Apellidos",          name: "apellidos",           type: "text"   },
+  { seccion: "Datos personales", label: "Fecha nacimiento",   name: "fecha_nacimiento",    type: "date"   },
+  { seccion: "Datos personales", label: "Género",             name: "genero",              type: "select",
     options: [{ value: "M", label: "Masculino" }, { value: "F", label: "Femenino" }] },
-  { seccion: "Datos personales", label: "Estado civil",        name: "estado_civil",        type: "select",
+  { seccion: "Datos personales", label: "Estado civil",       name: "estado_civil",        type: "select",
     options: [
       { value: "soltero",    label: "Soltero(a)"    },
       { value: "casado",     label: "Casado(a)"     },
       { value: "divorciado", label: "Divorciado(a)" },
       { value: "viudo",      label: "Viudo(a)"      },
     ]},
-  { seccion: "Datos personales", label: "Nacionalidad",        name: "nacionalidad",        type: "text"   },
-  { seccion: "Datos personales", label: "CURP",                name: "curp",                type: "text"   },
-  { seccion: "Datos personales", label: "RFC",                 name: "rfc",                 type: "text"   },
-  { seccion: "Datos personales", label: "NSS",                 name: "nss",                 type: "text"   },
-  { seccion: "Datos personales", label: "Tipo identificación", name: "tipo_identificacion", type: "select",
+  { seccion: "Datos personales", label: "Nacionalidad",       name: "nacionalidad",        type: "text"   },
+  { seccion: "Datos personales", label: "CURP",               name: "curp",                type: "text"   },
+  { seccion: "Datos personales", label: "RFC",                name: "rfc",                 type: "text"   },
+  { seccion: "Datos personales", label: "NSS",                name: "nss",                 type: "text"   },
+  { seccion: "Datos personales", label: "Tipo identificación",name: "tipo_identificacion", type: "select",
     options: [
       { value: "INE",       label: "INE"          },
       { value: "pasaporte", label: "Pasaporte"    },
       { value: "cedula",    label: "Cédula prof." },
     ]},
-  { seccion: "Datos personales", label: "No. identificación",  name: "numero_identificacion", type: "text" },
+  { seccion: "Datos personales", label: "No. identificación", name: "numero_identificacion", type: "text" },
 
   // ── Contacto ──────────────────────────────────────
   { seccion: "Contacto", label: "Teléfono",      name: "numero_de_telefono",   type: "text"  },
@@ -116,9 +117,11 @@ const generarCampos = (roles) => [
       { value: "suspendido", label: "Suspendido" },
       { value: "baja",       label: "Baja"       },
     ]},
-  // ← Rol dinámico desde la BD — ya tiene los roles cargados
-  { seccion: "Datos laborales", label: "Rol", name: "id_usuario", type: "select",
+  { seccion: "Datos laborales", label: "Rol", name: "id_rol", type: "select",
     options: roles.map(r => ({ value: String(r.id), label: r.nombre })) },
+
+  // ── Acceso al sistema ─────────────────────────────
+  { seccion: "Acceso al sistema", label: "Contraseña", name: "password", type: "password" },
 
   // ── Nómina ────────────────────────────────────────
   { seccion: "Nómina", label: "Salario",             name: "salario",             type: "number" },
@@ -155,6 +158,7 @@ const Empleados = () => {
   const [currentPage,      setCurrentPage]      = useState(1);
   const [formData,         setFormData]         = useState(FORM_VACIO);
   const [itemsPerPage,     setItemsPerPage]     = useState(10);
+  const [errores,          setErrores]          = useState({});
 
   useEffect(() => {
     const cargar = async () => {
@@ -185,12 +189,10 @@ const Empleados = () => {
     }
   };
 
-  // CP automático con zippopotam.us
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Si escribe un CP de 5 dígitos → autocompletar
     if (name === "codigo_postal" && value.length === 5) {
       try {
         const res = await axios.get(`https://api.zippopotam.us/mx/${value}`);
@@ -202,7 +204,7 @@ const Empleados = () => {
           estado:    lugar["state"]       || prev.estado,
         }));
       } catch {
-        // CP no encontrado, no pasa nada
+        // CP no encontrado
       }
     }
   };
@@ -210,16 +212,45 @@ const Empleados = () => {
   const handleNuevo = () => {
     setEditingEmp(null);
     setFormData({ ...FORM_VACIO, id_aseguradora: usuario.id_aseguradora });
+    setErrores({});
     setShowModal(true);
   };
 
   const handleEditar = (emp) => {
     setEditingEmp(emp);
     setFormData(emp);
+    setErrores({});
     setShowModal(true);
   };
 
   const handleGuardar = async () => {
+    const nuevosErrores = {};
+    const requeridos = [
+      "nombre", "apellidos", "fecha_nacimiento", "genero", "estado_civil",
+      "nacionalidad", "curp", "rfc", "nss", "tipo_identificacion",
+      "numero_identificacion", "numero_de_telefono", "correo",
+      "domicilio", "municipio", "estado", "codigo_postal",
+      "fecha_ingreso", "departamento", "tipo_empleado", "puesto",
+      "horario", "estado_laboral", "salario", "tipo_nomina",
+      "banco", "cuenta_bancaria", "clabe_interbancaria",
+      "contacto_emergencia_nombre", "contacto_emergencia_parentesco",
+      "contacto_emergencia_telefono", "id_rol",
+      ...(!editingEmp ? ["password"] : []),
+    ];
+
+    requeridos.forEach(campo => {
+      if (!formData[campo] || formData[campo] === "") {
+        nuevosErrores[campo] = "Este campo es requerido";
+      }
+    });
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setErrores(nuevosErrores);
+      return;
+    }
+
+    setErrores({});
+
     try {
       const payload = { ...formData, id_aseguradora: usuario.id_aseguradora };
       if (editingEmp) {
@@ -230,12 +261,12 @@ const Empleados = () => {
       await recargarEmpleados();
       setShowModal(false);
     } catch (err) {
-  console.error("Error al guardar empleado:", err);
-  console.error("Detalle:", err.response?.data); 
-}
+      console.error("Error al guardar empleado:", err);
+      console.error("Detalle:", err.response?.data);
+    }
   };
 
-  const handleEliminarClick = (e) => { setEmpToDelete(e); setShowDeleteModal(true); };
+  const handleEliminarClick  = (e) => { setEmpToDelete(e); setShowDeleteModal(true); };
 
   const handleConfirmarEliminar = async () => {
     try {
@@ -251,29 +282,29 @@ const Empleados = () => {
   const filteredEmps = empleados.filter(e => {
     const q = searchTerm.toLowerCase();
     return (
-      e.nombre?.toLowerCase().includes(q)   ||
+      e.nombre?.toLowerCase().includes(q)    ||
       e.apellidos?.toLowerCase().includes(q) ||
       e.curp?.toLowerCase().includes(q)
     );
   });
 
-  const totalPages = Math.ceil(filteredEmps.length / itemsPerPage);
-  const paginated  = filteredEmps.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const handleSearch     = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
+  const totalPages   = Math.ceil(filteredEmps.length / itemsPerPage);
+  const paginated    = filteredEmps.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const handleSearch = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
   const handleVerDetalle = (e) => { setEmpDetalle(e); setShowDetalleModal(true); };
 
   const detalleItems = empDetalle ? [
-    { icon: <PersonIcon />, label: "Nombre",      value: empDetalle.nombre               },
-    { icon: <PersonIcon />, label: "Apellidos",     value: empDetalle.apellidos            },
-    { icon: <BadgeIcon  />, label: "CURP",         value: empDetalle.curp                 },
-    { icon: <BadgeIcon  />, label: "RFC",          value: empDetalle.rfc                  },
-    { icon: <BadgeIcon  />, label: "NSS",          value: empDetalle.nss                  },
-    { icon: <PhoneIcon  />, label: "Teléfono",     value: empDetalle.numero_de_telefono   },
-    { icon: <EmailIcon  />, label: "Correo",       value: empDetalle.correo               },
-    { icon: <HomeIcon   />, label: "Domicilio",    value: empDetalle.domicilio            },
-    { icon: <BadgeIcon  />, label: "Puesto",       value: empDetalle.puesto               },
-    { icon: <BadgeIcon  />, label: "Departamento", value: empDetalle.departamento         },
-    { icon: <BadgeIcon  />, label: "Rol",          value: empDetalle.rol                  },
+    { icon: <PersonIcon />, label: "Nombre",      value: empDetalle.nombre             },
+    { icon: <PersonIcon />, label: "Apellidos",   value: empDetalle.apellidos          },
+    { icon: <BadgeIcon  />, label: "CURP",        value: empDetalle.curp               },
+    { icon: <BadgeIcon  />, label: "RFC",         value: empDetalle.rfc                },
+    { icon: <BadgeIcon  />, label: "NSS",         value: empDetalle.nss                },
+    { icon: <PhoneIcon  />, label: "Teléfono",    value: empDetalle.numero_de_telefono },
+    { icon: <EmailIcon  />, label: "Correo",      value: empDetalle.correo             },
+    { icon: <HomeIcon   />, label: "Domicilio",   value: empDetalle.domicilio          },
+    { icon: <BadgeIcon  />, label: "Puesto",      value: empDetalle.puesto             },
+    { icon: <BadgeIcon  />, label: "Departamento",value: empDetalle.departamento       },
+    { icon: <BadgeIcon  />, label: "Rol",         value: empDetalle.rol                },
   ] : [];
 
   return (
@@ -318,9 +349,10 @@ const Empleados = () => {
         titulo={editingEmp ? "Editar empleado" : "Agregar nuevo empleado"}
         subtitulo={editingEmp ? "Modifica los datos del empleado" : "Ingresa los datos del empleado"}
         btnTexto={editingEmp ? "Guardar cambios" : "Agregar empleado"}
-        campos={generarCampos(roles)} // ← roles ya cargados
+        campos={generarCampos(roles)}
         formData={formData}
         onChange={handleInputChange}
+        errores={errores}
       />
 
       <ConfirmDeleteModal
