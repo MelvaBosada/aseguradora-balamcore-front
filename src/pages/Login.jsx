@@ -52,10 +52,12 @@ function Login({ onGoToRegister }) {
         }
       );
 
-      // 3. Guarda el usuario y permisos en localStorage
-      localStorage.setItem("token", res.data.token);
-      localStorage.setItem("usuario", JSON.stringify(res.data.usuario));
-      localStorage.setItem("permisos", JSON.stringify(res.data.permisos));
+      // 3. Guarda el usuario, permisos, módulos y suscripción en localStorage
+localStorage.setItem("token",        res.data.token);
+localStorage.setItem("usuario",      JSON.stringify(res.data.usuario));
+localStorage.setItem("permisos",     JSON.stringify(res.data.permisos));
+localStorage.setItem("modulos",      JSON.stringify(res.data.modulos));
+localStorage.setItem("suscripcion",  JSON.stringify(res.data.suscripcion));
 
       // Setea el token globalmente para todas las peticiones axios
 axios.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
