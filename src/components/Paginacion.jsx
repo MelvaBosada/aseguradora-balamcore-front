@@ -6,21 +6,41 @@ import "../css/Paginacion.css";
 
 const OPCIONES_FILAS = [5, 8, 10, 15, 20, 50, 100, 200];
 
+const getPageRange = (current, total) => {
+  if (total <= 6) return Array.from({ length: total }, (_, i) => i + 1);
+
+  let start = Math.max(1, current - 2);
+  let end = start + 5;
+
+  if (end > total) {
+    end = total;
+    start = Math.max(1, end - 5);
+  }
+
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+};
+
 const Paginacion = ({ currentPage, totalPages, onPageChange, itemsPerPage, onItemsPerPageChange }) => {
   const [selectOpen, setSelectOpen] = useState(false);
+  const pageRange = getPageRange(currentPage, totalPages);
 
   return (
     <div className="paginacion-wrapper">
-
       <div className="paginacion">
         <button className="pag-btn pag-arrow" onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1}>
           <ArrowLeftIcon fontSize="small" />
         </button>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-          <button key={page} className={`pag-btn ${currentPage === page ? "active" : ""}`} onClick={() => onPageChange(page)}>
+
+        {pageRange.map((page) => (
+          <button
+            key={page}
+            className={`pag-btn ${currentPage === page ? "active" : ""}`}
+            onClick={() => onPageChange(page)}
+          >
             {page}
           </button>
         ))}
+
         <button className="pag-btn pag-arrow" onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages}>
           <ArrowRightIcon fontSize="small" />
         </button>
@@ -50,7 +70,6 @@ const Paginacion = ({ currentPage, totalPages, onPageChange, itemsPerPage, onIte
           />
         </div>
       </div>
-
     </div>
   );
 };

@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend, LineChart, Line
@@ -11,55 +13,26 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import AvisosPanel from "../../components/Avisospanel";
 import "../../css/Dashboard.css";
 
-/* ── DATA ─────────────────────────────────────────── */
-const kpis = [
-    { label: "Pólizas activas", value: 1284, sub: "+12 este mes", subClass: "kpi-up", icon: <PolicyIcon />, bg: "#dcfce7", color: "#16a34a" },
-    { label: "Siniestros activos", value: 38, sub: "-4 este mes", subClass: "kpi-down", icon: <ReportProblemIcon />, bg: "#fee2e2", color: "#dc2626" },
-    { label: "Clientes", value: 946, sub: "+8 este mes", subClass: "kpi-up", icon: <PeopleIcon />, bg: "#dbeafe", color: "#2563eb" },
-    { label: "Pagos pendientes", value: "$84k", sub: "23 por cobrar", subClass: "", icon: <PaymentsIcon />, bg: "#fef9c3", color: "#ca8a04" },
-];
-
-const ingresosData = [
-    { mes: "Sep", ingresos: 42000, siniestros: 8000 },
-    { mes: "Oct", ingresos: 55000, siniestros: 12000 },
-    { mes: "Nov", ingresos: 48000, siniestros: 9000 },
-    { mes: "Dic", ingresos: 61000, siniestros: 14000 },
-    { mes: "Ene", ingresos: 53000, siniestros: 11000 },
-    { mes: "Feb", ingresos: 67000, siniestros: 7000 },
-];
-
-const polizasTipo = [
-    { name: "Robo", value: 310 },
-    { name: "Hogar", value: 280 },
-    { name: "Huracanes", value: 190 },
-    { name: "Daños Eléctricos", value: 74 },
-    { name: "Inundaciones", value: 74 },
-];
-
+const API        = "http://localhost:8000/api";
 const PIE_COLORS = ["#0F4C3A", "#295E4E", "#4a9477", "#f59e0b", "#94a3b8"];
 
-const ultimosSiniestros = [
-    { id: "S-0091", cliente: "María Méndez", tipo: "Robo", fecha: "24/02/2026", estado: "Pendiente" },
-    { id: "S-0090", cliente: "Juan González", tipo: "Hogar", fecha: "22/02/2026", estado: "Activo" },
-    { id: "S-0089", cliente: "Jacob Mendoza", tipo: "Daños Eléctricos", fecha: "20/02/2026", estado: "Activo" },
-    { id: "S-0088", cliente: "Miguel Torres", tipo: "Robo", fecha: "18/02/2026", estado: "Vencido" },
-    { id: "S-0087", cliente: "Ángel Torres", tipo: "Inundaciones", fecha: "15/02/2026", estado: "Pendiente" },
-];
-
-const badgeEstado = (estado) => {
-    const map = { Activo: "badge-activo", Pendiente: "badge-pendiente", Vencido: "badge-vencido" };
-    return <span className={`badge-estado ${map[estado]}`}>{estado}</span>;
+// Convierte cualquier respuesta a array seguro
+const toArray = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (typeof data === "object") return Object.values(data);
+    return [];
 };
 
-/* ── TOOLTIP PERSONALIZADO ────────────────────────── */
+/* ── TOOLTIP ──────────────────────────────────────── */
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
             <div className="dash-tooltip">
                 <p className="dash-tooltip-label">{label}</p>
                 {payload.map((entry, i) => (
-                    <p key={i} style={{ color: entry.color, margin: "2px 0" }}>
-                        {entry.name}: <strong>${entry.value.toLocaleString()}</strong>
+                    <p key={`tooltip-${i}`} style={{ color: entry.color, margin: "2px 0" }}>
+                        {entry.name}: <strong>${(entry.value ?? 0).toLocaleString()}</strong>
                     </p>
                 ))}
             </div>
@@ -68,80 +41,216 @@ const CustomTooltip = ({ active, payload, label }) => {
     return null;
 };
 
+/* ── BADGE ESTADO ─────────────────────────────────── */
+const badgeEstado = (estado) => {
+    const map = {
+        abierto:       "badge-activo",
+        en_proceso:    "badge-activo",
+        en_evaluacion: "badge-pendiente",
+        resuelto:      "badge-pendiente",
+        cerrado:       "badge-vencido",
+        rechazado:     "badge-vencido",
+    };
+    return <span className={`badge-estado ${map[estado] ?? ""}`}>{estado}</span>;
+};
+
+/* ── BOTONES FILTRO ───────────────────────────────── */
+const FiltroBtn = ({ valor, actual, onChange }) => (
+    <button
+        className={actual === valor ? "filtro-btn active" : "filtro-btn"}
+        onClick={() => onChange(valor)}
+    >
+        {valor.charAt(0).toUpperCase() + valor.slice(1)}
+    </button>
+);
+
 /* ── COMPONENTE ───────────────────────────────────── */
 const Dashboard = () => {
+
+    const [kpis, setKpis]                           = useState(null);
+    const [ingresos, setIngresos]                   = useState([]);
+    const [polizasTipo, setPolizasTipo]             = useState([]);
+    const [tendencia, setTendencia]                 = useState([]);
+    const [ultimosSiniestros, setUltimosSiniestros] = useState([]);
+
+    const [filtroIngresos, setFiltroIngresos]     = useState("mensual");
+    const [filtroTendencia, setFiltroTendencia]   = useState("mensual");
+
+    const [loadingKpis, setLoadingKpis]           = useState(true);
+    const [loadingIngresos, setLoadingIngresos]   = useState(true);
+    const [loadingTendencia, setLoadingTendencia] = useState(true);
+
+    // ── Al montar ────────────────────────────────────
+    useEffect(() => {
+        axios.get(`${API}/dashboard/kpis`)
+            .then(res => setKpis(res.data ?? null))
+            .finally(() => setLoadingKpis(false));
+
+        axios.get(`${API}/dashboard/polizas-por-tipo`)
+            .then(res => setPolizasTipo(toArray(res.data)));
+
+        axios.get(`${API}/dashboard/ultimos-siniestros`)
+            .then(res => setUltimosSiniestros(toArray(res.data)));
+    }, []);
+
+    // ── Ingresos ─────────────────────────────────────
+    useEffect(() => {
+        let cancelado = false;
+        setTimeout(() => { if (!cancelado) setLoadingIngresos(true); }, 0);
+
+        axios.get(`${API}/dashboard/ingresos?filtro=${filtroIngresos}`)
+            .then(res => { if (!cancelado) setIngresos(toArray(res.data)); })
+            .finally(() => { if (!cancelado) setLoadingIngresos(false); });
+
+        return () => { cancelado = true; };
+    }, [filtroIngresos]);
+
+    // ── Tendencia ────────────────────────────────────
+    useEffect(() => {
+        let cancelado = false;
+        setTimeout(() => { if (!cancelado) setLoadingTendencia(true); }, 0);
+
+        axios.get(`${API}/dashboard/tendencia-siniestros?filtro=${filtroTendencia}`)
+            .then(res => { if (!cancelado) setTendencia(toArray(res.data)); })
+            .finally(() => { if (!cancelado) setLoadingTendencia(false); });
+
+        return () => { cancelado = true; };
+    }, [filtroTendencia]);
+
+    // ── KPI cards ────────────────────────────────────
+    const kpiCards = kpis ? [
+        {
+            label: "Pólizas activas",
+            value: kpis.polizas_activas ?? 0,
+            sub: `+${kpis.polizas_este_mes ?? 0} este mes`,
+            subClass: "kpi-up",
+            icon: <PolicyIcon />,
+            bg: "#dcfce7", color: "#16a34a",
+        },
+        {
+            label: "Siniestros activos",
+            value: kpis.siniestros_activos ?? 0,
+            sub: `${kpis.siniestros_este_mes ?? 0} este mes`,
+            subClass: (kpis.siniestros_este_mes ?? 0) > 0 ? "kpi-down" : "kpi-up",
+            icon: <ReportProblemIcon />,
+            bg: "#fee2e2", color: "#dc2626",
+        },
+        {
+            label: "Clientes",
+            value: kpis.clientes ?? 0,
+            sub: `+${kpis.clientes_este_mes ?? 0} este mes`,
+            subClass: "kpi-up",
+            icon: <PeopleIcon />,
+            bg: "#dbeafe", color: "#2563eb",
+        },
+        {
+            label: "Pagos pendientes",
+            value: `$${((kpis.pagos_pendientes ?? 0) / 1000).toFixed(0)}k`,
+            sub: `${kpis.pagos_pendientes_count ?? 0} por cobrar`,
+            subClass: "",
+            icon: <PaymentsIcon />,
+            bg: "#fef9c3", color: "#ca8a04",
+        },
+    ] : [];
+
+    // ── Stats alto/bajo tendencia ────────────────────
+    const tendenciaValida = tendencia.filter(t => t && typeof t.siniestros === "number");
+    const mesAlto = tendenciaValida.length
+        ? tendenciaValida.reduce((a, b) => a.siniestros > b.siniestros ? a : b)
+        : null;
+    const mesBajo = tendenciaValida.length
+        ? tendenciaValida.reduce((a, b) => a.siniestros < b.siniestros ? a : b)
+        : null;
+
     return (
         <div className="dash-wrapper">
 
             {/* KPIs */}
             <div className="dash-grid">
-                {kpis.map((k, i) => (
-                    <div className="kpi-card" key={i}>
-                        <div className="kpi-icon" style={{ background: k.bg, color: k.color }}>
-                            {k.icon}
+                {loadingKpis
+                    ? Array(4).fill(0).map((_, i) => (
+                        <div key={`skeleton-${i}`} className="kpi-card kpi-skeleton" />
+                    ))
+                    : kpiCards.map((k, i) => (
+                        <div className="kpi-card" key={`kpi-${i}`}>
+                            <div className="kpi-icon" style={{ background: k.bg, color: k.color }}>
+                                {k.icon}
+                            </div>
+                            <div className="kpi-info">
+                                <p className="kpi-label">{k.label}</p>
+                                <p className="kpi-value">{k.value}</p>
+                                <p className="kpi-sub"><span className={k.subClass}>{k.sub}</span></p>
+                            </div>
                         </div>
-                        <div className="kpi-info">
-                            <p className="kpi-label">{k.label}</p>
-                            <p className="kpi-value">{k.value}</p>
-                            <p className="kpi-sub">
-                                <span className={k.subClass}>{k.sub}</span>
-                            </p>
-                        </div>
-                    </div>
-                ))}
+                    ))
+                }
             </div>
 
             {/* GRÁFICAS */}
             <div className="dash-charts">
 
                 <div className="chart-card">
-                    <h3>Ingresos vs Siniestros</h3>
+                    <div className="chart-header">
+                        <h3>Ingresos vs Siniestros</h3>
+                        <div className="chart-filtros">
+                            <FiltroBtn valor="mensual" actual={filtroIngresos} onChange={setFiltroIngresos} />
+                            <FiltroBtn valor="anual"   actual={filtroIngresos} onChange={setFiltroIngresos} />
+                        </div>
+                    </div>
                     <div className="chart-inner">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={ingresosData} barCategoryGap="30%" margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                                <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Legend wrapperStyle={{ fontSize: "12px" }} />
-                                <Bar dataKey="ingresos" name="Ingresos" fill="#0F4C3A" radius={[5, 5, 0, 0]} />
-                                <Bar dataKey="siniestros" name="Siniestros" fill="#f59e0b" radius={[5, 5, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        {loadingIngresos
+                            ? <div className="chart-loading">Cargando...</div>
+                            : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={ingresos} barCategoryGap="30%" margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                        <XAxis dataKey="periodo" tick={{ fontSize: 11 }} />
+                                        <YAxis tick={{ fontSize: 11 }} />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Legend wrapperStyle={{ fontSize: "12px" }} />
+                                        <Bar dataKey="ingresos"   name="Ingresos"   fill="#0F4C3A" radius={[5, 5, 0, 0]} />
+                                        <Bar dataKey="siniestros" name="Siniestros" fill="#f59e0b" radius={[5, 5, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )
+                        }
                     </div>
                 </div>
 
                 <div className="chart-card">
-                    <h3>Pólizas por tipo</h3>
+                    <div className="chart-header">
+                        <h3>Pólizas por tipo</h3>
+                    </div>
                     <div className="chart-inner">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={polizasTipo}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    cx="50%"
-                                    cy="42%"
-                                    innerRadius="38%"
-                                    outerRadius="62%"
-                                    paddingAngle={3}
-                                >
-                                    {polizasTipo.map((_, i) => (
-                                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip
-                                    formatter={(value, name) => [value, name]}
-                                    wrapperStyle={{ fontSize: "12px", zIndex: 10 }}
-                                    isAnimationActive={false}
-                                />
-                                <Legend
-                                    iconType="circle"
-                                    iconSize={9}
-                                    wrapperStyle={{ fontSize: "11px" }}
-                                />
-                            </PieChart>
-                        </ResponsiveContainer>
+                        {polizasTipo.length === 0
+                            ? <div className="chart-loading">Sin datos</div>
+                            : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={polizasTipo}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            cx="50%"
+                                            cy="42%"
+                                            innerRadius="38%"
+                                            outerRadius="62%"
+                                            paddingAngle={3}
+                                        >
+                                            {polizasTipo.map((entry, i) => (
+                                                <Cell key={`cell-${entry.name ?? i}`} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip
+                                            formatter={(value, name) => [value, name]}
+                                            wrapperStyle={{ fontSize: "12px", zIndex: 10 }}
+                                            isAnimationActive={false}
+                                        />
+                                        <Legend iconType="circle" iconSize={9} wrapperStyle={{ fontSize: "11px" }} />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            )
+                        }
                     </div>
                 </div>
 
@@ -150,7 +259,6 @@ const Dashboard = () => {
             {/* BOTTOM */}
             <div className="dash-bottom">
 
-                {/* TABLA — sin cambios */}
                 <div className="chart-card">
                     <h3>Últimos siniestros</h3>
                     <div className="dash-table-wrapper">
@@ -165,12 +273,12 @@ const Dashboard = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {ultimosSiniestros.map((s) => (
-                                    <tr key={s.id}>
+                                {ultimosSiniestros.map((s, i) => (
+                                    <tr key={s.id ?? `sin-${i}`}>
                                         <td><strong>{s.id}</strong></td>
                                         <td>{s.cliente}</td>
                                         <td>{s.tipo}</td>
-                                        <td>{s.fecha}</td>
+                                        <td>{s.fecha ? new Date(s.fecha).toLocaleDateString("es-MX") : "-"}</td>
                                         <td>{badgeEstado(s.estado)}</td>
                                     </tr>
                                 ))}
@@ -179,57 +287,66 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* TENDENCIA — gráfica igual + stats abajo */}
                 <div className="chart-card">
-                    <h3>Tendencia de siniestros</h3>
+                    <div className="chart-header">
+                        <h3>Tendencia de siniestros</h3>
+                        <div className="chart-filtros">
+                            <FiltroBtn valor="mensual" actual={filtroTendencia} onChange={setFiltroTendencia} />
+                            <FiltroBtn valor="anual"   actual={filtroTendencia} onChange={setFiltroTendencia} />
+                        </div>
+                    </div>
                     <div className="chart-inner">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart
-                                data={ingresosData}
-                                margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-                            >
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                <XAxis dataKey="mes" tick={{ fontSize: 11 }} />
-                                <YAxis tick={{ fontSize: 11 }} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Line
-                                    type="monotone"
-                                    dataKey="siniestros"
-                                    name="Siniestros"
-                                    stroke="#dc2626"
-                                    strokeWidth={2.5}
-                                    dot={{ r: 4 }}
-                                    activeDot={{ r: 6 }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        {loadingTendencia
+                            ? <div className="chart-loading">Cargando...</div>
+                            : (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={tendencia} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                                        <XAxis dataKey="periodo" tick={{ fontSize: 11 }} />
+                                        <YAxis tick={{ fontSize: 11 }} />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="siniestros"
+                                            name="Siniestros"
+                                            stroke="#dc2626"
+                                            strokeWidth={2.5}
+                                            dot={{ r: 4 }}
+                                            activeDot={{ r: 6 }}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            )
+                        }
                     </div>
 
-                    {/* STATS MES ALTO / BAJO */}
                     <div className="table-footer-stats">
                         <div className="tfs-item">
                             <div className="tfs-icon-wrap tfs-icon-alto">↑</div>
                             <div className="tfs-info">
-                                <span className="tfs-label">Mes más alto</span>
-                                <span className="tfs-mes">Diciembre</span>
+                                <span className="tfs-label">Periodo más alto</span>
+                                <span className="tfs-mes">{mesAlto?.periodo ?? "-"}</span>
                             </div>
-                            <span className="tfs-val tfs-val-alto">$14,000</span>
+                            <span className="tfs-val tfs-val-alto">
+                                ${mesAlto ? (mesAlto.siniestros ?? 0).toLocaleString() : 0}
+                            </span>
                         </div>
                         <div className="tfs-divider" />
                         <div className="tfs-item">
                             <div className="tfs-icon-wrap tfs-icon-bajo">↓</div>
                             <div className="tfs-info">
-                                <span className="tfs-label">Mes más bajo</span>
-                                <span className="tfs-mes">Septiembre</span>
+                                <span className="tfs-label">Periodo más bajo</span>
+                                <span className="tfs-mes">{mesBajo?.periodo ?? "-"}</span>
                             </div>
-                            <span className="tfs-val tfs-val-bajo">$8,000</span>
+                            <span className="tfs-val tfs-val-bajo">
+                                ${mesBajo ? (mesBajo.siniestros ?? 0).toLocaleString() : 0}
+                            </span>
                         </div>
                     </div>
                 </div>
 
             </div>
 
-            {/* PANEL AVISOS — componente separado, sin tocar */}
             <AvisosPanel />
 
         </div>
