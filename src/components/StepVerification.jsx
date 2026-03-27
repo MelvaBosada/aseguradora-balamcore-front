@@ -1,29 +1,37 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
+import axios from "axios";
 import ButtonVerdeForm from "./ButtonVerdeForm";
 
-/* ── Ícono mail inline ── */
-const IconMail = () => (
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-    <rect x="2" y="4" width="20" height="16" rx="3" />
-    <path d="M2 7l10 7 10-7" />
-  </svg>
-);
+function StepVerification({ correo = "", onNext, onBack }) {
+  const [digits,   setDigits]   = useState(["", "", "", "", "", ""]);
+  const [errOtp,   setErrOtp]   = useState(false);
+  const [resent,   setResent]   = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [segundos, setSegundos] = useState(600);
+  const [expirado, setExpirado] = useState(false);
+  const inputs    = useRef([]);
+  const intervalo = useRef(null);
 
-/**
- * StepVerification — ingreso de código OTP de 6 dígitos
- *
- * Props:
- *   correo   {string}   — correo donde se envió el código (display only)
- *   onNext   {fn}       — callback al verificar con éxito
- *   onBack   {fn}       — callback para volver
- *   mockCode {string}   — código válido para pruebas (default "123456")
- */
-function StepVerification({ correo = "", onNext, onBack, mockCode = "123456" }) {
-  const [digits, setDigits] = useState(["", "", "", "", "", ""]);
-  const [errOtp, setErrOtp]  = useState(false);
-  const [resent, setResent]  = useState(false);
-  const inputs = useRef([]);
+  useEffect(() => {
+    intervalo.current = setInterval(() => {
+      setSegundos((s) => {
+        if (s <= 1) {
+          clearInterval(intervalo.current);
+          setExpirado(true);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(intervalo.current);
+  }, []);
+
+  const formatTiempo = (s) => {
+    const m   = Math.floor(s / 60).toString().padStart(2, "0");
+    const seg = (s % 60).toString().padStart(2, "0");
+    return `${m}:${seg}`;
+  };
 
   const handleDigit = (i, val) => {
     if (!/^\d?$/.test(val)) return;
@@ -47,38 +55,56 @@ function StepVerification({ correo = "", onNext, onBack, mockCode = "123456" }) 
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
+    if (expirado) return;
     const code = digits.join("");
-    if (code.length < 6 || code !== mockCode) {
+    if (code.length < 6) { setErrOtp(true); return; }
+    setLoading(true);
+    try {
+      await axios.post("http://localhost:8000/api/verificar-otp", { correo, codigo: code });
+      onNext();
+    } catch {
       setErrOtp(true);
-      return;
+    } finally {
+      setLoading(false);
     }
-    onNext();
   };
 
-  const handleResend = () => {
-    setResent(true);
-    setDigits(["", "", "", "", "", ""]);
-    inputs.current[0]?.focus();
-    setTimeout(() => setResent(false), 4000);
+  const handleResend = async () => {
+    try {
+      await axios.post("http://localhost:8000/api/enviar-otp", { correo });
+      setSegundos(600);
+      setExpirado(false);
+      setResent(true);
+      setDigits(["", "", "", "", "", ""]);
+      clearInterval(intervalo.current);
+      intervalo.current = setInterval(() => {
+        setSegundos((s) => {
+          if (s <= 1) { clearInterval(intervalo.current); setExpirado(true); return 0; }
+          return s - 1;
+        });
+      }, 1000);
+      inputs.current[0]?.focus();
+      setTimeout(() => setResent(false), 4000);
+    } catch {
+      console.error("Error al reenviar código");
+    }
   };
 
   return (
     <div className="reg-body">
-      {/* Ícono */}
-      <div className="otp-mail-icon">
-        <IconMail />
-      </div>
 
-      <Typography variant="h5" className="title-bold">
-        Verifica tu correo
-      </Typography>
+      <Typography variant="h5" className="title-bold">Verifica tu correo</Typography>
+
       <Typography variant="body2" className="subtitle-slim">
         Enviamos un código de 6 dígitos a<br />
-        <strong style={{ color: "#1a6b46", fontWeight: 700 }}>
-          {correo || "tu correo"}
-        </strong>
+        <strong style={{ color: "#1a6b46", fontWeight: 700 }}>{correo || "tu correo"}</strong>
       </Typography>
+
+      {/* Cronómetro */}
+<p style={{ margin: "0", fontSize: "12px", color: expirado ? "#dc2626" : "#1a6b46", textAlign: "center" }}>
+  {expirado ? "Código expirado" : `Expira en ${formatTiempo(segundos)}`}
+</p>
 
       {/* Cajas OTP */}
       <div className="otp-row" onPaste={handlePaste}>
@@ -93,31 +119,36 @@ function StepVerification({ correo = "", onNext, onBack, mockCode = "123456" }) 
             value={d}
             onChange={(e) => handleDigit(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
+            disabled={expirado}
           />
         ))}
       </div>
 
-      {errOtp && (
-        <Typography
-          variant="caption"
-          sx={{ color: "#d32f2f", display: "block", mt: 0.5 }}
-        >
-          Código incorrecto. Intenta de nuevo.
-        </Typography>
-      )}
+      {/* Espacio reservado para errores — siempre ocupa el mismo alto */}
+      <div style={{ minHeight: "16px", marginTop: "2px" }}>
+        {errOtp && !expirado && (
+          <Typography variant="caption" sx={{ color: "#d32f2f", display: "block", textAlign: "center" }}>
+            Código incorrecto. Intenta de nuevo.
+          </Typography>
+        )}
+        {expirado && (
+          <Typography variant="caption" sx={{ color: "#d32f2f", display: "block", textAlign: "center" }}>
+            Tu código expiró. Reenvía uno nuevo.
+          </Typography>
+        )}
+      </div>
 
       <button className="otp-resend" onClick={handleResend}>
         {resent ? "✓ Código reenviado" : "¿No llegó? Reenviar código"}
       </button>
 
-      <Box className="button-group" sx={{ mt: 2 }}>
-        <ButtonVerdeForm colorType="gold" onClick={onBack}>
-          Volver
-        </ButtonVerdeForm>
-        <ButtonVerdeForm colorType="green" onClick={handleVerify}>
-          Verificar
+      <Box className="button-group" sx={{ mt: 1.5 }}>
+        <ButtonVerdeForm colorType="gold"  onClick={onBack}>Volver</ButtonVerdeForm>
+        <ButtonVerdeForm colorType="green" onClick={handleVerify} disabled={loading || expirado}>
+          {loading ? "Verificando..." : "Verificar"}
         </ButtonVerdeForm>
       </Box>
+
     </div>
   );
 }

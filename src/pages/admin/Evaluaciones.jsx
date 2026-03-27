@@ -190,6 +190,11 @@ const columnas = [
   "Acciones"
 ];
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> origin/equipo
 /* ─── VISTA PRINCIPAL ─────────────────── */
 const Evaluaciones = () => {
   const [searchTerm, setSearchTerm] = useState("");

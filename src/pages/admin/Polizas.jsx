@@ -42,7 +42,10 @@ const polizasData = [
   { id: 5, nPoliza: "185", cliente: "Angel Torres", fechaInicio: "30-9-2025", fechaFinal: "11-9-2040", estatus: "Cancelado", sumaAsegurada: "$50 000", formaPago: "mensual", tipoPago: "efectivo", montoPrima: "$800", observaciones: "Observaciones 5" }
 ];
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/equipo
 
 // Campos del formulario para pólizas
 const FORM_CAMPOS = [

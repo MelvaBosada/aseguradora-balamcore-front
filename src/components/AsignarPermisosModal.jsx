@@ -2,26 +2,34 @@ import { useState } from "react";
 import logo from "../assets/Logo.png";
 import "../css/BalamCoreModal.css";
 
-const AsignarPermisosModal = ({ open, onClose, onSave, perfil, permisosDisponibles = [] }) => {
-  const [seleccionados, setSeleccionados] = useState(perfil?.permisos || []);
+const AsignarPermisosModal = ({
+  open,
+  onClose,
+  onSave,
+  perfil,
+  permisosDisponibles = [],  // [{id, nombre, clave, descripcion}]
+  permisosActuales    = [],  // [id, id, id]
+}) => {
+  const [seleccionados, setSeleccionados] = useState(permisosActuales);
 
   if (!open) return null;
 
-  const togglePermiso = (permiso) =>
+  const togglePermiso = (id) =>
     setSeleccionados(prev =>
-      prev.includes(permiso) ? prev.filter(p => p !== permiso) : [...prev, permiso]
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
     );
 
   const toggleTodos = () =>
     setSeleccionados(
-      seleccionados.length === permisosDisponibles.length ? [] : [...permisosDisponibles]
+      seleccionados.length === permisosDisponibles.length
+        ? []
+        : permisosDisponibles.map(p => p.id)
     );
 
   return (
     <div className="balam-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="balam-modal">
 
-        {/* HEADER */}
         <div className="balam-header">
           <img src={logo} alt="BalamCore" className="balam-logo" />
           <div>
@@ -30,7 +38,6 @@ const AsignarPermisosModal = ({ open, onClose, onSave, perfil, permisosDisponibl
           </div>
         </div>
 
-        {/* BODY — grid override a 1 columna */}
         <div className="balam-body" style={{ display: "flex", flexDirection: "column", gap: 0 }}>
 
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
@@ -50,7 +57,7 @@ const AsignarPermisosModal = ({ open, onClose, onSave, perfil, permisosDisponibl
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {permisosDisponibles.map((permiso) => (
               <label
-                key={permiso}
+                key={permiso.id}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -58,8 +65,8 @@ const AsignarPermisosModal = ({ open, onClose, onSave, perfil, permisosDisponibl
                   width: "100%",
                   padding: "10px 14px",
                   borderRadius: 8,
-                  background: seleccionados.includes(permiso) ? "#E5F0EC" : "#F3F4F6",
-                  border: `1.5px solid ${seleccionados.includes(permiso) ? "#0F4C3A" : "transparent"}`,
+                  background: seleccionados.includes(permiso.id) ? "#E5F0EC" : "#F3F4F6",
+                  border: `1.5px solid ${seleccionados.includes(permiso.id) ? "#0F4C3A" : "transparent"}`,
                   cursor: "pointer",
                   fontSize: 13,
                   color: "#1f2d2a",
@@ -67,11 +74,11 @@ const AsignarPermisosModal = ({ open, onClose, onSave, perfil, permisosDisponibl
                   boxSizing: "border-box",
                 }}
               >
-                <span style={{ flex: 1 }}>{permiso}</span>
+                <span style={{ flex: 1 }}>{permiso.nombre}</span>
                 <input
                   type="checkbox"
-                  checked={seleccionados.includes(permiso)}
-                  onChange={() => togglePermiso(permiso)}
+                  checked={seleccionados.includes(permiso.id)}
+                  onChange={() => togglePermiso(permiso.id)}
                   style={{
                     width: 16, height: 16,
                     accentColor: "#0F4C3A",
@@ -90,7 +97,6 @@ const AsignarPermisosModal = ({ open, onClose, onSave, perfil, permisosDisponibl
 
         </div>
 
-        {/* FOOTER */}
         <div className="balam-footer">
           <button className="balam-btn cancel" onClick={onClose}>Cancelar</button>
           <button className="balam-btn save" onClick={() => onSave(seleccionados)}>Asignar permisos</button>

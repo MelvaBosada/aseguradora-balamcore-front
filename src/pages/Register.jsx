@@ -1,5 +1,6 @@
 import { Box, TextField, Typography, Paper, Snackbar, Alert, InputAdornment } from "@mui/material";
 import { useEffect, useState } from "react";
+import axios from "axios";
 import "../css/Login.css";
 import "../css/Register.css";
 import logo from "../assets/logo.png";
@@ -47,7 +48,7 @@ function StepperBar({ current }) {
   );
 }
 
-function StepCredentials({ data, onChange, onNext, onBack, fieldError }) {
+function StepCredentials({ data, onChange, onNext, onBack, fieldError, loading }) {
   return (
     <div className="reg-body">
       <Typography variant="h5" className="title-bold">Crear Cuenta</Typography>
@@ -68,8 +69,10 @@ function StepCredentials({ data, onChange, onNext, onBack, fieldError }) {
         </Box>
       </Box>
       <Box className="button-group">
-        <ButtonVerdeForm colorType="green"  onClick={onBack}>Volver</ButtonVerdeForm>
-        <ButtonVerdeForm colorType="green" onClick={onNext}>Siguiente</ButtonVerdeForm>
+        <ButtonVerdeForm colorType="green" onClick={onBack}>Volver</ButtonVerdeForm>
+        <ButtonVerdeForm colorType="green" onClick={onNext} disabled={loading}>
+          {loading ? "Enviando..." : "Siguiente"}
+        </ButtonVerdeForm>
       </Box>
     </div>
   );
@@ -90,13 +93,13 @@ function StepSuccess({ onBackToLogin }) {
   );
 }
 
-/* ── REGISTER PRINCIPAL ── */
 function Register({ onBackToLogin, onStepChange }) {
   const [step,       setStep]       = useState(0);
   const [dir,        setDir]        = useState("fwd");
   const [animKey,    setAnimKey]    = useState(0);
   const [creds,      setCreds]      = useState({ correo: "", password: "", confirmar: "" });
   const [fieldError, setFieldError] = useState(false);
+  const [loading,    setLoading]    = useState(false);
   const [snack,      setSnack]      = useState({ open: false, msg: "", type: "error" });
 
   useEffect(() => {
@@ -109,17 +112,26 @@ function Register({ onBackToLogin, onStepChange }) {
     setAnimKey((k) => k + 1);
     setStep(nextStep);
     setFieldError(false);
-    onStepChange?.(nextStep); // notifica al padre para agrandar el card
+    onStepChange?.(nextStep);
   };
 
   const toast = (msg, type = "error") => setSnack({ open: true, msg, type });
 
-  const handleStep0Next = () => {
+  const handleStep0Next = async () => {
     if (!creds.correo || !creds.password || !creds.confirmar) { setFieldError(true); toast("Completa todos los campos"); return; }
-    if (!/\S+@\S+\.\S+/.test(creds.correo)) { toast("Correo inválido"); return; }
-    if (creds.password.length < 5)           { toast("Mínimo 5 caracteres"); return; }
-    if (creds.password !== creds.confirmar)  { setFieldError(true); toast("Las contraseñas no coinciden"); return; }
-    go(1);
+    if (!/\S+@\S+\.\S+/.test(creds.correo))                  { toast("Correo inválido"); return; }
+    if (creds.password.length < 5)                            { toast("Mínimo 5 caracteres"); return; }
+    if (creds.password !== creds.confirmar)                   { setFieldError(true); toast("Las contraseñas no coinciden"); return; }
+
+    setLoading(true);
+    try {
+      await axios.post("http://localhost:8000/api/enviar-otp", { correo: creds.correo });
+      go(1);
+    } catch (error) {
+      toast(error.response?.data?.message || "Error al enviar el código");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const animClass = dir === "fwd" ? "step-enter-right" : "step-enter-left";
@@ -143,13 +155,23 @@ function Register({ onBackToLogin, onStepChange }) {
                 onNext={handleStep0Next}
                 onBack={onBackToLogin}
                 fieldError={fieldError}
+                loading={loading}
               />
             )}
             {step === 1 && (
-              <StepVerification correo={creds.correo} onNext={() => go(2)} onBack={() => go(0, "back")} mockCode="123456" />
+              <StepVerification
+                correo={creds.correo}
+                onNext={() => go(2)}
+                onBack={() => go(0, "back")}
+              />
             )}
             {step === 2 && (
-              <StepCompany onFinish={() => go(3)} onBack={() => go(1, "back")} />
+              <StepCompany
+                correo={creds.correo}
+                password={creds.password}
+                onFinish={() => go(3)}
+                onBack={() => go(1, "back")}
+              />
             )}
             {step === 3 && (
               <StepSuccess onBackToLogin={onBackToLogin} />

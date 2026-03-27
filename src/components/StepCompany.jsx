@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Box, TextField, Typography, Snackbar, Alert } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Box, TextField, Typography, Snackbar, Alert, CircularProgress, InputAdornment } from "@mui/material";
+import axios from "axios";
 import ButtonVerdeForm from "./ButtonVerdeForm";
 
 const IconUpload = () => (
@@ -11,112 +11,218 @@ const IconUpload = () => (
   </svg>
 );
 
-function StepCompany({ onFinish, onBack }) {
-  const navigate = useNavigate();
+// Validaciones
+const validar = (data) => {
+  const errores = {};
+  if (!data.nombre.trim()) errores.nombre = "Requerido";
+  if (!data.razon_social.trim()) errores.razon_social = "Requerido";
 
+  const rfcLimpio = data.rfc.trim().toUpperCase();
+  if (!rfcLimpio) {
+    errores.rfc = "Requerido";
+  } else if (!/^[A-ZÑ&]{3,4}\d{6}[A-Z0-9]{3}$/.test(rfcLimpio)) {
+    errores.rfc = "Formato inválido (ej. XAXX010101000)";
+  }
+
+  if (!data.telefono.trim()) errores.telefono = "Requerido";
+  if (data.telefono.trim() && !/^\d{10}$/.test(data.telefono.trim()))
+    errores.telefono = "Debe tener 10 dígitos";
+  if (!data.domicilio.trim()) errores.domicilio = "Requerido";
+  if (!data.municipio.trim()) errores.municipio = "Requerido";
+  if (!data.estado.trim()) errores.estado = "Requerido";
+  if (!data.codigo_postal.trim()) errores.codigo_postal = "Requerido";
+  if (data.codigo_postal.trim() && !/^\d{5}$/.test(data.codigo_postal.trim()))
+    errores.codigo_postal = "Debe tener 5 dígitos";
+
+  if (data.sitio_web.trim() && !/^https?:\/\/.+/.test(data.sitio_web.trim()))
+    errores.sitio_web = "Debe iniciar con http:// o https://";
+
+  return errores;
+};
+
+function StepCompany({ onFinish, onBack, correo, password }) {
   const [data, setData] = useState({
-    nombre: "", rfc: "", telefono: "", direccion: "",
+    nombre: "", razon_social: "", rfc: "", telefono: "",
+    sitio_web: "", domicilio: "", municipio: "",
+    estado: "", codigo_postal: "", pais: "México",
+    observaciones: "",
   });
+  const [errores, setErrores] = useState({});
+  const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
-  const [fieldError,  setFieldError]  = useState(false);
-  const [snackOpen,   setSnackOpen]   = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadingCP, setLoadingCP] = useState(false);
+  const [snack, setSnack] = useState({ open: false, msg: "", type: "success" });
 
   const handleChange = (e) => {
-    setData({ ...data, [e.target.name]: e.target.value });
-    if (fieldError) setFieldError(false);
+    const { name, value } = e.target;
+    setData((prev) => ({ ...prev, [name]: value }));
+    // Limpia el error del campo al escribir
+    if (errores[name]) setErrores((prev) => ({ ...prev, [name]: null }));
+  };
+
+  const handleCodigoPostal = async (e) => {
+    const cp = e.target.value;
+    setData((prev) => ({ ...prev, codigo_postal: cp }));
+    if (errores.codigo_postal) setErrores((prev) => ({ ...prev, codigo_postal: null }));
+
+    if (cp.length === 5) {
+      setLoadingCP(true);
+      try {
+        const res = await axios.get(`https://api.zippopotam.us/mx/${cp}`);
+        const lugar = res.data.places[0];
+        setData((prev) => ({
+          ...prev,
+          municipio: lugar["place name"] || prev.municipio,
+          estado: lugar["state"] || prev.estado,
+          pais: "México",
+        }));
+        // Limpia errores de campos autocompletados
+        setErrores((prev) => ({ ...prev, municipio: null, estado: null }));
+      } catch {
+        console.error("CP no encontrado");
+      } finally {
+        setLoadingCP(false);
+      }
+    }
   };
 
   const handleLogoChange = (e) => {
     const f = e.target.files[0];
-    if (f) setLogoPreview(URL.createObjectURL(f));
+    if (f) {
+      setLogoFile(f);
+      setLogoPreview(URL.createObjectURL(f));
+    }
   };
 
-  const handleSubmit = () => {
-    if (!data.nombre || !data.rfc) { setFieldError(true); return; }
-    if (onFinish) onFinish(data, logoPreview);
-    setSnackOpen(true);
-    setTimeout(() => navigate("/"), 4000);
+  const handleSubmit = async () => {
+    // Validar frontend primero
+    const erroresValidacion = validar(data);
+    if (Object.keys(erroresValidacion).length > 0) {
+      setErrores(erroresValidacion);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      Object.entries(data).forEach(([key, val]) => formData.append(key, val));
+      formData.append("correo", correo);
+      formData.append("password", password);
+      if (logoFile) formData.append("logo", logoFile);
+
+      await axios.post("http://localhost:8000/api/registro", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setSnack({ open: true, msg: "¡Cuenta creada correctamente!", type: "success" });
+      setTimeout(() => onFinish(), 1500);
+    } catch (error) {
+      // Errores de validación del backend (422)
+      if (error.response?.status === 422) {
+        const backendErrors = error.response.data.errors;
+        if (backendErrors) {
+          //errores del backend a los campos
+          const nuevosErrores = {};
+          Object.keys(backendErrors).forEach((campo) => {
+            nuevosErrores[campo] = backendErrors[campo][0];
+          });
+          setErrores(nuevosErrores);
+        }
+      } else {
+        // Error general
+        setSnack({
+          open: true,
+          msg: error.response?.data?.message || "Error al registrar. Intenta de nuevo.",
+          type: "error",
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <>
-      {/* ── Overlay que agranda el modal cuando llega a este paso ── */}
       <style>{`
-        .reg-paper {
-          max-width: 680px !important;
-          width: 100% !important;
-          transition: max-width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        @media (max-width: 720px) {
-          .reg-paper { max-width: 100% !important; }
-        }
+        .reg-paper { max-width: 680px !important; width: 100% !important; transition: max-width 0.4s cubic-bezier(0.4,0,0.2,1); }
+        @media (max-width: 720px) { .reg-paper { max-width: 100% !important; } }
       `}</style>
 
-      <div className="reg-body" >
-        <Typography variant="h5" className="title-bold">
-          Datos de Empresa
-        </Typography>
+      <div className="reg-body">
+        <Typography variant="h5" className="title-bold">Datos de Empresa</Typography>
         <Typography variant="body2" className="subtitle-slim">
           Ingresa la información de tu empresa para finalizar
         </Typography>
 
         <Box sx={{ mt: 1, textAlign: "left" }}>
 
-          {/* Fila 1: Nombre + RFC */}
+          {/* Fila 1: Nombre + Razón Social */}
           <Box sx={{ display: "flex", gap: 1.5, flexWrap: { xs: "wrap", sm: "nowrap" } }}>
-            <TextField
-              label="Nombre de empresa *"
-              name="nombre"
-              fullWidth
-              margin="dense"
-              value={data.nombre}
-              error={fieldError && !data.nombre}
-              helperText={fieldError && !data.nombre ? "Campo requerido" : ""}
-              onChange={handleChange}
-            />
-            <TextField
-              label="RFC *"
-              name="rfc"
-              fullWidth
-              margin="dense"
-              value={data.rfc}
-              error={fieldError && !data.rfc}
-              helperText={fieldError && !data.rfc ? "Campo requerido" : ""}
-              onChange={handleChange}
-              inputProps={{ style: { textTransform: "uppercase" } }}
-            />
+            <TextField label="Nombre de empresa *" name="nombre" fullWidth margin="dense"
+              value={data.nombre} onChange={handleChange}
+              error={!!errores.nombre} helperText={errores.nombre} />
+            <TextField label="Razón Social *" name="razon_social" fullWidth margin="dense"
+              value={data.razon_social} onChange={handleChange}
+              error={!!errores.razon_social} helperText={errores.razon_social} />
           </Box>
 
-          {/* Fila 2: Teléfono + Dirección */}
+          {/* Fila 2: RFC + Teléfono */}
           <Box sx={{ display: "flex", gap: 1.5, flexWrap: { xs: "wrap", sm: "nowrap" } }}>
-            <TextField
-              label="Teléfono"
-              name="telefono"
-              fullWidth
-              margin="dense"
-              value={data.telefono}
-              onChange={handleChange}
-              inputProps={{ inputMode: "tel" }}
-            />
-            <TextField
-              label="Dirección"
-              name="direccion"
-              fullWidth
-              margin="dense"
-              value={data.direccion}
-              onChange={handleChange}
-            />
+            <TextField label="RFC *" name="rfc" fullWidth margin="dense"
+              value={data.rfc} onChange={handleChange}
+              error={!!errores.rfc} helperText={errores.rfc}
+              inputProps={{ style: { textTransform: "uppercase" }, maxLength: 13 }} />
+            <TextField label="Teléfono *" name="telefono" fullWidth margin="dense"
+              value={data.telefono} onChange={handleChange}
+              error={!!errores.telefono} helperText={errores.telefono}
+              inputProps={{ inputMode: "numeric", maxLength: 10 }} />
           </Box>
+
+          {/* Fila 3: Sitio web */}
+          <TextField label="Sitio web" name="sitio_web" fullWidth margin="dense"
+            value={data.sitio_web} onChange={handleChange}
+            error={!!errores.sitio_web} helperText={errores.sitio_web}
+            placeholder="https://tuempresa.com" />
+
+          {/* Fila 4: CP + Domicilio */}
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: { xs: "wrap", sm: "nowrap" } }}>
+            <TextField label="Código Postal *" name="codigo_postal" fullWidth margin="dense"
+              value={data.codigo_postal} onChange={handleCodigoPostal}
+              error={!!errores.codigo_postal} helperText={errores.codigo_postal}
+              inputProps={{ inputMode: "numeric", maxLength: 5 }}
+              InputProps={{
+                endAdornment: loadingCP ? (
+                  <InputAdornment position="end">
+                    <CircularProgress size={18} sx={{ color: "#1a6b46" }} />
+                  </InputAdornment>
+                ) : null,
+              }} />
+            <TextField label="Domicilio *" name="domicilio" fullWidth margin="dense"
+              value={data.domicilio} onChange={handleChange}
+              error={!!errores.domicilio} helperText={errores.domicilio} />
+          </Box>
+
+          {/* Fila 5: Municipio + Estado + País */}
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: { xs: "wrap", sm: "nowrap" } }}>
+            <TextField label="Municipio *" name="municipio" fullWidth margin="dense"
+              value={data.municipio} onChange={handleChange}
+              error={!!errores.municipio} helperText={errores.municipio} />
+            <TextField label="Estado *" name="estado" fullWidth margin="dense"
+              value={data.estado} onChange={handleChange}
+              error={!!errores.estado} helperText={errores.estado} />
+            <TextField label="País" name="pais" fullWidth margin="dense"
+              value={data.pais} onChange={handleChange} />
+          </Box>
+
+          {/* Observaciones */}
+          <TextField label="Observaciones" name="observaciones" fullWidth margin="dense"
+            multiline rows={2} value={data.observaciones} onChange={handleChange} />
 
           {/* Upload logo */}
           <div className="logo-upload-zone" style={{ marginTop: 10 }}>
-            <input
-              id="logo-input"
-              type="file"
-              accept="image/*"
-              style={{ display: "none" }}
-              onChange={handleLogoChange}
-            />
+            <input id="logo-input" type="file" accept="image/*"
+              style={{ display: "none" }} onChange={handleLogoChange} />
             <label htmlFor="logo-input" className="logo-upload-label">
               {logoPreview ? (
                 <>
@@ -136,19 +242,18 @@ function StepCompany({ onFinish, onBack }) {
         </Box>
 
         <Box className="button-group">
-          <ButtonVerdeForm colorType="gold"  onClick={onBack}>Volver</ButtonVerdeForm>
-          <ButtonVerdeForm colorType="green" onClick={handleSubmit}>Finalizar</ButtonVerdeForm>
+          <ButtonVerdeForm colorType="gold" onClick={onBack}>Volver</ButtonVerdeForm>
+          <ButtonVerdeForm colorType="green" onClick={handleSubmit} disabled={loading}>
+            {loading ? "Registrando..." : "Finalizar"}
+          </ButtonVerdeForm>
         </Box>
       </div>
 
-      <Snackbar
-        open={snackOpen}
-        autoHideDuration={1500}
-        onClose={() => setSnackOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity="success" variant="filled" sx={{ fontWeight: 600 }}>
-          ¡Cuenta creada correctamente!
+      <Snackbar open={snack.open} autoHideDuration={3000}
+        onClose={() => setSnack({ ...snack, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+        <Alert severity={snack.type} variant="filled" sx={{ fontWeight: 600 }}>
+          {snack.msg}
         </Alert>
       </Snackbar>
     </>

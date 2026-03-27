@@ -1,58 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon     from "@mui/icons-material/Edit";
+import DeleteIcon   from "@mui/icons-material/Delete";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 
-
-import PrimaryButton from "../../components/PrimaryButton";
-import TablaForm from "../../components/TablaForm";
-import EditModal from "../../components/EditModal";
-import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
+import PrimaryButton        from "../../components/PrimaryButton";
+import TablaForm            from "../../components/TablaForm";
+import EditModal            from "../../components/EditModal";
+import ConfirmDeleteModal   from "../../components/ConfirmDeleteModal";
 import AsignarPermisosModal from "../../components/AsignarPermisosModal";
-import Paginacion from "../../components/Paginacion";
+import Paginacion           from "../../components/Paginacion";
 import "../../css/Clientes.css";
 
-/* ─── CONFIG ─────────────────────────────────────────────────────── */
-
-const campos = ["nombre"];
+const API      = "http://localhost:8000/api";
+const campos   = ["nombre"];
 const columnas = ["Nombre", "Acciones"];
+const FORM_CAMPOS = [{ label: "Nombre del perfil", name: "nombre", type: "text" }];
+const FORM_VACIO  = { nombre: "" };
 
-const FORM_CAMPOS = [
-  { label: "Nombre del perfil", name: "nombre", type: "text" },
-];
-
-const FORM_VACIO = { nombre: "" };
-
-/* Lista de permisos del sistema — en producción viene de la vista Permisos */
-const PERMISOS_DISPONIBLES = [
-  "Gestión de clientes",
-  "Gestión de pólizas",
-  "Ver reportes",
-  "Gestión de siniestros",
-  "Gestión de indemnizaciones",
-  "Administración de usuarios",
-  "Configuración del sistema",
-  "Exportar documentos",
-];
-
-/* ─── VISTA ──────────────────────────────────────────────────────── */
 const Perfiles = () => {
-  const [perfiles, setPerfiles] = useState([
-    { id: 1, nombre: "Administrador", permisos: ["Gestión de clientes", "Gestión de pólizas", "Administración de usuarios"] },
-    { id: 2, nombre: "Ajustador", permisos: ["Gestión de siniestros", "Gestión de indemnizaciones", "Ver reportes"] },
-  ]);
+  const [perfiles,            setPerfiles]            = useState([]);
+  const [permisosDisponibles, setPermisosDisponibles] = useState([]);
+  const [showModal,           setShowModal]           = useState(false);
+  const [showDeleteModal,     setShowDeleteModal]     = useState(false);
+  const [showPermisosModal,   setShowPermisosModal]   = useState(false);
+  const [perfilToDelete,      setPerfilToDelete]      = useState(null);
+  const [perfilPermisos,      setPerfilPermisos]      = useState(null);
+  const [permisosDelPerfil,   setPermisosDelPerfil]   = useState([]);
+  const [editingPerfil,       setEditingPerfil]       = useState(null);
+  const [currentPage,         setCurrentPage]         = useState(1);
+  const [formData,            setFormData]            = useState(FORM_VACIO);
+  const [itemsPerPage,        setItemsPerPage]        = useState(8);
 
-  const [showModal, setShowModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showPermisosModal, setShowPermisosModal] = useState(false);
-  const [perfilToDelete, setPerfilToDelete] = useState(null);
-  const [perfilPermisos, setPerfilPermisos] = useState(null);
-  const [editingPerfil, setEditingPerfil] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [formData, setFormData] = useState(FORM_VACIO);
-  // Cambia la constante por un estado
-  const [itemsPerPage, setItemsPerPage] = useState(8);
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        const [resRoles, resPermisos] = await Promise.all([
+          axios.get(`${API}/roles`),
+          axios.get(`${API}/permisos`),
+        ]);
+        setPerfiles(resRoles.data);
+        setPermisosDisponibles(resPermisos.data); // objetos completos {id, nombre, clave}
+      } catch (err) {
+        console.error("Error al cargar datos:", err);
+      }
+    };
+    cargar();
+  }, []);
+
+  const recargarPerfiles = async () => {
+    try {
+      const res = await axios.get(`${API}/roles`);
+      setPerfiles(res.data);
+    } catch (err) {
+      console.error("Error al recargar perfiles:", err);
+    }
+  };
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -68,38 +72,58 @@ const Perfiles = () => {
     setShowModal(true);
   };
 
-  const handleGuardar = () => {
-    if (editingPerfil) {
-      setPerfiles(perfiles.map(p =>
-        p.id === editingPerfil.id ? { ...p, nombre: formData.nombre } : p
-      ));
-    } else {
-      const newId = Math.max(...perfiles.map(p => p.id), 0) + 1;
-      setPerfiles([...perfiles, { id: newId, nombre: formData.nombre, permisos: [] }]);
+  const handleGuardar = async () => {
+    try {
+      if (editingPerfil) {
+        await axios.put(`${API}/roles/${editingPerfil.id}`, formData);
+      } else {
+        await axios.post(`${API}/roles`, formData);
+      }
+      await recargarPerfiles();
+      setShowModal(false);
+    } catch (err) {
+      console.error("Error al guardar perfil:", err);
     }
-    setShowModal(false);
   };
 
   const handleEliminarClick = (p) => { setPerfilToDelete(p); setShowDeleteModal(true); };
-  const handleConfirmarEliminar = () => {
-    setPerfiles(perfiles.filter(p => p.id !== perfilToDelete.id));
-    setShowDeleteModal(false);
-    setPerfilToDelete(null);
+
+  const handleConfirmarEliminar = async () => {
+    try {
+      await axios.delete(`${API}/roles/${perfilToDelete.id}`);
+      await recargarPerfiles();
+      setShowDeleteModal(false);
+      setPerfilToDelete(null);
+    } catch (err) {
+      console.error("Error al eliminar perfil:", err);
+    }
   };
 
-  const handleAsignarPermisos = (perfil) => { setPerfilPermisos(perfil); setShowPermisosModal(true); };
-  const handleGuardarPermisos = (nuevosPermisos) => {
-    setPerfiles(perfiles.map(p =>
-      p.id === perfilPermisos.id ? { ...p, permisos: nuevosPermisos } : p
-    ));
-    setShowPermisosModal(false);
-    setPerfilPermisos(null);
+  const handleAsignarPermisos = async (perfil) => {
+    try {
+      const res = await axios.get(`${API}/roles/${perfil.id}/permisos`);
+      setPermisosDelPerfil(res.data.map(p => p.id)); // array de ids [1, 3, 5]
+      setPerfilPermisos(perfil);
+      setShowPermisosModal(true);
+    } catch (err) {
+      console.error("Error al cargar permisos del perfil:", err);
+    }
   };
 
-  // Recalcula con el estado — reemplaza las dos líneas con filtered
-const totalPages = Math.ceil(perfiles.length / itemsPerPage);
-const paginated  = perfiles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const handleGuardarPermisos = async (idsSeleccionados) => {
+    try {
+      await axios.post(`${API}/roles/${perfilPermisos.id}/permisos`, {
+        permisos: idsSeleccionados,
+      });
+      setShowPermisosModal(false);
+      setPerfilPermisos(null);
+    } catch (err) {
+      console.error("Error al guardar permisos:", err);
+    }
+  };
 
+  const totalPages = Math.ceil(perfiles.length / itemsPerPage);
+  const paginated  = perfiles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="container py-4">
@@ -107,7 +131,7 @@ const paginated  = perfiles.slice((currentPage - 1) * itemsPerPage, currentPage 
       <hr className="mt-2 mb-3" />
 
       <div className="d-flex align-items-end justify-content-end mb-4">
-        <PrimaryButton text="Nuevo perfil" icon={<AddCircleOutlinedIcon/>} onClick={handleNuevo} />
+        <PrimaryButton text="Nuevo perfil" icon={<AddCircleOutlinedIcon />} onClick={handleNuevo} />
       </div>
 
       <div className="mb-4">
@@ -116,20 +140,16 @@ const paginated  = perfiles.slice((currentPage - 1) * itemsPerPage, currentPage 
           data={paginated}
           campos={campos}
           acciones={[
-            { titulo: "Asignar permisos", clase: "tabla-btn-ver", icono: <LockOpenIcon fontSize="small" />, onClick: handleAsignarPermisos },
-            { titulo: "Editar", clase: "tabla-btn-edit", icono: <EditIcon fontSize="small" />, onClick: handleEditar },
-            { titulo: "Eliminar", clase: "tabla-btn-del", icono: <DeleteIcon fontSize="small" />, onClick: handleEliminarClick },
+            { titulo: "Asignar permisos", clase: "tabla-btn-ver",  icono: <LockOpenIcon fontSize="small" />, onClick: handleAsignarPermisos },
+            { titulo: "Editar",           clase: "tabla-btn-edit", icono: <EditIcon     fontSize="small" />, onClick: handleEditar           },
+            { titulo: "Eliminar",         clase: "tabla-btn-del",  icono: <DeleteIcon   fontSize="small" />, onClick: handleEliminarClick    },
           ]}
         />
       </div>
 
-      <Paginacion
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-        itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={setItemsPerPage}
-      />
+      <Paginacion currentPage={currentPage} totalPages={totalPages}
+        onPageChange={setCurrentPage} itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={setItemsPerPage} />
 
       <EditModal
         open={showModal}
@@ -155,7 +175,6 @@ const paginated  = perfiles.slice((currentPage - 1) * itemsPerPage, currentPage 
           <div>
             <p><strong>{perfilToDelete.nombre}</strong></p>
             <p>ID: {perfilToDelete.id}</p>
-            <p>Permisos asignados: {perfilToDelete.permisos?.length || 0}</p>
           </div>
         )}
       </ConfirmDeleteModal>
@@ -166,7 +185,8 @@ const paginated  = perfiles.slice((currentPage - 1) * itemsPerPage, currentPage 
         onClose={() => { setShowPermisosModal(false); setPerfilPermisos(null); }}
         onSave={handleGuardarPermisos}
         perfil={perfilPermisos}
-        permisosDisponibles={PERMISOS_DISPONIBLES}
+        permisosDisponibles={permisosDisponibles}
+        permisosActuales={permisosDelPerfil}
       />
     </div>
   );
