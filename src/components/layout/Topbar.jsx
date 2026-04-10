@@ -14,12 +14,12 @@ import usePermisos  from "../../hooks/usePermisos";
 import "./layout.css";
 
 const Topbar = ({ onToggleSidebar }) => {
-  const [showUserMenu,   setShowUserMenu]   = useState(false);
-  const [showNotifMenu,  setShowNotifMenu]  = useState(false);
-  const [showPlanes,     setShowPlanes]     = useState(false);
+  const [showUserMenu,  setShowUserMenu]  = useState(false);
+  const [showNotifMenu, setShowNotifMenu] = useState(false);
+  const [showPlanes,    setShowPlanes]    = useState(false);
 
-  const usuario     = JSON.parse(localStorage.getItem("usuario") || "{}");
- const { esPrueba, diasRestantes } = usePermisos();
+  const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
+  const { esPrueba, diasRestantes, esAdmin } = usePermisos();
 
   const nombreMostrar = usuario.nombre
     ? `${usuario.nombre} ${usuario.apellidos || ""}`.trim()
@@ -38,7 +38,7 @@ const Topbar = ({ onToggleSidebar }) => {
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
-        userRef.current  && !userRef.current.contains(e.target)  &&
+        userRef.current  && !userRef.current.contains(e.target) &&
         notifRef.current && !notifRef.current.contains(e.target)
       ) {
         setShowUserMenu(false);
@@ -93,26 +93,28 @@ const Topbar = ({ onToggleSidebar }) => {
         {/* RIGHT */}
         <div className="topbar-right">
 
-          {/* ÍCONO DIAMANTE — ver planes */}
-          <button
-            onClick={() => setShowPlanes(true)}
-            style={{
-              background: "rgba(255,255,255,0.15)",
-              border: "none",
-              borderRadius: 10,
-              padding: "6px 10px",
-              color: "white",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            <DiamondIcon style={{ fontSize: 18 }} />
-            {esPrueba && <span>Prueba · {diasRestantes()} días</span>}
-          </button>
+          {/* DIAMANTE — solo admin */}
+          {esAdmin && (
+            <button
+              onClick={() => setShowPlanes(true)}
+              style={{
+                background: "rgba(221, 183, 183, 0.15)",
+                border: "none",
+                borderRadius: 10,
+                padding: "6px 10px",
+                color: "white",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              <DiamondIcon style={{ fontSize: 18 }} />
+              {esPrueba && <span>Prueba · {diasRestantes()} días</span>}
+            </button>
+          )}
 
           {/* NOTIFICACIONES */}
           <div className="dropdown-container" ref={notifRef}>

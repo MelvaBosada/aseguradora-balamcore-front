@@ -1,0 +1,183 @@
+/* =====================================================
+   MODAL BIENVENIDA — BALAMCORE
+   ===================================================== */
+
+.balam-welcome-modal {
+  background: #fff;
+  border-radius: 20px;
+  max-width: 620px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.22);
+  animation: balamFade 0.28s cubic-bezier(0.34, 1.3, 0.64, 1);
+  overflow: hidden;
+  margin: auto;
+}
+
+.balam-welcome-top-bar {
+  height: 4px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, #0f4c3a, #295e4e);
+}
+
+.balam-welcome-close {
+  position: absolute;
+  top: 18px;
+  right: 22px; /* espacio para el scrollbar */
+  background: #f3f4f6;
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #6b7280;
+  transition: background 0.2s;
+  z-index: 1;
+}
+
+.balam-welcome-close:hover { background: #e5e7eb; }
+
+.balam-welcome-body {
+  padding: 32px 36px 32px 36px;
+  text-align: center;
+  overflow-y: scroll; /* siempre reserva espacio pa el scroll */
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent; /* invisible por default */
+  transition: scrollbar-color 0.3s;
+}
+
+/* scroll visible solo al hacer hover */
+.balam-welcome-body:hover {
+  scrollbar-color: #0f4c3a #f0f0f0;
+}
+
+.balam-welcome-body::-webkit-scrollbar       { width: 5px; }
+.balam-welcome-body::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
+.balam-welcome-body::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 4px;
+  transition: background 0.3s;
+}
+.balam-welcome-body:hover::-webkit-scrollbar-track { background: #f0f0f0; }
+.balam-welcome-body:hover::-webkit-scrollbar-thumb { background: #0f4c3a; }
+
+.balam-welcome-logo {
+  width: 60px;
+  margin-bottom: 14px;
+}
+
+.balam-welcome-title {
+  font-size: 1.45rem;
+  font-weight: 900;
+  color: #1f2d2a;
+  margin: 0 0 8px;
+  line-height: 1.3;
+}
+
+.balam-welcome-subtitle {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0 0 18px;
+}
+
+.balam-welcome-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 76, 58, 0.08);
+  border-radius: 50px;
+  padding: 10px 26px;
+  margin-bottom: 18px;
+}
+
+.balam-welcome-badge span {
+  font-weight: 800;
+  color: #0f4c3a;
+  font-size: 15px;
+}
+
+.balam-welcome-features {
+  background: #f9fafb;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.balam-welcome-features-title {
+  margin: 0 0 12px;
+  font-weight: 700;
+  color: #1f2d2a;
+  font-size: 13px;
+}
+
+/* 2 columnas */
+.balam-welcome-features-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+
+.balam-welcome-feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #1f2d2a;
+  line-height: 1.4;
+}
+
+.balam-welcome-note {
+  color: #6b7280;
+  font-size: 13px;
+  margin: 0 0 18px;
+  line-height: 1.5;
+}
+
+.balam-welcome-cta {
+  width: 100%;
+  padding: 13px 0;
+  font-size: 15px;
+}
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+
+@media (max-width: 680px) {
+  .balam-welcome-modal { max-width: 100%; border-radius: 16px; }
+  .balam-welcome-body  { padding: 28px 24px; }
+  .balam-welcome-title { font-size: 1.25rem; }
+}
+
+@media (max-width: 480px) {
+  .balam-welcome-modal  { max-height: 94vh; }
+  .balam-welcome-body   { padding: 24px 18px; }
+  .balam-welcome-logo   { width: 56px; }
+  .balam-welcome-title  { font-size: 1.1rem; }
+
+  /* 1 columna en móvil */
+  .balam-welcome-features-grid { grid-template-columns: 1fr; gap: 6px; }
+
+  .balam-welcome-badge {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .balam-welcome-badge span { font-size: 13.5px; }
+}
+
+@media (max-width: 380px) {
+  .balam-welcome-body  { padding: 20px 14px; }
+  .balam-welcome-title { font-size: 1rem; }
+  .balam-welcome-close { width: 28px; height: 28px; top: 12px; right: 14px; }
+}

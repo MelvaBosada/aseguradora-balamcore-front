@@ -120,9 +120,9 @@ const Dashboard = () => {
     // ── KPI cards ────────────────────────────────────
     const kpiCards = kpis ? [
         {
-            label: "Pólizas activas",
+            label: "Pólizas activas en total",
             value: kpis.polizas_activas ?? 0,
-            sub: `+${kpis.polizas_este_mes ?? 0} este mes`,
+            sub: `${kpis.polizas_este_mes ?? 0} este mes`,
             subClass: "kpi-up",
             icon: <PolicyIcon />,
             bg: "#dcfce7", color: "#16a34a",
@@ -143,14 +143,7 @@ const Dashboard = () => {
             icon: <PeopleIcon />,
             bg: "#dbeafe", color: "#2563eb",
         },
-        {
-            label: "Pagos pendientes",
-            value: `$${((kpis.pagos_pendientes ?? 0) / 1000).toFixed(0)}k`,
-            sub: `${kpis.pagos_pendientes_count ?? 0} por cobrar`,
-            subClass: "",
-            icon: <PaymentsIcon />,
-            bg: "#fef9c3", color: "#ca8a04",
-        },
+       
     ] : [];
 
     // ── Stats alto/bajo tendencia ────────────────────
@@ -168,7 +161,7 @@ const Dashboard = () => {
             {/* KPIs */}
             <div className="dash-grid">
                 {loadingKpis
-                    ? Array(4).fill(0).map((_, i) => (
+                    ? Array(3).fill(0).map((_, i) => (
                         <div key={`skeleton-${i}`} className="kpi-card kpi-skeleton" />
                     ))
                     : kpiCards.map((k, i) => (

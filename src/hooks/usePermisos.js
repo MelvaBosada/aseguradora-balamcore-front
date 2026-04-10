@@ -16,11 +16,11 @@ const usePermisos = () => {
       return diff > 0 ? diff : 0;
     }
 
-    // prueba gratuita de 15 días desde fecha_registro
+// prueba gratuita de 15 días desde fecha_registro
     const fechaRegistro = usuario.fecha_registro;
     if (fechaRegistro) {
-      const registro = new Date(fechaRegistro);
-      const hoy      = new Date();
+      const registro   = new Date(fechaRegistro);
+      const hoy        = new Date();
       const diasUsados = Math.floor((hoy - registro) / (1000 * 60 * 60 * 24));
       const restantes  = 15 - diasUsados;
       return restantes > 0 ? restantes : 0;
@@ -31,8 +31,9 @@ const usePermisos = () => {
 
   const esPrueba = !suscripcion || suscripcion.estatus === "prueba";
   const vencida  = diasRestantes() <= 0 && (!suscripcion || suscripcion.estatus !== "activo");
+  const esAdmin  = usuario.rol === "Administrador" || usuario.id_rol === 1;
 
-  return { permisos, modulos, tiene, tieneAlguno, suscripcion, diasRestantes, esPrueba, vencida };
+  return { permisos, modulos, tiene, tieneAlguno, suscripcion, diasRestantes, esPrueba, vencida, esAdmin };
 };
 
 export default usePermisos;
