@@ -1,110 +1,73 @@
-import CloseIcon   from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/Close";
 import DiamondIcon from "@mui/icons-material/Diamond";
-import CheckIcon   from "@mui/icons-material/Check";
+import CheckIcon from "@mui/icons-material/Check";
 import logo from "../assets/Logo.png";
 import "../css/BalamCoreModal.css";
+import "../css/ModalBienvenida.css";
 
 const ModalBienvenida = ({ open, onClose, nombre }) => {
   if (!open) return null;
 
+  const features = [
+    "Dashboard con estadísticas",
+    "Gestión de pólizas y siniestros",
+    "Clientes, empleados y bienes",
+    "Reportes y renovaciones",
+    "Todos los módulos del sistema",
+  ];
+
   return (
     <div className="balam-overlay">
-      <div style={{
-        background: "#fff",
-        borderRadius: 20,
-        maxWidth: 500,
-        width: "100%",
-        position: "relative",
-        boxShadow: "0 32px 80px rgba(0,0,0,0.22)",
-        animation: "balamFade 0.28s cubic-bezier(0.34,1.3,0.64,1)",
-        overflow: "hidden",
-      }}>
+      <div className="balam-welcome-modal">
 
-        {/* BARRA VERDE TOP */}
-        <div style={{
-          height: 4,
-          background: "linear-gradient(90deg, #0F4C3A, #295E4E)",
-        }} />
+        <div className="balam-welcome-top-bar" />
 
-        {/* X */}
-        <button
-          onClick={onClose}
-          style={{
-            position: "absolute", top: 16, right: 16,
-            background: "#F3F4F6", border: "none",
-            borderRadius: "50%", width: 32, height: 32,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            cursor: "pointer", color: "#6B7280",
-          }}
-        >
+        <button className="balam-welcome-close" onClick={onClose}>
           <CloseIcon style={{ fontSize: 18 }} />
         </button>
 
-        {/* BODY */}
-        <div style={{ padding: "32px 28px", textAlign: "center" }}>
+        <div className="balam-welcome-body">
 
-          <img src={logo} style={{ width: 70, marginBottom: 16 }} alt="BalamCore" />
+          <img src={logo} className="balam-welcome-logo" alt="BalamCore" />
 
-          <h2 style={{
-            fontSize: "1.4rem", fontWeight: 900,
-            color: "#1f2d2a", margin: "0 0 8px",
-          }}>
+          <h2 className="balam-welcome-title">
             ¡Bienvenido a BalamCore{nombre ? `, ${nombre}` : ""}!
           </h2>
 
-          <p style={{ color: "#6B7280", fontSize: 14, marginBottom: 24 }}>
+          <p className="balam-welcome-subtitle">
             Tu cuenta ha sido creada exitosamente. Estás disfrutando de
           </p>
 
-          {/* BADGE PRO */}
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 8,
-            background: "rgba(15,76,58,0.08)", borderRadius: 50,
-            padding: "10px 24px", marginBottom: 24,
-          }}>
+          <div className="balam-welcome-badge">
             <DiamondIcon style={{ color: "#0F4C3A", fontSize: 22 }} />
-            <span style={{ fontWeight: 800, color: "#0F4C3A", fontSize: 16 }}>
-              15 días gratis del Plan Pro
-            </span>
+            <span>15 días gratis del Plan Pro</span>
           </div>
 
-          {/* LO QUE INCLUYE */}
-          <div style={{
-            background: "#F9FAFB", borderRadius: 12,
-            padding: "16px 20px", marginBottom: 24,
-            border: "1px solid #E5E7EB", textAlign: "left",
-          }}>
-            <p style={{ margin: "0 0 10px", fontWeight: 700, color: "#1f2d2a", fontSize: 13 }}>
+          <div className="balam-welcome-features">
+            <p className="balam-welcome-features-title">
               Tu prueba incluye acceso completo a:
             </p>
-            {[
-              "Dashboard con estadísticas",
-              "Gestión de pólizas y siniestros",
-              "Clientes, empleados y bienes",
-              "Reportes y renovaciones",
-              "Todos los módulos del sistema",
-            ].map((item, i) => (
-              <div key={i} style={{
-                display: "flex", alignItems: "center", gap: 8,
-                fontSize: 13, color: "#1f2d2a", marginBottom: 6,
-              }}>
-                <CheckIcon style={{ fontSize: 15, color: "#0F4C3A" }} />
-                {item}
-              </div>
-            ))}
+            <div className="balam-welcome-features-grid">
+              {features.map((item, i) => (
+                <div key={i} className="balam-welcome-feature-item">
+                  <CheckIcon style={{ fontSize: 15, color: "#0F4C3A", flexShrink: 0 }} />
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
 
-          <p style={{ color: "#6B7280", fontSize: 13, marginBottom: 24 }}>
+          <p className="balam-welcome-note">
             Después de los 15 días podrás elegir el plan que mejor se adapte a tu aseguradora.
           </p>
 
           <button
             onClick={onClose}
-            className="balam-btn save"
-            style={{ width: "100%", padding: "12px 0", fontSize: 15 }}
+            className="balam-btn save balam-welcome-cta"
           >
             ¡Comenzar ahora!
           </button>
+
         </div>
       </div>
     </div>
