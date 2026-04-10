@@ -17,6 +17,9 @@
   padding: 26px 28px;
   max-width: 1280px;
 }
+.page-wrapper {
+  padding: 26px 28px;
+}
 
 /* ── PAGE HEADER ──────────────────────────────────── */
 .clientes-page-header {

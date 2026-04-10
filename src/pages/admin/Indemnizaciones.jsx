@@ -183,13 +183,14 @@ const Indemnizaciones = () => {
   };
 
   return (
-    <div className="pv-page">
-      <div className="pv-page-header"><h1>Indemnización</h1></div>
+    <div className="container py-4">
+      <h1 className="h2 fw-bold mb-3">Indemnizaciones</h1>
+      <hr className="mt-2 mb-3" />
 
       {/* TOOLBAR */}
       <div className="pv-toolbar">
         <div className="pv-field">
-          <label>Búsqueda</label>
+            <div className="fw-bold mb-2">Búsqueda</div>
           <div className="pv-search-wrapper">
             <SearchIcon />
             <input
@@ -202,8 +203,8 @@ const Indemnizaciones = () => {
           </div>
         </div>
         <div className="pv-field">
-          <label>Estatus</label>
-          <select className="pv-select" value={estatus} onChange={handleEstatus}>
+            <div className="fw-bold mb-2">Estatus</div>
+          <select className="form-select" value={estatus} onChange={handleEstatus}>
             {ESTATUS_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
         </div>

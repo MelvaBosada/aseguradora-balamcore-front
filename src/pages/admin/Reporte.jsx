@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../../css/Clientes.css';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
 
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import EditIcon from "@mui/icons-material/Edit";
@@ -146,8 +147,8 @@ const Reportes = () => {
           acciones={[
             {
               titulo: "Agregar Siniestro",
-              clase: "btn-accion-siniestro", 
-              icono: <ControlPointIcon fontSize="small" />,
+              clase: "tabla-btn-agregar", 
+              icono: <AddCircleIcon fontSize="small" />,
               // Cambiamos item => handleAgregarSiniestro(item) por una función directa
               onClick: handleAgregarSiniestro 
             },

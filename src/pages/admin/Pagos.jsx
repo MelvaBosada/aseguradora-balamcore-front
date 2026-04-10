@@ -60,15 +60,15 @@ const Pagos = () => {
         <hr className="mt-2 mb-3" />
         <div className="pv-toolbar">
           <div className="pv-field">
-            <label>Búsqueda</label>
+              <div className="fw-bold mb-2">Búsqueda</div>
             <div className="pv-search-wrapper">
               <SearchIcon />
-              <input type="text" className="pv-search" placeholder="Buscar # de Evaluación" value={searchTerm} onChange={handleSearch} />
+              <input type="text" className="pv-search" placeholder="Buscar número de evaluación" value={searchTerm} onChange={handleSearch} />
             </div>
           </div>
           <div className="pv-field">
-            <label>Estatus</label>
-            <select className="pv-select" value={estatus} onChange={handleEstatus}>
+              <div className="fw-bold mb-2">Estatus</div>
+            <select className="form-select" value={estatus} onChange={handleEstatus}>
               {["Todos", "Activo", "Pendiente", "Rechazado", "Procesando", "Cancelado", "Devuelto", "Fallido"].map((o) => (<option key={o} value={o}>{o}</option>))}
             </select>
           </div>
