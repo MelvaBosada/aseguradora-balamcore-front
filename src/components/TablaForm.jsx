@@ -1,8 +1,4 @@
 import Table from 'react-bootstrap/Table';
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import IconButton from "./IconButton";
 import "../css/TablaForm.css";
 
 function TablaForm({ columna, data, campos, acciones }) {
@@ -24,19 +20,27 @@ function TablaForm({ columna, data, campos, acciones }) {
               <td key={i}>{fila[campo]}</td>
             ))}
 
-          <td style={{ textAlign: "center" }}>
-  <div className="tabla-acciones">
-    {acciones && acciones.map((accion, i) => (
-      <button
-        key={i}
-        className={`tabla-btn ${accion.clase}`}
-        title={accion.titulo}
-        onClick={() => accion.onClick(fila)}
-      >
-        {accion.icono}
-      </button>
-    ))}
-  </div>
+            <td style={{ textAlign: "center" }}>
+              <div className="tabla-acciones">
+                {acciones && acciones.map((accion, i) => {
+                  // Soporta icono y clase como valor directo O como función (row) => ...
+                  const icono    = typeof accion.icono    === "function" ? accion.icono(fila)    : accion.icono;
+                  const clase    = typeof accion.clase    === "function" ? accion.clase(fila)    : accion.clase;
+                  const disabled = typeof accion.disabled === "function" ? accion.disabled(fila) : !!accion.disabled;
+
+                  return (
+                    <button
+                      key={i}
+                      className={`tabla-btn ${clase}`}
+                      title={accion.titulo}
+                      onClick={() => !disabled && accion.onClick(fila)}
+                      disabled={disabled}
+                    >
+                      {icono}
+                    </button>
+                  );
+                })}
+              </div>
             </td>
 
           </tr>

@@ -139,3 +139,19 @@
   align-items: center;
   gap: 6px;
 }
+/* Pega esto al final de tu AvisarModal.css */
+
+.avisar-send-btn.avisar-enviado {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+  cursor: not-allowed;
+  pointer-events: none; /* bloquea completamente el click */
+  opacity: 1;           /* se ve normal, no apagado */
+}
+
+.avisar-send-btn.avisar-enviado:hover {
+  background: #15803d;  /* verde un poco más oscuro al hover */
+  border-color: #15803d;
+  color: #fff;
+}
