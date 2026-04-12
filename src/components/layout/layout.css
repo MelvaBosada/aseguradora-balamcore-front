@@ -280,6 +280,10 @@ body {
   margin: 0;
   font-size: 15px;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
 }
 
 .dropdown-user-info span {
