@@ -168,7 +168,7 @@ useEffect(() => {
             }
         });
     }
-}, []);
+}, [verificarPagoStripe]);
 
     return (
         <div className="dash-wrapper">
