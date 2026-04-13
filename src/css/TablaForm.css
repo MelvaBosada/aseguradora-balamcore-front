@@ -59,6 +59,30 @@ background: #C0392B;
   color: #ffffff;
 }
 
+.tabla-btn-agregar {
+  background: #ffffff;
+  color: #07241b;
+  box-shadow: 0 0 0 1.5px #07241b inset;
+}
+.tabla-btn-agregar:hover {
+  background: #051f17;
+  color: #ffffff;
+}
+
+
+.tabla-btn-avisado {
+  background: #f0faf4 !important;
+  color: #4caf50 !important;
+  box-shadow: 0 0 0 1.5px #4caf50 inset !important;
+  cursor: not-allowed !important;
+  opacity: 0.75;
+}
+.tabla-btn-avisado:hover {
+  transform: none !important;
+  background: #f0faf4 !important;
+  color: #4caf50 !important;
+}
+
 /* Responsive: en pantallas muy pequeñas reducir botones */
 @media (max-width: 480px) {
   .tabla-btn {

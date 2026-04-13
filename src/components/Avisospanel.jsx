@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import CloseIcon         from "@mui/icons-material/Close";
-import ChevronRightIcon  from "@mui/icons-material/ChevronRight";
-import AccessTimeIcon    from "@mui/icons-material/AccessTime";
-import SmsFailedSharpIcon from '@mui/icons-material/SmsFailedSharp';
+import NotificationsIcon  from "@mui/icons-material/Notifications";
+import CloseIcon          from "@mui/icons-material/Close";
+import ChevronRightIcon   from "@mui/icons-material/ChevronRight";
+import AccessTimeIcon     from "@mui/icons-material/AccessTime";
+import SmsFailedSharpIcon from "@mui/icons-material/SmsFailedSharp";
 
-import { polizasVencerData } from "../components/PolizasVencerData";
+import { PolizasVencerData } from "../components/PolizasVencerData";
 
 const FILTROS = [
   { label: "Todos",   value: 999 },
@@ -25,10 +25,36 @@ const getUrgencia = (dias) => {
 const AvisosPanel = () => {
   const [panelOpen, setPanelOpen] = useState(false);
   const [filtro,    setFiltro]    = useState(999);
+  const [polizas,   setPolizas]   = useState([]);
+  const [loading,   setLoading]   = useState(false);
   const navigate = useNavigate();
 
-  const avisosFiltrados = polizasVencerData.filter(p => p.dias <= filtro);
-  const urgentes        = polizasVencerData.filter(p => p.dias <= 7).length;
+  // Carga inicial — trae todos para tener el badge correcto
+  useEffect(() => {
+    PolizasVencerData(999)
+      .then(setPolizas)
+      .catch(console.error);
+  }, []);
+
+  // Recarga cuando cambia el filtro
+ useEffect(() => {
+  if (!panelOpen) return;
+
+  const cargar = async () => {
+    setLoading(true);
+    try {
+      const data = await PolizasVencerData(filtro);
+      setPolizas(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  cargar();
+}, [filtro, panelOpen]);
+
+  const urgentes          = polizas.filter(p => p.dias <= 7).length;
+  const avisosFiltrados   = polizas; // ya viene filtrado del backend
 
   const handleAvisoClick = () => {
     setPanelOpen(false);
@@ -39,9 +65,9 @@ const AvisosPanel = () => {
     <>
       {/* BOTÓN FLOTANTE */}
       <button className="avisos-trigger" onClick={() => setPanelOpen(true)}>
-        <SmsFailedSharpIcon/>
+        <SmsFailedSharpIcon />
         <span className="avisos-trigger-label"></span>
-        {urgentes ><span className="avisos-badge">{urgentes}</span>}
+        {urgentes > 0 && <span className="avisos-badge">{urgentes}</span>}
       </button>
 
       {/* OVERLAY */}
@@ -58,8 +84,7 @@ const AvisosPanel = () => {
             <NotificationsIcon />
           </div>
           <div className="avisos-header-info">
-            <h3>Pólizas por vencer</h3>
-            <p>{polizasVencerData.length} pólizas próximas</p>
+            <h3>Pólizas por vencer</h3>            <p>{polizas.length} pólizas próximas</p>
           </div>
           <button className="avisos-close" onClick={() => setPanelOpen(false)}>
             <CloseIcon fontSize="small" />
@@ -81,7 +106,11 @@ const AvisosPanel = () => {
 
         {/* Lista */}
         <div className="avisos-list">
-          {avisosFiltrados.length === 0 ? (
+          {loading ? (
+            <div className="avisos-empty">
+              <p>Cargando...</p>
+            </div>
+          ) : avisosFiltrados.length === 0 ? (
             <div className="avisos-empty">
               <AccessTimeIcon style={{ fontSize: 36, opacity: 0.3, marginBottom: 8 }} />
               <p>Sin pólizas en este rango</p>

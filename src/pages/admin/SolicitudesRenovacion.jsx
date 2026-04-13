@@ -76,14 +76,13 @@ const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage 
   };
 
   return (
-    <div className="pv-page">
-      <div className="pv-page-header">
-        <h1>Solicitudes de renovación de pólizas</h1>
-      </div>
+    <div className="container py-4">
+      <h1 className="h2 fw-bold mb-3">Solicitudes de renovación de pólizas</h1>
+      <hr className="mt-2 mb-3" />
 
       <div className="pv-toolbar">
         <div className="pv-field">
-          <label>Búsqueda</label>
+           <div className="fw-bold mb-2">Búsqueda</div>
           <div className="pv-search-wrapper">
             <SearchIcon />
             <input type="text" className="pv-search" placeholder="Buscar póliza..."

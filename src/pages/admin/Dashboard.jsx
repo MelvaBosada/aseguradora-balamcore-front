@@ -12,9 +12,11 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 
 import AvisosPanel from "../../components/Avisospanel";
 import "../../css/Dashboard.css";
+import usePermisos from "../../hooks/usePermisos";
 
 const API        = "http://localhost:8000/api";
 const PIE_COLORS = ["#0F4C3A", "#295E4E", "#4a9477", "#f59e0b", "#94a3b8"];
+
 
 // Convierte cualquier respuesta a array seguro
 const toArray = (data) => {
@@ -66,7 +68,7 @@ const FiltroBtn = ({ valor, actual, onChange }) => (
 
 /* ── COMPONENTE ───────────────────────────────────── */
 const Dashboard = () => {
-
+    const { verificarPagoStripe } = usePermisos();
     const [kpis, setKpis]                           = useState(null);
     const [ingresos, setIngresos]                   = useState([]);
     const [polizasTipo, setPolizasTipo]             = useState([]);
@@ -120,9 +122,9 @@ const Dashboard = () => {
     // ── KPI cards ────────────────────────────────────
     const kpiCards = kpis ? [
         {
-            label: "Pólizas activas",
+            label: "Pólizas activas en total",
             value: kpis.polizas_activas ?? 0,
-            sub: `+${kpis.polizas_este_mes ?? 0} este mes`,
+            sub: `${kpis.polizas_este_mes ?? 0} este mes`,
             subClass: "kpi-up",
             icon: <PolicyIcon />,
             bg: "#dcfce7", color: "#16a34a",
@@ -143,14 +145,7 @@ const Dashboard = () => {
             icon: <PeopleIcon />,
             bg: "#dbeafe", color: "#2563eb",
         },
-        {
-            label: "Pagos pendientes",
-            value: `$${((kpis.pagos_pendientes ?? 0) / 1000).toFixed(0)}k`,
-            sub: `${kpis.pagos_pendientes_count ?? 0} por cobrar`,
-            subClass: "",
-            icon: <PaymentsIcon />,
-            bg: "#fef9c3", color: "#ca8a04",
-        },
+       
     ] : [];
 
     // ── Stats alto/bajo tendencia ────────────────────
@@ -161,6 +156,19 @@ const Dashboard = () => {
     const mesBajo = tendenciaValida.length
         ? tendenciaValida.reduce((a, b) => a.siniestros < b.siniestros ? a : b)
         : null;
+useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("pago") === "exitoso") {
+        verificarPagoStripe().then((res) => {
+            if (res) {
+                // Mostrar snack o mensaje de éxito
+                console.log("Suscripción activada:", res.message);
+                // Recargar para que tome la nueva suscripción del localStorage
+                window.location.reload();
+            }
+        });
+    }
+}, [verificarPagoStripe]);
 
     return (
         <div className="dash-wrapper">
@@ -168,7 +176,7 @@ const Dashboard = () => {
             {/* KPIs */}
             <div className="dash-grid">
                 {loadingKpis
-                    ? Array(4).fill(0).map((_, i) => (
+                    ? Array(3).fill(0).map((_, i) => (
                         <div key={`skeleton-${i}`} className="kpi-card kpi-skeleton" />
                     ))
                     : kpiCards.map((k, i) => (

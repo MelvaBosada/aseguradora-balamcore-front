@@ -215,7 +215,7 @@ const Clientes = () => {
   return (
     <div className="container py-4">
 
-      <h1 className="h2 fw-bold mb-3">Listado clientes</h1>
+      <h1 className="h2 fw-bold mb-3">Clientes</h1>
       <hr className="mt-2 mb-3" />
 
       <div className="d-flex align-items-end justify-content-between mb-4 gap-3 flex-wrap">
