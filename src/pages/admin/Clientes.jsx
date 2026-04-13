@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import '../../css/Clientes.css';
 
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
@@ -19,6 +20,7 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 const campos = ["rfc", "nombre", "apellido", "telefono", "correo"];
 const columnas = ["RFC", "Nombre", "Apellido(s)", "Teléfono", "Correo", "Acciones"];
@@ -33,31 +35,13 @@ const FORM_CAMPOS = [
   { label: "Correo", name: "correo", type: "email" },
   { label: "Domicilio", name: "domicilio", type: "text" },
   { label: "CURP", name: "curp", type: "text" },
-
 ];
 
 const FORM_VACIO = { nombre: "", apellido: "", telefono: "", curp: "", rfc: "", domicilio: "", correo: "", fechaAlta: "" };
 
 const Clientes = () => {
-  const [clientes, setClientes] = useState([
-    { id: 1, nombre: "Maria", apellido: "Mendez Gonzales", telefono: "9993456789", curp: "SIE884FGHTI59R3G", rfc: "4DFGT3456JGF", domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
-    { id: 2, nombre: "Juan Carlos", apellido: "Gonzales Martinez", telefono: "8994567812", curp: "DHFG5678ORE34RD", rfc: "SGD5651100IUU", domicilio: "Calle 90", correo: "ejemplo@gmail.com" },
-    { id: 3, nombre: "Jacob M.", apellido: "Mendoza Torres", telefono: "9993456789", curp: "UY4S322FGHT9670K", rfc: "ILIT5411034", domicilio: "Avenida", correo: "ejemplo@gmail.com" },
-    { id: 4, nombre: "Miguel", apellido: "Torres Martinez", telefono: "9993459876", curp: "SDG3456JGHC3456", rfc: "JF5673112DCS", domicilio: "Circuito", correo: "ejemplo@gmail.com" },
-    { id: 5, nombre: "Angel", apellido: "Torres Uc", telefono: "9990340567", curp: "SDG456FKH789WSDF", rfc: "DFS234519076", domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
-    { id: 6, nombre: "Maria", apellido: "Mendez Gonzales ", telefono: "9993456789", curp: "SIE884FGHTI59R3G", rfc: "4DFGT3456JGF", domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
-    { id: 7, nombre: "Juan Carlos", apellido: "Gonzales Gutierrez", telefono: "8994567812", curp: "DHFG5678ORE34RD", rfc: "SGD5651100IUU", domicilio: "Calle 90", correo: "ejemplo@gmail.com" },
-    { id: 8, nombre: "Jacob M.", apellido: "Mendoza Navejas", telefono: "9993456789", curp: "UY4S322FGHT9670K", rfc: "ILIT5411034", domicilio: "Avenida", correo: "ejemplo@gmail.com" },
-    { id: 9, nombre: "Miguel", apellido: "Torres Gomez", telefono: "9993459876", curp: "SDG3456JGHC3456", rfc: "JF5673112DCS", domicilio: "Circuito", correo: "ejemplo@gmail.com" },
-    { id: 10, nombre: "Angel", apellido: "Torres Uc", telefono: "9990340567", curp: "SDG456FKH789WSDF", rfc: "DFS234519076", domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
-    { id: 11, nombre: "Angel", apellido: "Torres Tec", telefono: "9990340567", curp: "SDG456FKH789WSDF", rfc: "DFS234519076", domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
-    { id: 12, nombre: "Maria", apellido: "Mendez Hernandez", telefono: "9993456789", curp: "SIE884FGHTI59R3G", rfc: "4DFGT3456JGF", domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
-    { id: 13, nombre: "Juan Carlos", apellido: "Gonzales Lizama", telefono: "8994567812", curp: "DHFG5678ORE34RD", rfc: "SGD5651100IUU", domicilio: "Calle 90", correo: "ejemplo@gmail.com" },
-    { id: 14, nombre: "Jacob M.", apellido: "Mendoza Uc", telefono: "9993456789", curp: "UY4S322FGHT9670K", rfc: "ILIT5411034", domicilio: "Avenida", correo: "ejemplo@gmail.com" },
-    { id: 15, nombre: "Miguel", apellido: "Torres Uc", telefono: "9993459876", curp: "SDG3456JGHC3456", rfc: "JF5673112DCS", domicilio: "Circuito", correo: "ejemplo@gmail.com" },
-    { id: 16, nombre: "Angel", apellido: "Torres Tec", telefono: "9990340567", curp: "SDG456FKH789WSDF", rfc: "DFS234519076", domicilio: "Calle 50", correo: "ejemplo@gmail.com" },
-  ]);
-
+  const [clientes, setClientes] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
@@ -67,8 +51,58 @@ const Clientes = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO);
-  // Cambia la constante por un estado
   const [itemsPerPage, setItemsPerPage] = useState(8);
+  const [estatusFilter, setEstatusFilter] = useState("Todos");
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Configurar headers con token
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    };
+  };
+
+  // Cargar clientes desde API
+  const cargarClientes = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/clientes`, {
+        params: { 
+          page: currentPage, 
+          search: searchTerm, 
+          estatus: estatusFilter, 
+          per_page: itemsPerPage 
+        },
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      setClientes(response.data.data);
+      setTotalPages(response.data.last_page);
+      setTotalItems(response.data.total);
+    } catch (error) {
+      console.error('Error al cargar clientes:', error);
+      if (error.response?.status === 401) {
+        // Token expirado o inválido
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar clientes cuando cambien los filtros o la página
+  useEffect(() => {
+    cargarClientes();
+  }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -80,46 +114,81 @@ const Clientes = () => {
 
   const handleEditar = (cliente) => {
     setEditingCliente(cliente);
-    setFormData(cliente);
+    setFormData({
+      nombre: cliente.nombre,
+      apellido: cliente.apellido,
+      telefono: cliente.telefono,
+      curp: cliente.curp,
+      rfc: cliente.rfc,
+      domicilio: cliente.domicilio,
+      correo: cliente.correo,
+      fechaAlta: cliente.fechaAlta || ""
+    });
     setShowModal(true);
   };
 
-  const handleGuardar = () => {
-    if (editingCliente) {
-      setClientes(clientes.map(c => c.id === editingCliente.id ? { ...formData, id: editingCliente.id } : c));
-    } else {
-      const newId = Math.max(...clientes.map(c => c.id), 0) + 1;
-      setClientes([...clientes, { ...formData, id: newId }]);
+  const handleGuardar = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (editingCliente) {
+        // Actualizar cliente existente
+        await axios.put(`${API_URL}/clientes/${editingCliente.id}`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      } else {
+        // Crear nuevo cliente
+        await axios.post(`${API_URL}/clientes`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+      setShowModal(false);
+      cargarClientes(); // Recargar lista
+    } catch (error) {
+      console.error('Error al guardar cliente:', error);
+      const errorMsg = error.response?.data?.message || error.response?.data?.errors || 'Error al guardar cliente';
+      alert(typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : errorMsg);
     }
-    setShowModal(false);
   };
 
-  const handleEliminarClick = (c) => { setClienteToDelete(c); setShowDeleteModal(true); };
-  const handleConfirmarEliminar = () => {
+  const handleEliminarClick = (c) => { 
+    setClienteToDelete(c); 
+    setShowDeleteModal(true); 
+  };
+
+  const handleConfirmarEliminar = async () => {
     if (clienteToDelete) {
-      setClientes(clientes.filter(c => c.id !== clienteToDelete.id));
-      setShowDeleteModal(false);
-      setClienteToDelete(null);
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`${API_URL}/clientes/${clienteToDelete.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setShowDeleteModal(false);
+        setClienteToDelete(null);
+        cargarClientes();
+      } catch (error) {
+        console.error('Error al eliminar cliente:', error);
+        alert(error.response?.data?.message || 'Error al eliminar cliente');
+      }
     }
   };
-  const handleVerDetalle = (c) => { setClienteDetalle(c); setShowDetalleModal(true); };
 
-  const filteredClientes = clientes.filter(c => {
-    const q= searchTerm.toLowerCase();
-    return (
-      c.nombre.toLowerCase().includes(q) ||
-      c.apellido.toLowerCase().includes(q) ||
-      c.telefono.includes(searchTerm) ||
-      c.correo.toLowerCase().includes(q) ||
-      c.rfc.toLowerCase().includes(q)
-    );
-  });
+  const handleVerDetalle = (c) => { 
+    setClienteDetalle(c); 
+    setShowDetalleModal(true); 
+  };
 
-  // Recalcula con el estado
-  const totalPages = Math.ceil(filteredClientes.length / itemsPerPage);
-  const paginated = filteredClientes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const handleSearch = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
+  const handleSearch = (e) => { 
+    setSearchTerm(e.target.value); 
+    setCurrentPage(1); 
+  };
 
   const detalleItems = clienteDetalle ? [
     { icon: <PersonIcon />, label: "Nombre completo", value: `${clienteDetalle.nombre} ${clienteDetalle.apellido}` },
@@ -129,6 +198,19 @@ const Clientes = () => {
     { icon: <BadgeIcon />, label: "CURP", value: clienteDetalle.curp },
     { icon: <BadgeIcon />, label: "RFC", value: clienteDetalle.rfc },
   ] : [];
+
+  if (loading && clientes.length === 0) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success" role="status">
+            <span className="visually-hidden">Cargando...</span>
+          </div>
+          <p className="mt-2">Cargando clientes...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-4">
@@ -150,13 +232,29 @@ const Clientes = () => {
             />
           </div>
         </div>
+
+        <div>
+          <div className="fw-bold mb-2">Estatus</div>
+          <select
+            className="form-select"
+            style={{ width: "180px" }}
+            value={estatusFilter}
+            onChange={(e) => setEstatusFilter(e.target.value)}
+          >
+            <option value="Todos">Todos</option>
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+            <option value="suspendido">Suspendido</option>
+          </select>
+        </div>
+
         <PrimaryButton text="Nuevo cliente" icon={<AddCircleOutlinedIcon />} onClick={handleNuevoCliente} />
       </div>
 
       <div className="mb-4">
         <TablaForm
           columna={columnas}
-          data={paginated}
+          data={clientes}
           campos={campos}
           acciones={[
             { titulo: "Ver", clase: "tabla-btn-ver", icono: <VisibilityIcon fontSize="small" />, onClick: handleVerDetalle },
