@@ -12,9 +12,11 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 
 import AvisosPanel from "../../components/Avisospanel";
 import "../../css/Dashboard.css";
+import usePermisos from "../../hooks/usePermisos";
 
 const API        = "http://localhost:8000/api";
 const PIE_COLORS = ["#0F4C3A", "#295E4E", "#4a9477", "#f59e0b", "#94a3b8"];
+
 
 // Convierte cualquier respuesta a array seguro
 const toArray = (data) => {
@@ -66,7 +68,7 @@ const FiltroBtn = ({ valor, actual, onChange }) => (
 
 /* ── COMPONENTE ───────────────────────────────────── */
 const Dashboard = () => {
-
+    const { verificarPagoStripe } = usePermisos();
     const [kpis, setKpis]                           = useState(null);
     const [ingresos, setIngresos]                   = useState([]);
     const [polizasTipo, setPolizasTipo]             = useState([]);
@@ -154,6 +156,19 @@ const Dashboard = () => {
     const mesBajo = tendenciaValida.length
         ? tendenciaValida.reduce((a, b) => a.siniestros < b.siniestros ? a : b)
         : null;
+useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("pago") === "exitoso") {
+        verificarPagoStripe().then((res) => {
+            if (res) {
+                // Mostrar snack o mensaje de éxito
+                console.log("Suscripción activada:", res.message);
+                // Recargar para que tome la nueva suscripción del localStorage
+                window.location.reload();
+            }
+        });
+    }
+}, []);
 
     return (
         <div className="dash-wrapper">

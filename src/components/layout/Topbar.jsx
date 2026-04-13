@@ -7,6 +7,7 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExpandMoreIcon    from "@mui/icons-material/ExpandMore";
 import DiamondIcon       from "@mui/icons-material/Diamond";
+import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 
 import IconButton   from "../IconButton";
 import ModalPlanes  from "../ModalPlanes";
@@ -19,7 +20,7 @@ const Topbar = ({ onToggleSidebar }) => {
   const [showPlanes,    setShowPlanes]    = useState(false);
 
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
-  const { esPrueba, diasRestantes, esAdmin } = usePermisos();
+  const { esPrueba, diasRestantes, esAdmin, suscripcion, vencida } = usePermisos();
 
   const nombreMostrar = usuario.nombre
     ? `${usuario.nombre} ${usuario.apellidos || ""}`.trim()
@@ -34,6 +35,18 @@ const Topbar = ({ onToggleSidebar }) => {
   const userRef  = useRef(null);
   const notifRef = useRef(null);
   const navigate = useNavigate();
+
+  // Determina el estado del plan para el botón
+  const tienePlanActivo = !esPrueba && suscripcion?.estatus === "activa";
+  const dias            = diasRestantes();
+  const planNombre      = suscripcion?.plan || "";
+
+  // Colores según estado
+  const btnColor = vencida
+    ? { bg: "rgba(192,57,43,0.2)", border: "rgba(192,57,43,0.5)", text: "#e74c3c", icon: "#e74c3c" }
+    : tienePlanActivo
+      ? { bg: "rgba(212,175,55,0.15)", border: "rgba(212,175,55,0.4)", text: "#D4AF37", icon: "#D4AF37" }
+      : { bg: "rgba(255,255,255,0.08)", border: "rgba(255,255,255,0.15)", text: "white", icon: "white" };
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -93,26 +106,35 @@ const Topbar = ({ onToggleSidebar }) => {
         {/* RIGHT */}
         <div className="topbar-right">
 
-          {/* DIAMANTE — solo admin */}
+          {/* PLAN — solo admin */}
           {esAdmin && (
             <button
               onClick={() => setShowPlanes(true)}
               style={{
-                background: "rgba(221, 183, 183, 0.15)",
-                border: "none",
+                background: btnColor.bg,
+                border: `1px solid ${btnColor.border}`,
                 borderRadius: 10,
-                padding: "6px 10px",
-                color: "white",
+                padding: "5px 10px",
+                color: btnColor.text,
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 gap: 6,
                 fontSize: 12,
                 fontWeight: 600,
+                transition: "all 0.2s",
               }}
             >
-              <DiamondIcon style={{ fontSize: 18 }} />
-              {esPrueba && <span>Prueba · {diasRestantes()} días</span>}
+              {tienePlanActivo
+                ? <WorkspacePremiumIcon style={{ fontSize: 16, color: btnColor.icon }} />
+                : <DiamondIcon style={{ fontSize: 16, color: btnColor.icon }} />
+              }
+              {vencida
+                ? <span>Plan vencido</span>
+                : tienePlanActivo
+                  ? <span>{planNombre} · {dias}d</span>
+                  : <span>Prueba · {dias}d</span>
+              }
             </button>
           )}
 
