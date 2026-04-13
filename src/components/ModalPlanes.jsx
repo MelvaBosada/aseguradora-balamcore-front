@@ -1,25 +1,25 @@
 import { useEffect, useState } from "react";
 import usePermisos from "../hooks/usePermisos";
-import DiamondIcon          from "@mui/icons-material/Diamond";
-import CheckIcon            from "@mui/icons-material/Check";
-import CloseIcon            from "@mui/icons-material/Close";
-import BlockIcon            from "@mui/icons-material/Block";
+import DiamondIcon from "@mui/icons-material/Diamond";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import BlockIcon from "@mui/icons-material/Block";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
-import AccessTimeIcon       from "@mui/icons-material/AccessTime";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import axios from "axios";
 import logo from "../assets/LogoA.png";
 
 const ModalPlanes = ({ open, onClose, onLogout }) => {
-  const [planes,  setPlanes]  = useState([]);
+  const [planes, setPlanes] = useState([]);
   const [hovered, setHovered] = useState(null);
-  const [anual,   setAnual]   = useState(false);
+  const [anual, setAnual] = useState(false);
   const [pagando, setPagando] = useState(null);
 
   const { esPrueba, vencida, diasRestantes, suscripcion, iniciarPago } = usePermisos();
 
-  const dias           = diasRestantes();
-  const tienePlan      = !esPrueba && suscripcion?.estatus === "activa";
-  const duracionTotal  = suscripcion?.fecha_inicio_plan && suscripcion?.fecha_fin_plan
+  const dias = diasRestantes();
+  const tienePlan = !esPrueba && suscripcion?.estatus === "activa";
+  const duracionTotal = suscripcion?.fecha_inicio_plan && suscripcion?.fecha_fin_plan
     ? Math.round((new Date(suscripcion.fecha_fin_plan) - new Date(suscripcion.fecha_inicio_plan)) / (1000 * 60 * 60 * 24))
     : 30;
   const progreso = tienePlan ? Math.max(0, Math.min(100, (dias / duracionTotal) * 100)) : 0;
@@ -29,7 +29,7 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
     const cargar = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res   = await axios.get("http://localhost:8000/api/planes", {
+        const res = await axios.get("http://localhost:8000/api/planes", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const planesConModulos = await Promise.all(
@@ -234,8 +234,9 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
         }}>
           {planes.map((plan) => {
             const precioMostrar = anual ? plan.precio_anual : plan.precio;
-            const periodoLabel  = anual ? "/año" : "/mes";
-            const esPlanActual  = suscripcion?.id_plan === plan.id;
+            const periodoLabel = anual ? "/año" : "/mes";
+            const esPlanActual = suscripcion?.id_plan === plan.id &&
+              suscripcion?.periodo === (anual ? "anual" : "mensual");
 
             return (
               <div
@@ -350,11 +351,13 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
                     opacity: pagando === plan.id ? 0.6 : 1,
                   }}
                 >
-                  {esPlanActual
-                    ? `✓ Plan activo · ${dias}d restantes`
-                    : pagando === plan.id
-                      ? "Procesando..."
-                      : `Contratar ${anual ? "anual" : "mensual"}`
+                  {pagando === plan.id
+                    ? "Procesando..."
+                    : esPlanActual
+                      ? `✓ Plan activo · ${dias}d restantes`
+                      : suscripcion?.id_plan === plan.id
+                        ? `Cambiar a ${anual ? "anual" : "mensual"}`
+                        : `Contratar ${anual ? "anual" : "mensual"}`
                   }
                 </button>
               </div>
