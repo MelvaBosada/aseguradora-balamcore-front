@@ -1,186 +1,146 @@
-import { useState } from "react";
-import SearchIcon       from "@mui/icons-material/Search";
+import { useState, useEffect } from "react";
+import SearchIcon from "@mui/icons-material/Search";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import DownloadIcon     from "@mui/icons-material/Download";
-import CloseIcon        from "@mui/icons-material/Close";
-import Snackbar         from "@mui/material/Snackbar";
-import Alert            from "@mui/material/Alert";
-import TablaForm        from "../../components/TablaForm";
-import Paginacion       from "../../components/Paginacion";
+import DownloadIcon from "@mui/icons-material/Download";
+import CloseIcon from "@mui/icons-material/Close";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+
+// Componentes del proyecto
+import TablaForm from "../../components/TablaForm";
+import Paginacion from "../../components/Paginacion";
 import IndemnizacionDocumento from "../../components/IndemnizacionDocumento";
-import usePDFExport     from "../../components/usePDFExport";
+import usePDFExport from "../../components/usePDFExport";
+
+// Estilos
 import "../../css/PolizasVencer.css";
 import "../../css/IndemnizacionPDF.css";
 
-/* ─── ARRAY DE DATOS ───────────────── */
-const indemnizaciones = [
-  {
-    id: 1,
-    nSiniestro:        "SIN-2025-000123",
-    montoAprobado:     "$50,000",
-    formaPago:         "Transferencia",
-    titularCuenta:     "Juan Méndez",
-    nEvaluacion:       "EVA-2025-000123",
-    fechaPago:         "12-03-2025",
-    numeroCuenta:      "SPEI-8839 201",
-    estatus:           "Activo",
-    // Campos del documento PDF
-    aseguradora:       "Aseguradora Integral del Sureste S.A. de C.V.",
-    nPoliza:           "POL-2026-000146",
-    fechaEmision:      "23 de mayo de 2026",
-    nombreAsegurado:   "María Ana López García",
-    rfc:               "LOGM520514KJ2",
-    domicilio:         "Av. Reforma No. 456, Col. Centro, Mérida, Yucatán",
-    telefono:          "999 456 7890",
-    correo:            "maria.lopez@ejemplo.com",
-    nEvaluacionPDF:    "EVA-2026-000178",
-    ajustador:         "Carlos Hernández Pérez",
-    fechaEvaluacion:   "20 de mayo de 2026",
-    resultadoEval:     "El siniestro cumple con las condiciones generales y particulares de la póliza; los bienes reclamados se encuentran debidamente asegurados y el evento es procedente.",
-    prioridad:         "Baja",
-    banco:             "BBVA",
-    titularBanco:      "María Ana López García",
-    cuentaBancaria:    "**** **** **** 4521",
-    fechaAutorizacion: "22 de mayo de 2026",
-    fechaPagoPDF:      "25 de mayo de 2026",
-    referencia:        "SPEI-88924307",
-    tipoSiniestro:     "Robo",
-    fechaOcurrencia:   "18 de mayo de 2026",
-    ubicacion:         "Domicilio del asegurado",
-    descripcion:       "El asegurado reporta el robo de bienes asegurados ocurrido dentro del domicilio, en presencia del asegurado al momento del evento. El hecho fue denunciado ante las autoridades correspondientes.",
-    montoReclamado:    "$35,000.00 MXN",
-    montoAprobadoPDF:  "$30,000.00 MXN",
-    deducible:         "$5,000.00 MXN",
-    montoTotal:        "$30,000.00 MXN (Treinta mil pesos 00/100 M.N.)",
-    estatusPDF:        "Pagada",
-  },
-  {
-    id: 2,
-    nSiniestro:        "SIN-2026-000003",
-    montoAprobado:     "$80,000",
-    formaPago:         "Efectivo",
-    titularCuenta:     "Angel Real",
-    nEvaluacion:       "EVA-2025-000123",
-    fechaPago:         "12-04-2025",
-    numeroCuenta:      "SPEI-8839 201",
-    estatus:           "Activo",
-    aseguradora:       "Aseguradora Integral del Sureste S.A. de C.V.",
-    nPoliza:           "POL-2026-000200",
-    fechaEmision:      "10 de abril de 2026",
-    nombreAsegurado:   "Angel Real Torres",
-    rfc:               "RETA900101AB1",
-    domicilio:         "Calle 60 No. 100, Col. Centro, Mérida, Yucatán",
-    telefono:          "999 111 2222",
-    correo:            "angel.real@ejemplo.com",
-    nEvaluacionPDF:    "EVA-2026-000200",
-    ajustador:         "Laura Pérez González",
-    fechaEvaluacion:   "8 de abril de 2026",
-    resultadoEval:     "El siniestro es procedente conforme a las condiciones de la póliza.",
-    prioridad:         "Media",
-    banco:             "Banamex",
-    titularBanco:      "Angel Real Torres",
-    cuentaBancaria:    "**** **** **** 9988",
-    fechaAutorizacion: "9 de abril de 2026",
-    fechaPagoPDF:      "10 de abril de 2026",
-    referencia:        "EFE-00291837",
-    tipoSiniestro:     "Daños por inundación",
-    fechaOcurrencia:   "5 de abril de 2026",
-    ubicacion:         "Domicilio del asegurado",
-    descripcion:       "Inundación severa que dañó mobiliario y enseres del hogar asegurado.",
-    montoReclamado:    "$85,000.00 MXN",
-    montoAprobadoPDF:  "$80,000.00 MXN",
-    deducible:         "$5,000.00 MXN",
-    montoTotal:        "$80,000.00 MXN (Ochenta mil pesos 00/100 M.N.)",
-    estatusPDF:        "Pagada",
-  },
-  {
-    id: 3,
-    nSiniestro:        "SIN-2026-000004",
-    montoAprobado:     "$80,000",
-    formaPago:         "Transferencia",
-    titularCuenta:     "Maria Ana",
-    nEvaluacion:       "EVA-2025-000133",
-    fechaPago:         "22-05-2025",
-    numeroCuenta:      "SPEI-8839 201",
-    estatus:           "Pendiente",
-    aseguradora:       "Aseguradora Integral del Sureste S.A. de C.V.",
-    nPoliza:           "POL-2026-000301",
-    fechaEmision:      "20 de mayo de 2026",
-    nombreAsegurado:   "Maria Ana Ruiz López",
-    rfc:               "RULM850202CD3",
-    domicilio:         "Av. Itzáes No. 200, Col. García Ginerés, Mérida, Yucatán",
-    telefono:          "999 333 4444",
-    correo:            "maria.ana@ejemplo.com",
-    nEvaluacionPDF:    "EVA-2026-000301",
-    ajustador:         "Roberto Díaz Mena",
-    fechaEvaluacion:   "18 de mayo de 2026",
-    resultadoEval:     "Siniestro procedente. Daños eléctricos confirmados por perito.",
-    prioridad:         "Alta",
-    banco:             "HSBC",
-    titularBanco:      "Maria Ana Ruiz López",
-    cuentaBancaria:    "**** **** **** 1234",
-    fechaAutorizacion: "19 de mayo de 2026",
-    fechaPagoPDF:      "22 de mayo de 2026",
-    referencia:        "SPEI-77651234",
-    tipoSiniestro:     "Daños eléctricos",
-    fechaOcurrencia:   "15 de mayo de 2026",
-    ubicacion:         "Domicilio del asegurado",
-    descripcion:       "Cortocircuito provocó daños en equipos electrónicos y electrodomésticos del hogar.",
-    montoReclamado:    "$82,000.00 MXN",
-    montoAprobadoPDF:  "$80,000.00 MXN",
-    deducible:         "$2,000.00 MXN",
-    montoTotal:        "$80,000.00 MXN (Ochenta mil pesos 00/100 M.N.)",
-    estatusPDF:        "Pagada",
-  },
+const API_URL = "http://localhost:8000/api/indemnizaciones";
+const ESTATUS_OPTIONS = ["Todos", "pendiente", "autorizada", "pagada", "rechazada"];
+
+/* ─── CONFIGURACIÓN DE TABLA ───────────────── */
+const campos = [
+  "nSiniestro",
+  "montoAprobado",
+  "formaPago",
+  "titularCuenta",
+  "nEvaluacion",
+  "fechaPago",
+  "numeroCuenta",
+  "estatus",
 ];
 
-/* ─── CONFIG TABLA ───────────────────────────── */
-const ITEMS_PER_PAGE  = 8;
-const ESTATUS_OPTIONS = ["Todos", "Activo", "Pagado", "Pendiente", "Rechazado"];
+const columnas = [
+  "N° Siniestro",
+  "Monto aprobado",
+  "Forma de pago",
+  "Titular de la cuenta",
+  "N° Evaluación",
+  "Fecha de pago",
+  "Número de cuenta",
+  "Estatus",
+  "Acciones",
+];
 
-const campos   = ["nSiniestro", "montoAprobado", "formaPago", "titularCuenta", "nEvaluacion", "fechaPago", "numeroCuenta", "estatus"];
-const columnas = ["N° Siniestro", "Monto aprobado", "Forma de pago", "Titular de la cuenta", "N° Evaluación", "Fecha de pago", "Número de cuenta", "Estatus", "Acciones"];
-
-/* ─── VISTA ─────────────────── */
 const Indemnizaciones = () => {
-  const [search,      setSearch]      = useState("");
-  const [estatus,     setEstatus]     = useState("Todos");
+  const [dataIndemnizaciones, setDataIndemnizaciones] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [estatus, setEstatus] = useState("Todos");
+  
+  // ESTADOS DE PAGINACIÓN RESTAURADOS
   const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(8); 
 
-  // Modal: qué registro está activo para ver PDF
   const [modalData, setModalData] = useState(null);
 
-  // Hook reutilizable de exportación PDF
   const { printRef, snack, setSnack, handleDescargar } = usePDFExport(
     modalData ? `Indemnizacion_${modalData.nSiniestro}` : "Indemnizacion"
   );
 
-  /* ── Filtro ── */
-  const filtered = indemnizaciones.filter((p) => {
+  const getHeaders = () => ({
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "Authorization": `Bearer ${localStorage.getItem("token")}`,
+  });
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(API_URL, { headers: getHeaders() });
+      if (response.ok) {
+        const data = await response.json();
+        
+        const mapeados = data.map((i) => ({
+          ...i,
+          nSiniestro: i.numero_siniestro || `SIN-${String(i.id_siniestro).padStart(6, "0")}`,
+          montoAprobado: `$${parseFloat(i.monto_aprobado).toLocaleString()}`,
+          formaPago: i.forma_pago.toUpperCase(),
+          titularCuenta: i.titular_cuenta || "N/A",
+          nEvaluacion: `EVA-${String(i.id_evaluaciones).padStart(6, "0")}`,
+          fechaPago: i.fecha_pago ? i.fecha_pago.split(" ")[0] : "Pendiente",
+          numeroCuenta: i.cuenta_bancaria || "N/A",
+          estatus: i.estatus,
+
+          // Mapeo para PDF desde Joins
+          aseguradora: "Balamcore Seguros S.A. de C.V.", 
+          nPoliza: i.poliza_numero ? `POL-${i.poliza_numero}` : "POL-S/N",
+          fechaEmision: new Date().toLocaleDateString(),
+          nombreAsegurado: i.asegurado_nombre || i.titular_cuenta, 
+          rfc: "CONSULTAR EXPEDIENTE",
+          domicilio: i.lugar || "Mérida, Yucatán",
+          telefono: i.asegurado_tel || "N/A",
+          tipoSiniestro: (i.tipo_siniestro || "Daños Generales").toUpperCase(),
+          fechaOcurrencia: i.fecha_autorizacion || "N/A",
+          descripcion: i.observaciones || "Sin descripción adicional.",
+          nEvaluacionPDF: `EVA-${i.id_evaluaciones}`,
+          ajustador: i.ajustador_nom ? `${i.ajustador_nom} ${i.ajustador_ape}` : "Personal Asignado",
+          fechaEvaluacion: i.fecha_dictamen || "N/A",
+          resultadoEval: i.resultado_eval || "Procedente conforme a términos de póliza.",
+          prioridad: (i.prioridad || "Normal").toUpperCase(),
+          banco: i.banco || "N/A",
+          titularBanco: i.titular_cuenta,
+          cuentaBancaria: i.cuenta_bancaria,
+          fechaAutorizacion: i.fecha_autorizacion,
+          fechaPagoPDF: i.fecha_pago,
+          referencia: i.id ? `REF-${i.id}` : "N/A",
+          montoReclamado: `$${parseFloat(i.monto_reclamado || 0).toLocaleString()} MXN`,
+          montoAprobadoPDF: `$${parseFloat(i.monto_aprobado).toLocaleString()} MXN`,
+          deducible: `$${parseFloat(i.deducible_aplicado || 0).toLocaleString()} MXN`,
+          montoTotal: `$${parseFloat(i.monto_aprobado).toLocaleString()} MXN`,
+          estatusPDF: i.estatus.toUpperCase(),
+        }));
+        
+        setDataIndemnizaciones(mapeados);
+      }
+    } catch (error) {
+      console.error("Error cargando:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  /* ─── LÓGICA DE FILTRADO Y PAGINACIÓN ─── */
+  const filtered = dataIndemnizaciones.filter((p) => {
     const q = search.toLowerCase();
     const matchSearch =
-      p.nSiniestro.toLowerCase().includes(q)    ||
+      p.nSiniestro.toLowerCase().includes(q) ||
       p.titularCuenta.toLowerCase().includes(q) ||
-      p.formaPago.toLowerCase().includes(q)     ||
       p.nEvaluacion.toLowerCase().includes(q);
     const matchEstatus = estatus === "Todos" || p.estatus === estatus;
     return matchSearch && matchEstatus;
   });
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginated  = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-  const handleSearch  = (e) => { setSearch(e.target.value);  setCurrentPage(1); };
-  const handleEstatus = (e) => { setEstatus(e.target.value); setCurrentPage(1); };
-
-  /* ── Acciones de tabla ── */
-  const handleVerPDF      = (fila) => setModalData(fila);
-  const handleDescargarPDF = (fila) => {
-    // Si el modal está abierto con otro registro, primero actualizamos
-    setModalData(fila);
-    // Pequeño timeout para que el ref se monte con el nuevo data
-    setTimeout(() => handleDescargar(), 100);
-  };
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginated = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="container py-4">
@@ -190,59 +150,72 @@ const Indemnizaciones = () => {
       {/* TOOLBAR */}
       <div className="pv-toolbar">
         <div className="pv-field">
-            <div className="fw-bold mb-2">Búsqueda</div>
+          <div className="fw-bold mb-2">Búsqueda</div>
           <div className="pv-search-wrapper">
             <SearchIcon />
             <input
               type="text"
               className="pv-search"
-              placeholder="Buscar número de indemnización..."
+              placeholder="Buscar por siniestro o titular..."
               value={search}
-              onChange={handleSearch}
+              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             />
           </div>
         </div>
         <div className="pv-field">
-            <div className="fw-bold mb-2">Estatus</div>
-          <select className="form-select" value={estatus} onChange={handleEstatus}>
-            {ESTATUS_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
+          <div className="fw-bold mb-2">Estatus</div>
+          <select
+            className="form-select"
+            value={estatus}
+            onChange={(e) => { setEstatus(e.target.value); setCurrentPage(1); }}
+          >
+            {ESTATUS_OPTIONS.map((o) => (
+              <option key={o} value={o}>{o}</option>
+            ))}
           </select>
         </div>
       </div>
 
       {/* TABLA */}
-      <TablaForm
-        columna={columnas}
-        data={paginated}
-        campos={campos}
-        acciones={[
-          {
-            titulo: "Ver PDF",
-            clase: "tabla-btn-ver",
-            icono: <PictureAsPdfIcon fontSize="small" />,
-            onClick: handleVerPDF,
-          },
-          {
-            titulo: "Descargar PDF",
-            clase: "tabla-btn-edit",
-            icono: <DownloadIcon fontSize="small" />,
-            onClick: handleDescargarPDF,
-          },
-        ]}
-      />
+      <div className="position-relative">
+        <TablaForm
+          columna={columnas}
+          data={paginated}
+          campos={campos}
+          acciones={[
+            {
+              titulo: "Ver PDF",
+              clase: "tabla-btn-ver",
+              icono: <PictureAsPdfIcon fontSize="small" />,
+              onClick: setModalData,
+            },
+            {
+              titulo: "Descargar PDF",
+              clase: "tabla-btn-edit",
+              icono: <DownloadIcon fontSize="small" />,
+              onClick: (fila) => {
+                setModalData(fila);
+                setTimeout(handleDescargar, 300);
+              },
+            },
+          ]}
+        />
+        {loading && <p className="text-center mt-3">Cargando...</p>}
+      </div>
 
+      {/* PAGINACIÓN CON SELECTOR DE ITEMS POR PÁGINA */}
       <Paginacion
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={setItemsPerPage}
       />
 
-      {/* MODAL: Ver PDF */}
+      {/* MODAL PDF */}
       {modalData && (
         <div className="ipdf-modal-overlay" onClick={() => setModalData(null)}>
           <div className="ipdf-modal" onClick={(e) => e.stopPropagation()}>
-
-            {/* Toolbar del modal */}
             <div className="ipdf-toolbar">
               <button className="ipdf-back" onClick={() => setModalData(null)}>
                 <CloseIcon fontSize="small" /> Cerrar
@@ -251,26 +224,15 @@ const Indemnizaciones = () => {
                 <DownloadIcon fontSize="small" /> Descargar PDF
               </button>
             </div>
-
-            {/* Documento reutilizable */}
             <div className="ipdf-wrapper">
               <IndemnizacionDocumento data={modalData} printRef={printRef} />
             </div>
-
           </div>
         </div>
       )}
 
-      {/* Snackbar de confirmación */}
-      <Snackbar
-        open={snack}
-        autoHideDuration={2500}
-        onClose={() => setSnack(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity="success" variant="filled" onClose={() => setSnack(false)}>
-          PDF descargado exitosamente
-        </Alert>
+      <Snackbar open={snack} autoHideDuration={2500} onClose={() => setSnack(false)}>
+        <Alert severity="success" variant="filled">Documento exportado correctamente</Alert>
       </Snackbar>
     </div>
   );
