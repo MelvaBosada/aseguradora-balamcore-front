@@ -4,6 +4,7 @@ import axios from 'axios';
 import "../../css/Clientes.css";
 
 import AddIcon from "@mui/icons-material/Add";
+import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -437,7 +438,7 @@ const Siniestros = () => {
 
         <PrimaryButton
           text="Nuevo siniestro"
-          icon={<AddIcon />}
+          icon={<AddCircleOutlinedIcon />}
           onClick={handleNuevoSiniestro}
         />
       </div>
