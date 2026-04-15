@@ -18,7 +18,7 @@ import "./layout.css";
 
 const Sidebar = ({ open, onClose }) => {
   const [openMenu, setOpenMenu] = useState(null);
-  const { tiene, tieneAlguno } = usePermisos();
+  const { tiene, tieneAlguno, tieneModulo } = usePermisos();
 
   const toggleMenu = (menu) => {
     setOpenMenu(openMenu === menu ? null : menu);
@@ -42,14 +42,14 @@ const Sidebar = ({ open, onClose }) => {
         </div>
 
         {/* DASHBOARD */}
-        {tiene("dashboard") && (
+        {tieneModulo("dashboard") && (
           <NavLink to="/admin/dashboard" className="menu-item" onClick={closeAll}>
             <DashboardIcon /> Dashboard
           </NavLink>
         )}
 
         {/* OPERACIONES */}
-        {tieneAlguno("polizas", "siniestros", "indemnizaciones", "pagos") && (
+        {tieneModulo("polizas", "siniestros", "indemnizaciones", "pagos") && (
           <div className="menu-section">
             <div className="menu-section-title" onClick={() => toggleMenu("operaciones")}>
               <span><DescriptionIcon /> Operaciones</span>
@@ -65,7 +65,7 @@ const Sidebar = ({ open, onClose }) => {
         )}
 
         {/* CATALOGOS */}
-        {tieneAlguno("clientes", "empleados", "bienes", "coberturas", "evaluaciones", "perfiles", "permisos") && (
+        {tieneModulo("clientes", "empleados", "bienes", "coberturas", "evaluaciones", "perfiles", "permisos") && (
           <div className="menu-section">
             <div className="menu-section-title" onClick={() => toggleMenu("catalogos")}>
               <span><GroupIcon /> Catálogos</span>
@@ -84,7 +84,7 @@ const Sidebar = ({ open, onClose }) => {
         )}
 
         {/* REPORTES */}
-        {tieneAlguno("reportes", "polizasV", "renovaciones") && (
+        {tieneModulo("reportes", "polizasV", "renovaciones") && (
           <div className="menu-section">
             <div className="menu-section-title" onClick={() => toggleMenu("reportes")}>
               <span><BarChartIcon /> Reportes y Avisos</span>
