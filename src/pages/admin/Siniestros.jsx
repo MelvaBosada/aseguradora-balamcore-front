@@ -1,232 +1,354 @@
 // pages/admin/Siniestros.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from 'axios';
 import "../../css/Clientes.css";
 
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import SearchIcon from "@mui/icons-material/Search";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import PersonIcon from "@mui/icons-material/Person";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
 import DateRangeIcon from "@mui/icons-material/DateRange";
 import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import InfoIcon from "@mui/icons-material/Info";
 import ReportIcon from "@mui/icons-material/Report";
-import AssessmentIcon from "@mui/icons-material/Assessment";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
 import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
-import AssignmentAddIcon from '@mui/icons-material/AssignmentAdd';
 
-/* COLUMNAS SIMPLIFICADAS */
-const campos = [
-  "nSiniestro",
-  "tipo",
-  "cliente",
-  "estatus",
-  "prioridad"
-];
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-const columnas = [
-  "N° Siniestro",
-  "Tipo",
-  "Cliente",
-  "Estatus",
-  "Prioridad",
-  "Acciones"
-];
+const campos = ["nSiniestro", "tipo", "cliente", "estatus", "prioridad"];
+const columnas = ["N° Siniestro", "Tipo", "Cliente", "Estatus", "Prioridad", "Acciones"];
 
-/* DATA */
-const siniestrosData = [
-  {
-    id: 1,
-    nSiniestro: "SIN-2025-000123",
-    tipo: "Robo",
-    nReporte: "REP-2024-0156",
-    cliente: "Juan Mendez",
-    ubicacion: "Lugar del evento",
-    fechaCreacion: "12-03-2025",
-    prioridad: "Media",
-    estatus: "Activo",
-    descripcion: "Robo de vehículo en estacionamiento",
-    fechaOcurrencia: "10-03-2025",
-    ajustador: "Carlos Ruiz",
-    montoReclamado: "$25,000"
-  },
-  {
-    id: 2,
-    nSiniestro: "SIN-2026-000003",
-    tipo: "Incendio",
-    nReporte: "REP-2024-0156",
-    cliente: "Angel Real",
-    ubicacion: "Lugar del evento",
-    fechaCreacion: "12-04-2025",
-    prioridad: "Alta",
-    estatus: "Activo",
-    descripcion: "Incendio en vivienda",
-    fechaOcurrencia: "11-04-2025",
-    ajustador: "Ana López",
-    montoReclamado: "$150,000"
-  },
-  {
-    id: 3,
-    nSiniestro: "SIN-2026-000004",
-    tipo: "Robo",
-    nReporte: "REP-2024-0156",
-    cliente: "Maria Ana",
-    ubicacion: "Lugar del evento",
-    fechaCreacion: "22-05-2025",
-    prioridad: "Baja",
-    estatus: "En proceso",
-    descripcion: "Robo de pertenencias",
-    fechaOcurrencia: "20-05-2025",
-    ajustador: "Julian Chas",
-    montoReclamado: "$8,000"
-  }
-];
-
-
-
-/* FORMULARIO PARA SINIESTROS */
 const FORM_CAMPOS_SINIESTRO = [
-  { label: "N° Siniestro", name: "nSiniestro", type: "text" },
-  { label: "Tipo", name: "tipo", type: "text" },
-  { label: "N° Reporte", name: "nReporte", type: "text" },
-  { label: "Cliente", name: "cliente", type: "text" },
-  { label: "Ubicación", name: "ubicacion", type: "text" },
-  { label: "Fecha de creación", name: "fechaCreacion", type: "date" },
-  { label: "Prioridad", name: "prioridad", type: "text" },
-  { label: "Estatus", name: "estatus", type: "text" },
-  { label: "Descripción", name: "descripcion", type: "text" },
-  { label: "Fecha de ocurrencia", name: "fechaOcurrencia", type: "date" },
-  { label: "Ajustador asignado", name: "ajustador", type: "text" },
-  { label: "Monto reclamado", name: "montoReclamado", type: "text" }
+  { label: "RFC del Cliente", name: "rfc_buscar", type: "text", seccion: "Buscar Cliente", fullWidth: true },
+  { label: "ID Cliente", name: "id_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
+  { label: "Nombre del cliente", name: "nombre_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
+  { label: "Selecciona Póliza", name: "id_poliza", type: "select", options: [], seccion: "Información del Cliente", required: true },
+  { label: "Selecciona Reporte", name: "id_reporte", type: "select", options: [], seccion: "Información del Cliente", required: true },
+  { label: "Tipo de Siniestro", name: "tipo", type: "select", options: ["robo", "accidente", "incendio", "inundacion", "responsabilidad_civil", "fallecimiento", "invalidez", "otro"], seccion: "Datos del Siniestro", required: true },
+  { label: "Prioridad", name: "prioridad", type: "select", options: ["baja", "media", "alta", "urgente"], seccion: "Datos del Siniestro", required: true },
+  { label: "Monto Reclamado", name: "monto_reclamado", type: "number", seccion: "Datos del Siniestro", required: true },
+  { label: "Deducible Aplicado", name: "deducible_aplicado", type: "number", seccion: "Datos del Siniestro" }
 ];
 
 const FORM_VACIO_SINIESTRO = {
-  nSiniestro: "",
+  rfc_buscar: "",
+  id_cliente: "",
+  nombre_cliente: "",
+  id_poliza: "",
+  id_reporte: "",
   tipo: "",
-  nReporte: "",
-  cliente: "",
-  ubicacion: "",
-  fechaCreacion: "",
   prioridad: "",
-  estatus: "",
-  descripcion: "",
-  fechaOcurrencia: "",
-  ajustador: "",
-  montoReclamado: ""
-};
-
-/* FORMULARIO PARA EVALUACIÓN - CON TODOS LOS CAMPOS DE LA IMAGEN */
-const FORM_CAMPOS_EVALUACION = [
-  // Primera fila: Fecha de inspección y Dictamen
-  { label: "Fecha de inspección", name: "fechaInspeccion", type: "date" },
-  { label: "Dictamen", name: "dictamen", type: "select", options: ["Favorable", "Desfavorable", "Pendiente"] },
-  
-  // Segunda fila: N° Siniestro y Cliente
-  { label: "N° Siniestro", name: "nSiniestro", type: "text", readOnly: true },
-  { label: "Cliente", name: "cliente", type: "text", readOnly: true },
-  
-  // Tercera fila: Dropdown de reporte
-  { label: "Escoge el reporte", name: "reporte", type: "select", options: ["REP-2024-0156", "REP-2024-0157", "REP-2024-0158"] },
-  
-  // Cuarta fila: Causas y Recomendación
-  { label: "Causas", name: "causas", type: "textarea" },
-  { label: "Recomendación", name: "recomendacion", type: "textarea" },
-  
-  // Quinta fila: Monto recomendado
-  { label: "Monto recomendado", name: "montoRecomendado", type: "text" },
-  
-  // Sexta fila: Costo de reparación y Prioridad
-  { label: "Costo de reparación", name: "costoReparacion", type: "text" },
-  { label: "Prioridad", name: "prioridad", type: "select", options: ["Alta", "Media", "Baja"] },
-  
-  // Séptima fila: Estado
-  { label: "Escoge el estado", name: "estado", type: "select", options: ["Activo", "En proceso", "Cerrado"] },
-  
-  // Octava fila: Fecha de dictamen y Empleado Ajustador
-  { label: "Fecha de dictamen", name: "fechaDictamen", type: "date" },
-  { label: "Empleado Ajustador", name: "empleadoAjustador", type: "select", options: ["Carlos Ruiz", "Ana López", "Julian Chas", "María García", "Pedro Martínez"] }
-];
-
-const FORM_VACIO_EVALUACION = {
-  fechaInspeccion: "",
-  dictamen: "",
-  nSiniestro: "",
-  cliente: "",
-  reporte: "",
-  causas: "",
-  recomendacion: "",
-  montoRecomendado: "",
-  costoReparacion: "",
-  prioridad: "",
-  estado: "",
-  fechaDictamen: "",
-  empleadoAjustador: ""
+  monto_reclamado: "",
+  deducible_aplicado: ""
 };
 
 const Siniestros = () => {
-  const [siniestros, setSiniestros] = useState(siniestrosData);
+  const [siniestros, setSiniestros] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
-  const [showEvaluacionModal, setShowEvaluacionModal] = useState(false);
   const [siniestroToDelete, setSiniestroToDelete] = useState(null);
   const [siniestroDetalle, setSiniestroDetalle] = useState(null);
-  const [siniestroEvaluacion, setSiniestroEvaluacion] = useState(null);
   const [editingSiniestro, setEditingSiniestro] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO_SINIESTRO);
-  const [evaluacionData, setEvaluacionData] = useState(FORM_VACIO_EVALUACION);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [estatusFilter, setEstatusFilter] = useState("Todos");
+  const [totalPages, setTotalPages] = useState(1);
+  const [buscarRfcTimer, setBuscarRfcTimer] = useState(null);
+  const [polizasOptions, setPolizasOptions] = useState([]);
+  const [reportesOptions, setReportesOptions] = useState([]);
+  const [cargandoPolizas, setCargandoPolizas] = useState(false);
+  const [cargandoReportes, setCargandoReportes] = useState(false);
 
-  const handleInputChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const cargarSiniestros = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/siniestros`, {
+        params: { page: currentPage, search: searchTerm, estatus: estatusFilter, per_page: itemsPerPage },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSiniestros(response.data.data);
+      setTotalPages(response.data.last_page);
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const handleEvaluacionChange = (e) =>
-    setEvaluacionData({ ...evaluacionData, [e.target.name]: e.target.value });
+  useEffect(() => {
+    cargarSiniestros();
+  }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
+
+  // Función para cargar reportes directamente por RFC
+  const cargarReportesPorRfc = async (rfc) => {
+    if (!rfc || rfc.length < 8) return;
+    
+    setCargandoReportes(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/siniestros/reportes/por-rfc`, {
+        params: { rfc },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const data = response.data;
+      
+      if (data.reportes && data.reportes.length > 0) {
+        const reportesOpts = data.reportes.map(r => ({
+          value: r.id,
+          label: `${r.numero_reporte} - Póliza: ${r.numero_poliza} - ${r.fecha_reporte} - ${r.estado}`,
+          id_poliza: r.id_poliza
+        }));
+        
+        setReportesOptions(reportesOpts);
+        
+        const polizasOpts = data.polizas.map(p => ({
+          value: p.id,
+          label: `${p.numero_poliza} - ${p.tipo}`
+        }));
+        setPolizasOptions(polizasOpts);
+      } else {
+        setReportesOptions([]);
+        setPolizasOptions([]);
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        id_cliente: data.cliente.id,
+        nombre_cliente: `${data.cliente.nombre} ${data.cliente.apellido}`,
+        id_poliza: "",
+        id_reporte: ""
+      }));
+      
+    } catch (error) {
+      console.error('Error al cargar reportes por RFC:', error);
+      if (error.response?.status === 404) {
+        setFormData(prev => ({ ...prev, nombre_cliente: "Cliente no encontrado" }));
+      }
+      setReportesOptions([]);
+      setPolizasOptions([]);
+    } finally {
+      setCargandoReportes(false);
+    }
+  };
+
+  const buscarPolizasPorRfc = async (rfc) => {
+    if (!rfc || rfc.length < 8) return;
+    
+    setCargandoPolizas(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/siniestros/polizas/por-rfc`, {
+        params: { rfc },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const data = response.data;
+      const polizasOpts = data.polizas.map(p => ({
+        value: p.id,
+        label: `${p.numero_poliza} - ${p.tipo}`
+      }));
+      
+      setPolizasOptions(polizasOpts);
+      
+      setFormData(prev => ({
+        ...prev,
+        id_cliente: data.cliente.id,
+        nombre_cliente: `${data.cliente.nombre} ${data.cliente.apellido}`,
+        id_poliza: "",
+        id_reporte: ""
+      }));
+      
+      return data;
+    } catch (error) {
+      if (error.response?.status === 404) {
+        setFormData(prev => ({ ...prev, nombre_cliente: "Cliente no encontrado" }));
+        setPolizasOptions([]);
+      }
+      return null;
+    } finally {
+      setCargandoPolizas(false);
+    }
+  };
+
+  const cargarReportesPorPoliza = async (polizaId) => {
+    if (!polizaId) return;
+    
+    console.log('Cargando reportes para póliza ID:', polizaId);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/siniestros/reportes/por-poliza/${polizaId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      console.log('Reportes recibidos:', response.data);
+      
+      if (response.data && response.data.length > 0) {
+        const reportesOpts = response.data.map(r => ({
+          value: r.id,
+          label: `${r.numero_reporte} - ${r.fecha_reporte} - ${r.estado}${r.tiene_siniestro ? ' ⚠️' : ''}`
+        }));
+        
+        console.log('Opciones de reportes:', reportesOpts);
+        setReportesOptions(reportesOpts);
+      } else {
+        console.log('No hay reportes para esta póliza');
+        setReportesOptions([]);
+      }
+      
+      setFormData(prev => ({ ...prev, id_reporte: "" }));
+      
+    } catch (error) {
+      console.error('Error al cargar reportes:', error);
+      setReportesOptions([]);
+    }
+  };
+
+  const buscarClientePorRfc = async (rfc) => {
+    if (!rfc || rfc.length < 8) return;
+    await cargarReportesPorRfc(rfc);
+  };
+
+  const handleRfcChange = (e) => {
+    const rfc = e.target.value;
+    setFormData(prev => ({ ...prev, rfc_buscar: rfc }));
+    if (buscarRfcTimer) clearTimeout(buscarRfcTimer);
+    setBuscarRfcTimer(setTimeout(() => buscarClientePorRfc(rfc), 500));
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    if (name === 'id_poliza') {
+      cargarReportesPorPoliza(value);
+    }
+  };
 
   const handleNuevoSiniestro = () => {
     setEditingSiniestro(null);
     setFormData(FORM_VACIO_SINIESTRO);
+    setPolizasOptions([]);
+    setReportesOptions([]);
     setShowModal(true);
   };
 
-  const handleEditar = (s) => {
-    setEditingSiniestro(s);
-    setFormData(s);
-    setShowModal(true);
-  };
-
-  const handleGuardar = () => {
-    if (editingSiniestro) {
-      setSiniestros(
-        siniestros.map((s) =>
-          s.id === editingSiniestro.id
-            ? { ...formData, id: editingSiniestro.id }
-            : s
-        )
-      );
-    } else {
-      const newId = Math.max(...siniestros.map((s) => s.id), 0) + 1;
-      setSiniestros([...siniestros, { ...formData, id: newId }]);
+  const handleEditar = async (siniestro) => {
+    setEditingSiniestro(siniestro);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_URL}/siniestros/${siniestro.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = res.data;
+      
+      setFormData({
+        rfc_buscar: "",
+        id_cliente: data.cliente_id,
+        nombre_cliente: data.cliente,
+        id_poliza: data.poliza_id,
+        id_reporte: data.id_reporte,
+        tipo: data.tipo.toLowerCase(),
+        prioridad: data.prioridad.toLowerCase(),
+        monto_reclamado: data.monto_reclamado,
+        deducible_aplicado: data.deducible_aplicado || ""
+      });
+      
+      if (data.poliza_id) {
+        await cargarReportesPorPoliza(data.poliza_id);
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
-    setShowModal(false);
+    setShowModal(true);
   };
 
-  const handleGuardarEvaluacion = () => {
-    console.log("Evaluación guardada:", evaluacionData);
-    // Aquí iría la lógica para guardar la evaluación
-    setShowEvaluacionModal(false);
-    setEvaluacionData(FORM_VACIO_EVALUACION);
-    setSiniestroEvaluacion(null);
+  const handleGuardar = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!formData.id_reporte) {
+        alert('Debes seleccionar un reporte');
+        return;
+      }
+      
+      const dataToSend = {
+        id_reporte: parseInt(formData.id_reporte),
+        tipo: formData.tipo,
+        prioridad: formData.prioridad,
+        monto_reclamado: parseFloat(formData.monto_reclamado),
+        deducible_aplicado: formData.deducible_aplicado ? parseFloat(formData.deducible_aplicado) : null
+      };
+      
+      if (editingSiniestro) {
+        await axios.put(`${API_URL}/siniestros/${editingSiniestro.id}`, dataToSend, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Siniestro actualizado');
+      } else {
+        await axios.post(`${API_URL}/siniestros`, dataToSend, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        alert('Siniestro creado');
+      }
+      
+      setShowModal(false);
+      cargarSiniestros();
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al guardar: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
+  const handleVerDetalle = async (siniestro) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API_URL}/siniestros/${siniestro.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = res.data;
+      
+      console.log('Respuesta:', data);
+      
+      const items = [
+        { icon: <AssignmentIcon />, label: "N° Siniestro", value: data.numero_siniestro },
+        { icon: <ReportIcon />, label: "Tipo", value: data.tipo },
+        { icon: <InfoIcon />, label: "Estatus", value: data.estatus },
+        { icon: <PriorityHighIcon />, label: "Prioridad", value: data.prioridad },
+        { icon: <AttachMoneyIcon />, label: "Monto Reclamado", value: `$${Number(data.monto_reclamado).toLocaleString()}` },
+        { icon: <AttachMoneyIcon />, label: "Deducible Aplicado", value: data.deducible_aplicado ? `$${Number(data.deducible_aplicado).toLocaleString()}` : "—" },
+        { icon: <DateRangeIcon />, label: "Fecha de Creación", value: data.fecha_creacion },
+        { icon: <DateRangeIcon />, label: "Fecha de Cierre", value: data.fecha_cierre || "—" },
+        { icon: <AssignmentIcon />, label: "Motivo de Cierre", value: data.motivo_cierre || "—" },
+        { icon: <PersonIcon />, label: "Cliente", value: data.cliente },
+        { icon: <AssignmentIcon />, label: "Póliza", value: data.poliza || "—" }
+      ];
+      
+      setSiniestroDetalle({
+        ...data,
+        items: items
+      });
+      setShowDetalleModal(true);
+      
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al cargar detalles');
+    }
   };
 
   const handleEliminarClick = (s) => {
@@ -234,79 +356,52 @@ const Siniestros = () => {
     setShowDeleteModal(true);
   };
 
-  const handleConfirmarEliminar = () => {
+  const handleConfirmarEliminar = async () => {
     if (siniestroToDelete) {
-      setSiniestros(
-        siniestros.filter((s) => s.id !== siniestroToDelete.id)
-      );
-      setShowDeleteModal(false);
-      setSiniestroToDelete(null);
+      try {
+        const token = localStorage.getItem('token');
+        await axios.delete(`${API_URL}/siniestros/${siniestroToDelete.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setShowDeleteModal(false);
+        cargarSiniestros();
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al eliminar');
+      }
     }
   };
-
-  const handleVerDetalle = (s) => {
-    setSiniestroDetalle(s);
-    setShowDetalleModal(true);
-  };
-
-  const handleNuevaEvaluacion = (s) => {
-    setSiniestroEvaluacion(s);
-    setEvaluacionData({
-      ...FORM_VACIO_EVALUACION,
-      nSiniestro: s.nSiniestro,
-      cliente: s.cliente,
-      reporte: s.nReporte || ""
-    });
-    setShowEvaluacionModal(true);
-  };
-
-  /* FILTRO */
-  const filteredSiniestros = siniestros.filter((s) => {
-    const q = searchTerm.toLowerCase();
-    const matchesSearch =
-      s.nSiniestro.toLowerCase().includes(q) ||
-      s.cliente.toLowerCase().includes(q) ||
-      s.tipo.toLowerCase().includes(q);
-    const matchesEstatus =
-      estatusFilter === "Todos" || s.estatus === estatusFilter;
-    return matchesSearch && matchesEstatus;
-  });
-
-  const totalPages = Math.ceil(filteredSiniestros.length / itemsPerPage);
-  const paginated = filteredSiniestros.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
   };
 
-  /* DETALLE */
-  const detalleItems = siniestroDetalle
-    ? [
-        { icon: <AssignmentIcon />, label: "N° Siniestro", value: siniestroDetalle.nSiniestro },
-        { icon: <ReportIcon />, label: "Tipo", value: siniestroDetalle.tipo },
-        { icon: <AssessmentIcon />, label: "N° Reporte", value: siniestroDetalle.nReporte },
-        { icon: <PersonIcon />, label: "Cliente", value: siniestroDetalle.cliente },
-        { icon: <LocationOnIcon />, label: "Ubicación", value: siniestroDetalle.ubicacion },
-        { icon: <DateRangeIcon />, label: "Fecha de creación", value: siniestroDetalle.fechaCreacion },
-        { icon: <DateRangeIcon />, label: "Fecha de ocurrencia", value: siniestroDetalle.fechaOcurrencia || "—" },
-        { icon: <PriorityHighIcon />, label: "Prioridad", value: siniestroDetalle.prioridad },
-        { icon: <InfoIcon />, label: "Estatus", value: siniestroDetalle.estatus },
-        { icon: <PersonIcon />, label: "Ajustador", value: siniestroDetalle.ajustador || "—" },
-        { icon: <AssignmentIcon />, label: "Monto", value: siniestroDetalle.montoReclamado || "—" },
-        { icon: <AssignmentIcon />, label: "Descripción", value: siniestroDetalle.descripcion || "—" }
-      ]
-    : [];
+  const handleItemsPerPageChange = (newItems) => {
+    setItemsPerPage(newItems);
+    setCurrentPage(1);
+  };
+
+  // Actualizar opciones del select de póliza dinámicamente
+  const camposConOpciones = FORM_CAMPOS_SINIESTRO.map(campo => {
+    if (campo.name === 'id_poliza') {
+      return { ...campo, options: polizasOptions };
+    }
+    if (campo.name === 'id_reporte') {
+      return { ...campo, options: reportesOptions };
+    }
+    return campo;
+  });
+
+  if (loading && siniestros.length === 0) {
+    return <div className="container py-4"><div className="text-center py-5"><div className="spinner-border text-success"></div><p>Cargando siniestros...</p></div></div>;
+  }
 
   return (
     <div className="container py-4">
       <h1 className="h2 fw-bold mb-3">Siniestros</h1>
       <hr className="mt-2 mb-3" />
 
-      {/* BUSCADOR + FILTRO */}
       <div className="d-flex align-items-end justify-content-between mb-4 gap-3 flex-wrap">
         <div>
           <div className="fw-bold mb-2">Búsqueda</div>
@@ -331,9 +426,12 @@ const Siniestros = () => {
             onChange={(e) => setEstatusFilter(e.target.value)}
           >
             <option value="Todos">Todos</option>
-            <option value="Activo">Activo</option>
-            <option value="En proceso">En proceso</option>
-            <option value="Cerrado">Cerrado</option>
+            <option value="abierto">Abierto</option>
+            <option value="en_proceso">En proceso</option>
+            <option value="en_evaluacion">En evaluación</option>
+            <option value="resuelto">Resuelto</option>
+            <option value="cerrado">Cerrado</option>
+            <option value="rechazado">Rechazado</option>
           </select>
         </div>
 
@@ -344,11 +442,10 @@ const Siniestros = () => {
         />
       </div>
 
-      {/* TABLA */}
       <div className="mb-4">
         <TablaForm
           columna={columnas}
-          data={paginated}
+          data={siniestros}
           campos={campos}
           acciones={[
             {
@@ -364,15 +461,13 @@ const Siniestros = () => {
               onClick: handleEditar
             },
             {
-              titulo: "Nueva evaluación",
-              clase: "tabla-btn-ver", // Misma clase que "Ver detalle"
-              icono: <AssignmentAddIcon fontSize="small" />, // Mismo ícono
-              onClick: handleNuevaEvaluacion
+              titulo: "Eliminar",
+              clase: "tabla-btn-del",
+              icono: <DeleteIcon fontSize="small" />,
+              onClick: handleEliminarClick
             }
           ]}
         />
-        
-       
       </div>
 
       <Paginacion
@@ -380,39 +475,26 @@ const Siniestros = () => {
         totalPages={totalPages}
         onPageChange={setCurrentPage}
         itemsPerPage={itemsPerPage}
-        onItemsPerPageChange={setItemsPerPage}
+        onItemsPerPageChange={handleItemsPerPageChange}
       />
 
       {/* MODAL PARA SINIESTROS (CREAR/EDITAR) */}
       <EditModal
         open={showModal}
-        onClose={() => setShowModal(false)}
+        onClose={() => {
+          setShowModal(false);
+          setPolizasOptions([]);
+          setReportesOptions([]);
+        }}
         onSave={handleGuardar}
         editando={!!editingSiniestro}
         titulo={editingSiniestro ? "Editar siniestro" : "Agregar nuevo siniestro"}
-        subtitulo={editingSiniestro ? "Modifica los datos del siniestro" : "Ingresa los datos para registrar el siniestro"}
+        subtitulo={editingSiniestro ? "Modifica los datos del siniestro" : "Ingresa el RFC del cliente y los datos del siniestro"}
         btnTexto={editingSiniestro ? "Guardar cambios" : "Agregar siniestro"}
-        campos={FORM_CAMPOS_SINIESTRO}
+        campos={camposConOpciones}
         formData={formData}
         onChange={handleInputChange}
-      />
-
-      {/* MODAL PARA EVALUACIÓN - CON TODOS LOS CAMPOS DE LA IMAGEN */}
-      <EditModal
-        open={showEvaluacionModal}
-        onClose={() => {
-          setShowEvaluacionModal(false);
-          setEvaluacionData(FORM_VACIO_EVALUACION);
-          setSiniestroEvaluacion(null);
-        }}
-        onSave={handleGuardarEvaluacion}
-        editando={false}
-        titulo="Agregar una nueva evaluación"
-        subtitulo="Ingresa todos los datos para continuar con el proceso"
-        btnTexto="Agregar Evaluación"
-        campos={FORM_CAMPOS_EVALUACION}
-        formData={evaluacionData}
-        onChange={handleEvaluacionChange}
+        customHandlers={{ onRfcChange: handleRfcChange }}
       />
 
       {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR */}
@@ -433,14 +515,14 @@ const Siniestros = () => {
         )}
       </ConfirmDeleteModal>
 
-      {/* MODAL DE DETALLE */}
+      {/* MODAL DE DETALLE - Usando ClienteDetalleModal reutilizable */}
       <ClienteDetalleModal
         open={showDetalleModal}
         onClose={() => { setShowDetalleModal(false); setSiniestroDetalle(null); }}
-        titulo={siniestroDetalle ? `Siniestro #${siniestroDetalle.nSiniestro}` : ""}
+        titulo={siniestroDetalle ? `Siniestro #${siniestroDetalle.numero_siniestro}` : ""}
         subtitulo={siniestroDetalle ? siniestroDetalle.cliente : ""}
-        avatar={siniestroDetalle ? "S" : ""}
-        items={detalleItems}
+        avatar="S"
+        items={siniestroDetalle?.items || []}
       />
     </div>
   );

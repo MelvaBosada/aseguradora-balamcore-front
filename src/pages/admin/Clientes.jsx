@@ -25,19 +25,48 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 const campos = ["rfc", "nombre", "apellido", "telefono", "correo"];
 const columnas = ["RFC", "Nombre", "Apellido(s)", "Teléfono", "Correo", "Acciones"];
 
-// Campos del formulario — se pasan al EditModal genérico
+// Campos del formulario con valores por defecto
 const FORM_CAMPOS = [
-  { label: "RFC", name: "rfc", type: "text" },
-  { label: "Nombre", name: "nombre", type: "text" },
-  { label: "Apellido", name: "apellido", type: "text" },
-  { label: "Teléfono", name: "telefono", type: "text" },
-  { label: "Fecha Alta", name: "fechaAlta", type: "date" },
-  { label: "Correo", name: "correo", type: "email" },
-  { label: "Domicilio", name: "domicilio", type: "text" },
-  { label: "CURP", name: "curp", type: "text" },
+  { label: "Nombre", name: "nombre", type: "text", required: true },
+  { label: "Apellido", name: "apellido", type: "text", required: true },
+  { label: "RFC", name: "rfc", type: "text", required: true },
+  { label: "CURP", name: "curp", type: "text", required: true },
+  { label: "Teléfono", name: "telefono", type: "text", required: true },
+  { label: "Correo", name: "correo", type: "email", required: true },
+  { label: "Fecha de nacimiento", name: "fecha_nacimiento", type: "date", required: true },
+  { label: "Género", name: "genero", type: "select", options: ["masculino", "femenino", "otro"], required: true, defaultValue: "masculino" },
+  { label: "Estado civil", name: "estado_civil", type: "select", options: ["soltero", "casado", "divorciado", "viudo", "union_libre"], required: true, defaultValue: "soltero" },
+  { label: "Nacionalidad", name: "nacionalidad", type: "text", defaultValue: "Mexicana" },
+  { label: "Tipo identificación", name: "tipo_identificacion", type: "select", options: ["ine", "pasaporte", "cedula_profesional", "licencia"], required: true, defaultValue: "ine" },
+  { label: "Número identificación", name: "numero_identificacion", type: "text", required: true },
+  { label: "Domicilio", name: "domicilio", type: "text", required: true },
+  { label: "Municipio", name: "municipio", type: "text", required: true },
+  { label: "Estado", name: "estado", type: "text", required: true },
+  { label: "Código postal", name: "codigo_postal", type: "text", required: true },
+  { label: "Ocupación", name: "ocupacion", type: "text", required: true },
+  { label: "Teléfono alternativo", name: "telefono_alternativo", type: "text" },
 ];
 
-const FORM_VACIO = { nombre: "", apellido: "", telefono: "", curp: "", rfc: "", domicilio: "", correo: "", fechaAlta: "" };
+const FORM_VACIO = { 
+  nombre: "", 
+  apellido: "", 
+  telefono: "", 
+  curp: "", 
+  rfc: "", 
+  domicilio: "", 
+  correo: "", 
+  fecha_nacimiento: "",
+  genero: "masculino",
+  estado_civil: "soltero",
+  nacionalidad: "Mexicana",
+  tipo_identificacion: "ine",
+  numero_identificacion: "",
+  telefono_alternativo: "",
+  municipio: "",
+  estado: "",
+  codigo_postal: "",
+  ocupacion: ""
+};
 
 const Clientes = () => {
   const [clientes, setClientes] = useState([]);
@@ -56,18 +85,6 @@ const Clientes = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
 
-  // Configurar headers con token
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    };
-  };
-
-  // Cargar clientes desde API
   const cargarClientes = async () => {
     setLoading(true);
     try {
@@ -79,9 +96,7 @@ const Clientes = () => {
           estatus: estatusFilter, 
           per_page: itemsPerPage 
         },
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
       
       setClientes(response.data.data);
@@ -90,7 +105,6 @@ const Clientes = () => {
     } catch (error) {
       console.error('Error al cargar clientes:', error);
       if (error.response?.status === 401) {
-        // Token expirado o inválido
         localStorage.removeItem('token');
         window.location.href = '/login';
       }
@@ -99,7 +113,6 @@ const Clientes = () => {
     }
   };
 
-  // Cargar clientes cuando cambien los filtros o la página
   useEffect(() => {
     cargarClientes();
   }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
@@ -108,21 +121,31 @@ const Clientes = () => {
 
   const handleNuevoCliente = () => {
     setEditingCliente(null);
-    setFormData(FORM_VACIO);
+    setFormData({ ...FORM_VACIO });
     setShowModal(true);
   };
 
   const handleEditar = (cliente) => {
     setEditingCliente(cliente);
     setFormData({
-      nombre: cliente.nombre,
-      apellido: cliente.apellido,
-      telefono: cliente.telefono,
-      curp: cliente.curp,
-      rfc: cliente.rfc,
-      domicilio: cliente.domicilio,
-      correo: cliente.correo,
-      fechaAlta: cliente.fechaAlta || ""
+      nombre: cliente.nombre || "",
+      apellido: cliente.apellido || "",
+      telefono: cliente.telefono || "",
+      curp: cliente.curp || "",
+      rfc: cliente.rfc || "",
+      domicilio: cliente.domicilio || "",
+      correo: cliente.correo || "",
+      fecha_nacimiento: cliente.fecha_nacimiento || "",
+      genero: cliente.genero || "masculino",
+      estado_civil: cliente.estado_civil || "soltero",
+      nacionalidad: cliente.nacionalidad || "Mexicana",
+      tipo_identificacion: cliente.tipo_identificacion || "ine",
+      numero_identificacion: cliente.numero_identificacion || "",
+      telefono_alternativo: cliente.telefono_alternativo || "",
+      municipio: cliente.municipio || "",
+      estado: cliente.estado || "",
+      codigo_postal: cliente.codigo_postal || "",
+      ocupacion: cliente.ocupacion || ""
     });
     setShowModal(true);
   };
@@ -130,25 +153,48 @@ const Clientes = () => {
   const handleGuardar = async () => {
     try {
       const token = localStorage.getItem('token');
+      
+      // Validar campos requeridos
+      const requiredFields = ['nombre', 'apellido', 'rfc', 'curp', 'telefono', 'correo', 'fecha_nacimiento', 'genero', 'estado_civil', 'tipo_identificacion', 'numero_identificacion', 'domicilio', 'municipio', 'estado', 'codigo_postal', 'ocupacion'];
+      const missingFields = requiredFields.filter(field => !formData[field]);
+      
+      if (missingFields.length > 0) {
+        alert(`Faltan campos requeridos: ${missingFields.join(', ')}`);
+        return;
+      }
+      
+      const clienteData = {
+        nombre: formData.nombre,
+        apellido: formData.apellido,
+        telefono: formData.telefono,
+        curp: formData.curp,
+        rfc: formData.rfc,
+        domicilio: formData.domicilio,
+        correo: formData.correo,
+        fecha_nacimiento: formData.fecha_nacimiento,
+        genero: formData.genero,
+        estado_civil: formData.estado_civil,
+        nacionalidad: formData.nacionalidad || "Mexicana",
+        tipo_identificacion: formData.tipo_identificacion,
+        numero_identificacion: formData.numero_identificacion,
+        telefono_alternativo: formData.telefono_alternativo || null,
+        municipio: formData.municipio,
+        estado: formData.estado,
+        codigo_postal: formData.codigo_postal,
+        ocupacion: formData.ocupacion
+      };
+
       if (editingCliente) {
-        // Actualizar cliente existente
-        await axios.put(`${API_URL}/clientes/${editingCliente.id}`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+        await axios.put(`${API_URL}/clientes/${editingCliente.id}`, clienteData, {
+          headers: { Authorization: `Bearer ${token}` }
         });
       } else {
-        // Crear nuevo cliente
-        await axios.post(`${API_URL}/clientes`, formData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+        await axios.post(`${API_URL}/clientes`, clienteData, {
+          headers: { Authorization: `Bearer ${token}` }
         });
       }
       setShowModal(false);
-      cargarClientes(); // Recargar lista
+      cargarClientes();
     } catch (error) {
       console.error('Error al guardar cliente:', error);
       const errorMsg = error.response?.data?.message || error.response?.data?.errors || 'Error al guardar cliente';
@@ -166,9 +212,7 @@ const Clientes = () => {
       try {
         const token = localStorage.getItem('token');
         await axios.delete(`${API_URL}/clientes/${clienteToDelete.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          headers: { Authorization: `Bearer ${token}` }
         });
         setShowDeleteModal(false);
         setClienteToDelete(null);
@@ -180,10 +224,12 @@ const Clientes = () => {
     }
   };
 
-  const handleVerDetalle = (c) => { 
-    setClienteDetalle(c); 
-    setShowDetalleModal(true); 
-  };
+ const handleVerDetalle = (cliente) => { 
+  // El cliente ya tiene todos los campos porque vienen del index
+  console.log('Cliente completo:', cliente); // Verifica que tenga todos los campos
+  setClienteDetalle(cliente); 
+  setShowDetalleModal(true); 
+};
 
   const handleSearch = (e) => { 
     setSearchTerm(e.target.value); 
@@ -214,8 +260,7 @@ const Clientes = () => {
 
   return (
     <div className="container py-4">
-
-      <h1 className="h2 fw-bold mb-3">Clientes</h1>
+      <h1 className="h2 fw-bold mb-3">Listado clientes</h1>
       <hr className="mt-2 mb-3" />
 
       <div className="d-flex align-items-end justify-content-between mb-4 gap-3 flex-wrap">
@@ -272,7 +317,6 @@ const Clientes = () => {
         onItemsPerPageChange={setItemsPerPage}
       />
 
-      {/* EditModal genérico — todo viene desde aquí */}
       <EditModal
         open={showModal}
         onClose={() => setShowModal(false)}
@@ -303,15 +347,12 @@ const Clientes = () => {
         )}
       </ConfirmDeleteModal>
 
-      <ClienteDetalleModal
+      
+    <ClienteDetalleModal
         open={showDetalleModal}
         onClose={() => { setShowDetalleModal(false); setClienteDetalle(null); }}
-        titulo={clienteDetalle ? `${clienteDetalle.nombre} ${clienteDetalle.apellido}` : ""}
-        subtitulo={clienteDetalle ? `ID #${clienteDetalle.id}` : ""}
-        avatar={clienteDetalle ? `${clienteDetalle.nombre.charAt(0)}${clienteDetalle.apellido.charAt(0)}` : ""}
-        items={detalleItems}
-      />
-
+        cliente={clienteDetalle}
+    />
     </div>
   );
 };
