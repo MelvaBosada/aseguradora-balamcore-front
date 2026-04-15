@@ -1,138 +1,193 @@
+// components/RenovarPolizaModal.jsx
 import { useState } from "react";
-import AutorenewIcon from "@mui/icons-material/Autorenew";
-import AddIcon       from "@mui/icons-material/Add";
-import DeleteIcon    from "@mui/icons-material/Delete";
-import CloseIcon     from "@mui/icons-material/Close";
+import CloseIcon from "@mui/icons-material/Close";
+import HomeIcon from "@mui/icons-material/Home";
+import CarIcon from "@mui/icons-material/DirectionsCar";
+import ComputerIcon from "@mui/icons-material/Computer";
+import BuildIcon from "@mui/icons-material/Build";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 import "../css/BalamCoreModal.css";
-import "../css/RenovarPolizaModal.css";
-import logo from "../assets/Logo.png";
 
-function RenovarPolizaModal({ open, onClose, onRenovar, poliza, camposNuevos }) {
-  const [bienes, setBienes] = useState([{ nombre: "", monto: "" }]);
-  const [form,   setForm]   = useState({});
+function RenovarPolizaModal({ 
+  open, 
+  onClose, 
+  onRenovar, 
+  poliza, 
+  detallePoliza,
+  formData,
+  onInputChange,
+  camposNuevos 
+}) {
+  const [loading, setLoading] = useState(false);
 
-  if (!open || !poliza) return null;
+  if (!open) return null;
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleBienChange = (i, field, value) => {
-    const updated = [...bienes];
-    updated[i][field] = value;
-    setBienes(updated);
+  const handleSubmit = async () => {
+    setLoading(true);
+    await onRenovar();
+    setLoading(false);
   };
 
-  const addBien    = () => setBienes([...bienes, { nombre: "", monto: "" }]);
-  const removeBien = (i) => {
-    if (bienes.length === 1) return;
-    setBienes(bienes.filter((_, idx) => idx !== i));
+  const getIconoPorTipoBien = (tipo) => {
+    switch(tipo) {
+      case 'vehiculo': return <CarIcon fontSize="small" />;
+      case 'inmueble': return <HomeIcon fontSize="small" />;
+      case 'electronico': return <ComputerIcon fontSize="small" />;
+      case 'maquinaria': return <BuildIcon fontSize="small" />;
+      default: return <AssignmentIcon fontSize="small" />;
+    }
   };
 
-  const handleRenovar = () => {
-    onRenovar && onRenovar({ ...poliza, ...form, bienes });
-    onClose();
+  const renderInput = (campo) => {
+    const value = formData[campo.name] || "";
+    
+    if (campo.type === "select") {
+      return (
+        <select
+          name={campo.name}
+          value={value}
+          onChange={onInputChange}
+          className="balam-select"
+          required={campo.required}
+        >
+          <option value="">{campo.placeholder || `Selecciona ${campo.label.toLowerCase()}`}</option>
+          {campo.options?.map(opt => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      );
+    }
+    
+    if (campo.type === "textarea") {
+      return (
+        <textarea
+          name={campo.name}
+          value={value}
+          onChange={onInputChange}
+          placeholder={campo.placeholder}
+          className="balam-textarea"
+          rows={campo.rows || 3}
+          readOnly={campo.readOnly}
+        />
+      );
+    }
+    
+    return (
+      <input
+        type={campo.type || "text"}
+        name={campo.name}
+        value={value}
+        onChange={onInputChange}
+        placeholder={campo.placeholder}
+        readOnly={campo.readOnly}
+        className="balam-input"
+      />
+    );
   };
 
   return (
     <div className="balam-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="balam-modal renovar-modal">
+      <div className="balam-modal balam-modal-wide">
 
-        {/* HEADER */}
-        <div className="balam-header renovar-header">
-          <img src={logo} alt="BalamCore" className="balam-logo" />
+        <div className="balam-header">
           <div>
             <h2>Renovar póliza</h2>
             <p>Ingresa todos los datos para continuar con el proceso</p>
           </div>
-          <button className="detalle-close renovar-close" onClick={onClose}>
+          <button className="detalle-close" onClick={onClose}>
             <CloseIcon fontSize="small" />
           </button>
         </div>
 
-        <div className="renovar-body">
-
-          {/* ── DATOS ACTUALES (readonly, siempre igual) ── */}
-          <div className="renovar-section">
-            <div className="renovar-field">
-              <label>Folio de póliza anterior</label>
-              <input type="text" value={poliza.nPoliza} readOnly className="renovar-readonly" />
-            </div>
-            <div className="renovar-field">
-              <label>Nombre y apellido</label>
-              <input type="text" value={`${poliza.nombre} ${poliza.apellido}`} readOnly className="renovar-readonly" />
-            </div>
-            <div className="renovar-field">
-              <label>Tipo de póliza</label>
-              <input type="text" value={poliza.tipo} readOnly className="renovar-readonly" />
-            </div>
-            <div className="renovar-field">
-              <label>Estatus actual</label>
-              <input type="text" value={poliza.estatus} readOnly className="renovar-readonly" />
-            </div>
-          </div>
-
-          {/* ── BIENES ASEGURADOS (siempre igual) ── */}
-          <div className="renovar-bienes-section">
-            <div className="renovar-bienes-header">
-              <label>Bienes asegurados</label>
-              <button className="renovar-add-btn" onClick={addBien} type="button">
-                 Agregar bien
-              </button>
-            </div>
-            <div className="renovar-bienes-table">
-              <div className="renovar-bienes-cols">
-                <span>Nombre del bien</span>
-                <span>Monto</span>
-                <span></span>
+        <div className="balam-body">
+          {/* Información de la póliza anterior */}
+          {poliza && (
+            <div className="info-poliza-anterior" style={{ 
+              backgroundColor: '#F9FAFB', 
+              padding: '15px', 
+              borderRadius: '8px',
+              marginBottom: '20px'
+            }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>FOLIO DE PÓLIZA ANTERIOR</h3>
+              <p><strong>{poliza.nPoliza}</strong></p>
+              <p><strong>NOMBRE Y APELLIDO</strong><br />{poliza.nombre} {poliza.apellido}</p>
+              
+              <div style={{ display: 'flex', gap: '20px', marginTop: '10px' }}>
+                <div>
+                  <strong>TIPO DE PÓLIZA</strong>
+                  <p>{detallePoliza?.tipo || poliza.tipo}</p>
+                </div>
+                <div>
+                  <strong>ESTATUS ACTUAL</strong>
+                  <p style={{ color: poliza.estatus === 'Urgente' ? '#DC2626' : '#F59E0B' }}>
+                    {poliza.estatus}
+                  </p>
+                </div>
               </div>
-              {bienes.map((b, i) => (
-                <div key={i} className="renovar-bien-row">
-                  <input type="text" placeholder="Nombre del bien" value={b.nombre}
-                    onChange={(e) => handleBienChange(i, "nombre", e.target.value)} />
-                  <input type="text" placeholder="$ Monto" value={b.monto}
-                    onChange={(e) => handleBienChange(i, "monto", e.target.value)} />
-                  <button className="renovar-del-bien" onClick={() => removeBien(i)}
-                    type="button" disabled={bienes.length === 1}>
-                    <DeleteIcon style={{ fontSize: 16 }} />
-                  </button>
+            </div>
+          )}
+
+          {/* Bienes asegurados */}
+          {detallePoliza?.bienes && detallePoliza.bienes.length > 0 && (
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px' }}>
+                BIENES ASEGURADOS
+              </h3>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '10px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                border: '1px solid #E5E7EB',
+                borderRadius: '8px',
+                padding: '10px'
+              }}>
+                {detallePoliza.bienes.map(bien => (
+                  <div key={bien.id} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '10px',
+                    backgroundColor: '#F9FAFB',
+                    borderRadius: '8px',
+                    border: '1px solid #E5E7EB'
+                  }}>
+                    {getIconoPorTipoBien(bien.tipo)}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 'bold' }}>{bien.descripcion}</div>
+                      <div style={{ fontSize: '12px', color: '#6B7280' }}>
+                        {bien.marca && `Marca: ${bien.marca} | `}
+                        {bien.modelo && `Modelo: ${bien.modelo} | `}
+                        Valor: ${Number(bien.valor).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Datos nuevos para la póliza */}
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '15px' }}>
+              DATOS NUEVOS PARA LA PÓLIZA
+            </h3>
+            <div className="balam-fields-grid">
+              {camposNuevos?.map((campo, idx) => (
+                <div key={idx} className="balam-field">
+                  <label>{campo.label}</label>
+                  {renderInput(campo)}
                 </div>
               ))}
             </div>
           </div>
-
-          {/* ── DATOS NUEVOS (vienen desde afuera) ── */}
-          <div className="renovar-divider">
-            <span>Datos nuevos para la póliza</span>
-          </div>
-
-          <div className="renovar-section renovar-section-3">
-            {camposNuevos?.map((campo) => (
-              <div key={campo.name} className="renovar-field">
-                <label>{campo.label}</label>
-                {campo.opciones ? (
-                  <select name={campo.name} value={form[campo.name] || ""} onChange={handleChange}>
-                    <option value="">{campo.placeholder || `Selecciona ${campo.label.toLowerCase()}`}</option>
-                    {campo.opciones.map((o) => <option key={o}>{o}</option>)}
-                  </select>
-                ) : (
-                  <input
-                    type={campo.type || "text"}
-                    name={campo.name}
-                    placeholder={campo.placeholder || `Ingresa ${campo.label.toLowerCase()}`}
-                    value={form[campo.name] || ""}
-                    onChange={handleChange}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-
         </div>
 
-        {/* FOOTER */}
-        <div className="balam-footer renovar-footer">
+        <div className="balam-footer">
           <button className="balam-btn cancel" onClick={onClose}>Cancelar</button>
-          <button className="balam-btn save renovar-save-btn" onClick={handleRenovar}>
-             Renovar Póliza
+          <button className="balam-btn save" onClick={handleSubmit} disabled={loading}>
+            {loading ? "Procesando..." : "Renovar Póliza"}
           </button>
         </div>
 
