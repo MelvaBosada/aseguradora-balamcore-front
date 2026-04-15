@@ -14,8 +14,10 @@ const usePermisos = () => {
   const suscripcion = JSON.parse(localStorage.getItem("suscripcion") || "null");
 
   // ── Tiene módulo y permiso ──────────────────────────
-  const tiene = (clave) =>
-    permisos.includes(clave) && (modulos.length === 0 || modulos.includes(clave));
+ // ✅ Pon esto
+const tieneModulo  = (clave) => modulos.length === 0 || modulos.includes(clave);
+const tienePermiso = (clave) => permisos.includes(clave);
+const tiene        = (clave) => tienePermiso(clave) && tieneModulo(clave);
 
   const tieneAlguno = (...claves) => claves.some((c) => tiene(c));
 
@@ -142,6 +144,10 @@ const usePermisos = () => {
     puedeCrear,
     iniciarPago,
     verificarPagoStripe,
+  tieneModulo,
+
+
+    
   };
 };
 
