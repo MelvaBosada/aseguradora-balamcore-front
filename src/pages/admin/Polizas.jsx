@@ -20,6 +20,10 @@ import HomeIcon from "@mui/icons-material/Home";
 import CarIcon from "@mui/icons-material/DirectionsCar";
 import ComputerIcon from "@mui/icons-material/Computer";
 import BuildIcon from "@mui/icons-material/Build";
+import WarningIcon from "@mui/icons-material/Warning";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import AddIcon from "@mui/icons-material/Add";
+import RemoveIcon from "@mui/icons-material/Remove";
 
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
@@ -58,7 +62,8 @@ const FORM_VACIO = {
   rfc_buscar: "", id_cliente: "", nombre_cliente: "", correo_cliente: "", telefono_cliente: "",
   domicilio_cliente: "", curp_cliente: "", numero_poliza: "", tipo: "", fecha_inicio: "", fecha_fin: "",
   suma_asegurada: "", prima_neta: "", derecho_poliza: "", iva: "", prima_total: "", forma_pago: "", observaciones: "",
-  bienes_seleccionados: []
+  bienes_seleccionados: [],
+  precios_bienes: {}
 };
 
 const Polizas = () => {
@@ -79,6 +84,29 @@ const Polizas = () => {
   const [buscarRfcTimer, setBuscarRfcTimer] = useState(null);
   const [bienesCliente, setBienesCliente] = useState([]);
   const [cargandoBienes, setCargandoBienes] = useState(false);
+  const [coberturas, setCoberturas] = useState([]);
+  const [cargandoCoberturas, setCargandoCoberturas] = useState(false);
+  const [erroresBienes, setErroresBienes] = useState({});
+
+  // Cargar coberturas al iniciar
+  useEffect(() => {
+    cargarCoberturas();
+  }, []);
+
+  const cargarCoberturas = async () => {
+    setCargandoCoberturas(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/coberturas`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCoberturas(response.data);
+    } catch (error) {
+      console.error('Error al cargar coberturas:', error);
+    } finally {
+      setCargandoCoberturas(false);
+    }
+  };
 
   const cargarPolizas = async () => {
     setLoading(true);
@@ -100,6 +128,91 @@ const Polizas = () => {
   useEffect(() => {
     cargarPolizas();
   }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
+
+  // Obtener cobertura según tipo de bien y tipo de póliza
+  const obtenerCoberturaParaBien = (bienTipo, polizaTipo) => {
+    const mapeoCoberturas = {
+      'vehiculo': ['Daños Materiales', 'Robo Total', 'Robo Parcial', 'Responsabilidad Civil', 'Gastos Médicos Ocupantes'],
+      'inmueble': ['Incendio y Explosión', 'Fenómenos Naturales', 'Responsabilidad Civil'],
+      'electronico': ['Robo Parcial', 'Daños Materiales'],
+      'maquinaria': ['Daños Materiales', 'Incendio y Explosión']
+    };
+
+    const nombresCobertura = mapeoCoberturas[bienTipo] || ['Daños Materiales'];
+    return coberturas.filter(c => nombresCobertura.includes(c.nombre) && c.estatus === 'activa');
+  };
+
+  // Validar si el valor del bien está dentro de los rangos de la cobertura
+  const validarValorBien = (valor, cobertura) => {
+    if (!cobertura) return { valido: true, mensaje: '' };
+    
+    const montoMinimo = cobertura.monto_minimo;
+    const montoMaximo = cobertura.monto_maximo;
+    
+    if (montoMinimo !== null && valor < montoMinimo) {
+      return { 
+        valido: false, 
+        mensaje: `El valor ($${valor.toLocaleString()}) es menor al mínimo permitido ($${montoMinimo.toLocaleString()}) para la cobertura ${cobertura.nombre}`
+      };
+    }
+    
+    if (montoMaximo !== null && valor > montoMaximo) {
+      return { 
+        valido: false, 
+        mensaje: `El valor ($${valor.toLocaleString()}) excede el máximo permitido ($${montoMaximo.toLocaleString()}) para la cobertura ${cobertura.nombre}`
+      };
+    }
+    
+    return { valido: true, mensaje: '' };
+  };
+
+  // Calcular la prima total sumando todos los precios de los bienes seleccionados
+  const calcularPrimaTotalDesdeBienes = (preciosBienes, bienesSeleccionados) => {
+    let sumaTotal = 0;
+    bienesSeleccionados.forEach(bienId => {
+      const precio = parseFloat(preciosBienes[bienId]) || 0;
+      sumaTotal += precio;
+    });
+    return sumaTotal;
+  };
+
+  // Actualizar prima total cuando cambian los precios o selección de bienes
+  const actualizarPrimaTotal = (preciosBienes, bienesSeleccionados) => {
+    const sumaBienes = calcularPrimaTotalDesdeBienes(preciosBienes, bienesSeleccionados);
+    const neta = parseFloat(formData.prima_neta) || 0;
+    const derecho = parseFloat(formData.derecho_poliza) || 0;
+    const iva = parseFloat(formData.iva) || 0;
+    const total = sumaBienes + neta + derecho + iva;
+    setFormData(prev => ({ ...prev, prima_total: total.toFixed(2) }));
+  };
+
+  // Validar todos los bienes seleccionados
+  const validarBienesSeleccionados = async (bienesIds, polizaTipo, preciosBienes) => {
+    const nuevosErrores = {};
+    let todoValido = true;
+    
+    for (const bienId of bienesIds) {
+      const bien = bienesCliente.find(b => b.id === bienId);
+      if (bien) {
+        const precio = parseFloat(preciosBienes?.[bienId]) || parseFloat(bien.valor) || 0;
+        const coberturasDisponibles = obtenerCoberturaParaBien(bien.tipo, polizaTipo);
+        
+        if (coberturasDisponibles.length === 0) {
+          nuevosErrores[bienId] = `No hay coberturas disponibles para el tipo de bien: ${bien.tipo}`;
+          todoValido = false;
+        } else {
+          const validacion = validarValorBien(precio, coberturasDisponibles[0]);
+          if (!validacion.valido) {
+            nuevosErrores[bienId] = validacion.mensaje;
+            todoValido = false;
+          }
+        }
+      }
+    }
+    
+    setErroresBienes(nuevosErrores);
+    return todoValido;
+  };
 
   const cargarBienesPorClienteId = async (clienteId) => {
     if (!clienteId) return;
@@ -135,8 +248,13 @@ const Polizas = () => {
       const data = response.data;
       const cliente = data.cliente;
       
-      // Cargar bienes del cliente usando su ID
       const bienes = await cargarBienesPorClienteId(cliente.id);
+      
+      // Inicializar precios por defecto con el valor del bien
+      const preciosIniciales = {};
+      bienes.forEach(bien => {
+        preciosIniciales[bien.id] = bien.valor || 0;
+      });
       
       if (data.tienePoliza) {
         const ultimaPoliza = data.ultimaPoliza;
@@ -160,7 +278,8 @@ const Polizas = () => {
           observaciones: ultimaPoliza.observaciones || "",
           fecha_inicio: new Date().toISOString().split('T')[0],
           fecha_fin: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-          bienes_seleccionados: []
+          bienes_seleccionados: [],
+          precios_bienes: preciosIniciales
         }));
       } else {
         setFormData(prev => ({
@@ -182,7 +301,8 @@ const Polizas = () => {
           observaciones: "",
           fecha_inicio: "",
           fecha_fin: "",
-          bienes_seleccionados: []
+          bienes_seleccionados: [],
+          precios_bienes: preciosIniciales
         }));
       }
     } catch (error) {
@@ -193,19 +313,43 @@ const Polizas = () => {
     }
   };
 
-  const handleSeleccionarBien = (bienId) => {
-    setFormData(prev => {
-      const seleccionados = [...prev.bienes_seleccionados];
-      const index = seleccionados.indexOf(bienId);
-      
-      if (index === -1) {
-        seleccionados.push(bienId);
-      } else {
-        seleccionados.splice(index, 1);
-      }
-      
-      return { ...prev, bienes_seleccionados: seleccionados };
-    });
+  const handleSeleccionarBien = async (bienId) => {
+    const seleccionados = [...formData.bienes_seleccionados];
+    const index = seleccionados.indexOf(bienId);
+    let nuevosSeleccionados;
+    
+    if (index === -1) {
+      nuevosSeleccionados = [...seleccionados, bienId];
+    } else {
+      nuevosSeleccionados = seleccionados.filter(id => id !== bienId);
+    }
+    
+    setFormData(prev => ({ ...prev, bienes_seleccionados: nuevosSeleccionados }));
+    
+    // Actualizar prima total
+    actualizarPrimaTotal(formData.precios_bienes, nuevosSeleccionados);
+    
+    // Validar los bienes seleccionados
+    if (formData.tipo) {
+      await validarBienesSeleccionados(nuevosSeleccionados, formData.tipo, formData.precios_bienes);
+    }
+  };
+
+  const handlePrecioBienChange = (bienId, nuevoPrecio) => {
+    const nuevosPrecios = {
+      ...formData.precios_bienes,
+      [bienId]: parseFloat(nuevoPrecio) || 0
+    };
+    
+    setFormData(prev => ({ ...prev, precios_bienes: nuevosPrecios }));
+    
+    // Actualizar prima total
+    actualizarPrimaTotal(nuevosPrecios, formData.bienes_seleccionados);
+    
+    // Revalidar el bien si está seleccionado
+    if (formData.bienes_seleccionados.includes(bienId) && formData.tipo) {
+      validarBienesSeleccionados(formData.bienes_seleccionados, formData.tipo, nuevosPrecios);
+    }
   };
 
   const handleRfcChange = (e) => {
@@ -216,22 +360,32 @@ const Polizas = () => {
   };
 
   const calcularPrimaTotal = () => {
+    const sumaBienes = calcularPrimaTotalDesdeBienes(formData.precios_bienes, formData.bienes_seleccionados);
     const neta = parseFloat(formData.prima_neta) || 0;
     const derecho = parseFloat(formData.derecho_poliza) || 0;
     const iva = parseFloat(formData.iva) || 0;
-    setFormData(prev => ({ ...prev, prima_total: (neta + derecho + iva).toFixed(2) }));
+    setFormData(prev => ({ ...prev, prima_total: (sumaBienes + neta + derecho + iva).toFixed(2) }));
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = async (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    if (['prima_neta', 'derecho_poliza', 'iva'].includes(name)) setTimeout(calcularPrimaTotal, 0);
+    
+    if (['prima_neta', 'derecho_poliza', 'iva'].includes(name)) {
+      setTimeout(calcularPrimaTotal, 0);
+    }
+    
+    // Cuando cambia el tipo de póliza, revalidar bienes seleccionados
+    if (name === 'tipo' && formData.bienes_seleccionados.length > 0) {
+      await validarBienesSeleccionados(formData.bienes_seleccionados, value, formData.precios_bienes);
+    }
   };
 
   const handleNuevaPoliza = () => {
     setEditingPoliza(null);
     setFormData(FORM_VACIO);
     setBienesCliente([]);
+    setErroresBienes({});
     setShowModal(true);
   };
 
@@ -249,6 +403,12 @@ const Polizas = () => {
       const bienesAsociados = bienesResponse.data
         .filter(b => b.id_poliza === poliza.id)
         .map(b => b.id);
+      
+      // Inicializar precios con el valor de cada bien
+      const preciosIniciales = {};
+      bienesResponse.data.forEach(bien => {
+        preciosIniciales[bien.id] = bien.valor || 0;
+      });
       
       setFormData({
         rfc_buscar: data.cliente_rfc || "",
@@ -269,10 +429,12 @@ const Polizas = () => {
         prima_total: data.prima_total || "",
         forma_pago: data.formaPago || "",
         observaciones: data.observaciones || "",
-        bienes_seleccionados: bienesAsociados
+        bienes_seleccionados: bienesAsociados,
+        precios_bienes: preciosIniciales
       });
       
       setBienesCliente(bienesResponse.data);
+      setErroresBienes({});
     } catch (error) {
       console.error('Error:', error);
     }
@@ -283,6 +445,15 @@ const Polizas = () => {
     try {
       const token = localStorage.getItem('token');
       if (!formData.id_cliente) { alert('Primero busca un cliente por RFC'); return; }
+      
+      // Validar bienes antes de guardar
+      if (formData.bienes_seleccionados.length > 0) {
+        const esValido = await validarBienesSeleccionados(formData.bienes_seleccionados, formData.tipo, formData.precios_bienes);
+        if (!esValido) {
+          alert('Hay bienes que no cumplen con los rangos de cobertura. Revisa los errores marcados.');
+          return;
+        }
+      }
       
       const dataToSend = {
         numero_poliza: formData.numero_poliza,
@@ -297,7 +468,8 @@ const Polizas = () => {
         prima_total: formData.prima_total,
         forma_pago: formData.forma_pago,
         observaciones: formData.observaciones,
-        bienes_ids: formData.bienes_seleccionados
+        bienes_ids: formData.bienes_seleccionados,
+        precios_bienes: formData.precios_bienes
       };
       
       let polizaId;
@@ -312,7 +484,8 @@ const Polizas = () => {
       }
       
       await axios.post(`${API_URL}/polizas/${polizaId}/asignar-bienes`, {
-        bienes_ids: formData.bienes_seleccionados
+        bienes_ids: formData.bienes_seleccionados,
+        precios_bienes: formData.precios_bienes
       }, { headers: { Authorization: `Bearer ${token}` } });
       
       setShowModal(false);
@@ -331,6 +504,17 @@ const Polizas = () => {
       case 'maquinaria': return <BuildIcon fontSize="small" />;
       default: return <AssignmentIcon fontSize="small" />;
     }
+  };
+
+  const getCoberturaInfo = (bien) => {
+    const precio = formData.precios_bienes?.[bien.id] || bien.valor || 0;
+    const coberturasDisponibles = obtenerCoberturaParaBien(bien.tipo, formData.tipo);
+    if (coberturasDisponibles.length > 0) {
+      const cobertura = coberturasDisponibles[0];
+      const validacion = validarValorBien(parseFloat(precio), cobertura);
+      return { cobertura, validacion, precio };
+    }
+    return null;
   };
 
   const handleVerDetalle = async (polizaOrId) => {
@@ -483,6 +667,7 @@ const Polizas = () => {
         onClose={() => {
           setShowModal(false);
           setBienesCliente([]);
+          setErroresBienes({});
         }} 
         onSave={handleGuardar} 
         editando={!!editingPoliza}
@@ -530,57 +715,128 @@ const Polizas = () => {
                 display: 'flex', 
                 flexDirection: 'column', 
                 gap: '10px', 
-                maxHeight: '300px', 
+                maxHeight: '450px', 
                 overflowY: 'auto',
                 border: '1px solid #E5E7EB',
                 borderRadius: '8px',
                 padding: '10px',
                 backgroundColor: '#FFFFFF'
               }}>
-                {bienesCliente.map(bien => (
-                  <label 
-                    key={bien.id} 
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px',
-                      backgroundColor: formData.bienes_seleccionados.includes(bien.id) ? '#E0F2FE' : '#F9FAFB',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      border: formData.bienes_seleccionados.includes(bien.id) ? '1px solid #0284C7' : '1px solid #E5E7EB',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.bienes_seleccionados.includes(bien.id)}
-                      onChange={() => handleSeleccionarBien(bien.id)}
-                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                    />
-                    <div style={{ flexShrink: 0 }}>
-                      {getIconoPorTipoBien(bien.tipo)}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
-                        {bien.descripcion || 'Sin descripción'}
+                {bienesCliente.map(bien => {
+                  const coberturaInfo = getCoberturaInfo(bien);
+                  const tieneError = erroresBienes[bien.id];
+                  const esValido = coberturaInfo?.validacion.valido;
+                  const estaSeleccionado = formData.bienes_seleccionados.includes(bien.id);
+                  const precioActual = formData.precios_bienes?.[bien.id] || bien.valor || 0;
+                  
+                  return (
+                    <div 
+                      key={bien.id} 
+                      style={{
+                        padding: '12px',
+                        backgroundColor: estaSeleccionado 
+                          ? (esValido ? '#E0F2FE' : '#FEE2E2')
+                          : '#F9FAFB',
+                        borderRadius: '8px',
+                        border: estaSeleccionado 
+                          ? (esValido ? '1px solid #0284C7' : '1px solid #DC2626')
+                          : '1px solid #E5E7EB',
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+                        <input
+                          type="checkbox"
+                          checked={estaSeleccionado}
+                          onChange={() => handleSeleccionarBien(bien.id)}
+                          style={{ width: '18px', height: '18px', cursor: 'pointer', marginTop: '2px' }}
+                        />
+                        <div style={{ flexShrink: 0 }}>
+                          {getIconoPorTipoBien(bien.tipo)}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                            {bien.descripcion || 'Sin descripción'}
+                            {!esValido && estaSeleccionado && (
+                              <span style={{ marginLeft: '8px', color: '#DC2626', fontSize: '12px' }}>
+                                <WarningIcon fontSize="small" style={{ verticalAlign: 'middle' }} /> No cumple cobertura
+                              </span>
+                            )}
+                            {esValido && estaSeleccionado && (
+                              <span style={{ marginLeft: '8px', color: '#10B981', fontSize: '12px' }}>
+                                <CheckCircleIcon fontSize="small" style={{ verticalAlign: 'middle' }} /> Cobertura válida
+                              </span>
+                            )}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
+                            <span style={{ 
+                              backgroundColor: '#E5E7EB', 
+                              padding: '2px 6px', 
+                              borderRadius: '4px',
+                              marginRight: '8px'
+                            }}>
+                              {bien.tipo ? bien.tipo.charAt(0).toUpperCase() + bien.tipo.slice(1) : 'Tipo no especificado'}
+                            </span>
+                            {bien.marca && <span style={{ marginRight: '8px' }}>Marca: {bien.marca}</span>}
+                            {bien.modelo && <span style={{ marginRight: '8px' }}>Modelo: {bien.modelo}</span>}
+                          </div>
+                          
+                          {/* Campo de precio */}
+                          <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <label style={{ fontSize: '12px', fontWeight: '500', color: '#374151' }}>
+                              Precio del bien:
+                            </label>
+                            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                              <span style={{ 
+                                position: 'absolute', 
+                                left: '8px', 
+                                fontSize: '14px',
+                                color: '#6B7280'
+                              }}>$</span>
+                              <input
+                                type="number"
+                                value={precioActual}
+                                onChange={(e) => handlePrecioBienChange(bien.id, e.target.value)}
+                                disabled={!estaSeleccionado}
+                                style={{
+                                  padding: '6px 8px 6px 24px',
+                                  border: `1px solid ${estaSeleccionado ? '#D1D5DB' : '#E5E7EB'}`,
+                                  borderRadius: '6px',
+                                  fontSize: '13px',
+                                  width: '150px',
+                                  backgroundColor: estaSeleccionado ? '#FFFFFF' : '#F3F4F6',
+                                  cursor: estaSeleccionado ? 'text' : 'not-allowed'
+                                }}
+                              />
+                            </div>
+                            {estaSeleccionado && (
+                              <span style={{ fontSize: '11px', color: '#6B7280' }}>
+                                (El precio se suma a la prima total)
+                              </span>
+                            )}
+                          </div>
+                          
+                          {coberturaInfo && coberturaInfo.cobertura && (
+                            <div style={{ fontSize: '11px', color: '#4B5563', marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed #E5E7EB' }}>
+                              <span>Cobertura sugerida: <strong>{coberturaInfo.cobertura.nombre}</strong></span>
+                              {coberturaInfo.cobertura.monto_minimo && (
+                                <span style={{ marginLeft: '12px' }}>Mínimo: ${coberturaInfo.cobertura.monto_minimo.toLocaleString()}</span>
+                              )}
+                              {coberturaInfo.cobertura.monto_maximo && (
+                                <span style={{ marginLeft: '12px' }}>Máximo: ${coberturaInfo.cobertura.monto_maximo.toLocaleString()}</span>
+                              )}
+                            </div>
+                          )}
+                          {tieneError && (
+                            <div style={{ fontSize: '12px', color: '#DC2626', marginTop: '6px' }}>
+                              <WarningIcon fontSize="small" style={{ verticalAlign: 'middle' }} /> {tieneError}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                        <span style={{ 
-                          backgroundColor: '#E5E7EB', 
-                          padding: '2px 6px', 
-                          borderRadius: '4px',
-                          marginRight: '8px'
-                        }}>
-                          {bien.tipo ? bien.tipo.charAt(0).toUpperCase() + bien.tipo.slice(1) : 'Tipo no especificado'}
-                        </span>
-                        {bien.marca && <span style={{ marginRight: '8px' }}>Marca: {bien.marca}</span>}
-                        {bien.modelo && <span style={{ marginRight: '8px' }}>Modelo: {bien.modelo}</span>}
-                        {bien.valor && <span>Valor: ${Number(bien.valor).toLocaleString()}</span>}
-                      </div>
                     </div>
-                  </label>
-                ))}
+                  );
+                })}
               </div>
             )}
             
@@ -595,6 +851,11 @@ const Polizas = () => {
                 borderRadius: '6px'
               }}>
                 {formData.bienes_seleccionados.length} bien(es) seleccionado(s)
+                {Object.keys(erroresBienes).length > 0 && (
+                  <span style={{ marginLeft: '12px', color: '#DC2626' }}>
+                    ({Object.keys(erroresBienes).length} con errores)
+                  </span>
+                )}
               </div>
             )}
           </div>
