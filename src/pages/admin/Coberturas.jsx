@@ -374,7 +374,7 @@ const Cobertura = () => {
             },
           ]}
         />
-        {loading && <p className="text-center mt-3">ando.Carg..</p>}
+        {loading && <p className="text-center mt-3">Cargando...</p>}
       </div>
 
       <Paginacion

@@ -24,10 +24,10 @@ const API_URL = "http://localhost:8000/api/reportes";
 const campos = ["poliza", "cliente", "siniestro", "estatus"];
 const columnas = ["# de Poliza", "Cliente", "# de Siniestro", "Estatus", "Acciones"];
 
-// Configuración de campos para el Formulario (EditModal)
+// CONFIGURACIÓN DE CAMPOS PARA EL FORMULARIO (EditModal)
+// Se eliminó "id_aseguradora" de esta lista para que no sea visible ni editable
 const FORM_CAMPOS = [
-  { label: "# de Poliza (ID)", name: "id_poliza", type: "number" },
-  { label: "ID Aseguradora", name: "id_aseguradora", type: "number" },
+  { label: "# de Poliza", name: "id_poliza", type: "number" },
   { label: "Nombre del Reportante", name: "nombre_reportante", type: "text" },
   { label: "Teléfono", name: "telefono_reportante", type: "text" },
   { 
@@ -62,7 +62,7 @@ const FORM_CAMPOS = [
 ];
 
 const FORM_VACIO = {
-  id_aseguradora: 1,
+  id_aseguradora: 1, // Se mantiene el valor interno pero no se muestra en el form
   id_poliza: "",
   id_empleado: 1,
   reportado_por: "cliente",
@@ -102,15 +102,12 @@ const Reportes = () => {
     "Authorization": `Bearer ${localStorage.getItem("token")}`,
   });
 
-  // PETICIÓN AL BACKEND
   const fetchData = async () => {
     try {
       setLoading(true);
       const response = await fetch(API_URL, { headers: getHeaders() });
       if (response.ok) {
         const data = await response.json();
-        
-        // MAPEADO: Esto es lo que hace que los datos de SQLite se vean en la tabla
         const mapeados = data.map(r => ({
           ...r,
           poliza: `POL-${String(r.id_poliza).padStart(4, '0')}`,
@@ -131,7 +128,6 @@ const Reportes = () => {
     fetchData();
   }, []);
 
-  // LÓGICA DE FORMULARIO
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -193,7 +189,6 @@ const Reportes = () => {
     }
   };
 
-  // FILTRADO Y PAGINACIÓN
   const filteredReportes = reportes.filter((r) => {
     const q = searchTerm.toLowerCase();
     return (
@@ -288,7 +283,6 @@ const Reportes = () => {
         avatar={itemDetalle ? itemDetalle.poliza.charAt(4) : "R"}
         items={itemDetalle ? Object.entries(itemDetalle)
           .filter(([key]) => {
-            // Filtramos llaves que empiecen con "id", contengan "_id" o sean campos calculados del front
             const lowerKey = key.toLowerCase();
             return !lowerKey.startsWith("id") && 
                    !lowerKey.includes("_id") && 
