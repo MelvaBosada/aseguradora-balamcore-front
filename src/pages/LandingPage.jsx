@@ -97,7 +97,6 @@ const PLANES_BASE = [
         featured: true,
         modulos: [
             "Todo lo del plan Estándar",
-            "Pagos integrados",
             "Control de perfiles y permisos",
             "Renovaciones automáticas",
             "Pólizas por vencer avanzadas",
