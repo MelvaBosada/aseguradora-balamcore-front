@@ -1,0 +1,402 @@
+/* ===================================================
+   BALAMCORE — MODAL SYSTEM CSS
+   =================================================== */
+
+:root {
+  --bc-green:       #0F4C3A;
+  --bc-green-dark:  #082F23;
+  --bc-green-soft:  #295E4E;
+  --bc-green-light: rgba(15, 76, 58, 0.08);
+  --bc-red:         #C0392B;
+  --bc-red-light:   #FDE8E8;
+  --bc-text:        #1f2d2a;
+  --bc-muted:       #6B7280;
+  --bc-border:      #E5E7EB;
+  --bc-white:       #ffffff;
+  --bc-radius:      20px;
+  --bc-shadow:      0 32px 80px rgba(0, 0, 0, 0.22);
+}
+
+/* ── OVERLAY ──────────────────────────────────────── */
+.balam-overlay,
+.modal-overlay-balam {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 30, 23, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+/* ── SHARED ANIMATION ─────────────────────────────── */
+@keyframes balamFade {
+  from { transform: translateY(24px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+/* =====================================================
+   EDIT MODAL
+   ===================================================== */
+.balam-modal {
+  width: 100%;
+  max-width: 560px;
+  background: var(--bc-white);
+  border-radius: var(--bc-radius);
+  box-shadow: var(--bc-shadow);
+  animation: balamFade 0.28s cubic-bezier(0.34, 1.3, 0.64, 1);
+  overflow: hidden;
+}
+
+/* Header with green accent bar */
+.balam-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid var(--bc-border);
+  position: relative;
+}
+
+.balam-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--bc-green), var(--bc-green-soft));
+  border-radius: var(--bc-radius) var(--bc-radius) 0 0;
+}
+
+.balam-logo {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.balam-header h2 {
+  margin: 0 0 3px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--bc-green);
+  letter-spacing: -0.01em;
+}
+
+.balam-header p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--bc-muted);
+}
+
+/* Body */
+.balam-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+  padding: 22px 26px;
+  max-height: 55vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bc-green) #f0f0f0;
+}
+
+.balam-body::-webkit-scrollbar       { width: 5px; }
+.balam-body::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 4px; }
+.balam-body::-webkit-scrollbar-thumb { background: var(--bc-green); border-radius: 4px; }
+
+.balam-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.balam-field label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--bc-green);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.balam-field input {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--bc-border);
+  font-size: 13.5px;
+  color: var(--bc-text);
+  background: #fafafa;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.balam-field input:focus {
+  outline: none;
+  border-color: var(--bc-green);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+}
+
+.balam-field input::placeholder { color: #bbb; font-size: 13px; }
+
+/* Footer */
+.balam-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 26px 22px;
+  border-top: 1px solid var(--bc-border);
+}
+
+/* ── SHARED BUTTONS ───────────────────────────────── */
+.balam-btn {
+  padding: 9px 22px;
+  border-radius: 50px;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+  letter-spacing: 0.01em;
+}
+
+.balam-btn:hover { transform: translateY(-2px); }
+
+.balam-btn.cancel,
+.balam-btn-cancel {
+  background: #F3F4F6;
+  color: #4B5563;
+  border: 1.5px solid var(--bc-border);
+}
+.balam-btn.cancel:hover,
+.balam-btn-cancel:hover { background: #E5E7EB; }
+
+.balam-btn.save {
+  background: linear-gradient(135deg, var(--bc-green), var(--bc-green-soft));
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(15, 76, 58, 0.3);
+}
+.balam-btn.save:hover {
+  box-shadow: 0 8px 22px rgba(15, 76, 58, 0.4);
+}
+
+/* =====================================================
+   DELETE MODAL
+   ===================================================== */
+.modal-balam-delete {
+  width: 100%;
+  max-width: 440px;
+  background: var(--bc-white);
+  border-radius: var(--bc-radius);
+  box-shadow: var(--bc-shadow);
+  overflow: hidden;
+  animation: balamFade 0.28s cubic-bezier(0.34, 1.3, 0.64, 1);
+  text-align: center;
+  padding: 0;
+}
+
+/* Red top bar */
+.modal-balam-delete::before {
+  content: "";
+  display: block;
+  height: 5px;
+  background: linear-gradient(90deg, var(--bc-red), #e74c3c);
+}
+
+.modal-balam-delete-inner {
+  padding: 32px 28px 28px;
+}
+
+/* Icon */
+.modal-balam-icon {
+  width: 68px;
+  height: 68px;
+  background: var(--bc-red-light);
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 18px;
+  color: var(--bc-red);
+}
+
+.modal-balam-icon svg { font-size: 32px !important; }
+
+/* Title */
+.modal-balam-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--bc-text);
+  margin: 0 0 8px;
+}
+
+.modal-balam-subtitle {
+  color: var(--bc-muted);
+  font-size: 14px;
+  margin: 0 0 20px;
+}
+
+/* Body */
+.modal-balam-body {
+  background: #F9FAFB;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  text-align: left;
+  font-size: 13.5px;
+  color: var(--bc-text);
+  border: 1px solid var(--bc-border);
+}
+
+.modal-balam-body p { margin: 4px 0; }
+
+.modal-balam-warning {
+  margin-top: 14px !important;
+  background: var(--bc-red-light);
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: var(--bc-red);
+  font-weight: 600;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Footer */
+.modal-balam-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 22px;
+  flex-wrap: wrap;
+}
+
+.balam-btn-danger {
+  background: linear-gradient(135deg, var(--bc-red), #e74c3c);
+  color: white;
+  box-shadow: 0 4px 14px rgba(192, 57, 43, 0.3);
+}
+
+.balam-btn-danger:hover {
+  box-shadow: 0 8px 22px rgba(192, 57, 43, 0.42);
+}
+
+/* ── RESPONSIVE ───────────────────────────────────── */
+@media (max-width: 600px) {
+  .balam-modal,
+  .modal-balam-delete { border-radius: 16px; }
+
+  .balam-body { grid-template-columns: 1fr; padding: 18px 18px; }
+  .balam-header { padding: 18px 18px 14px; }
+  .balam-footer { padding: 14px 18px 18px; }
+
+  .modal-balam-delete-inner { padding: 24px 18px 22px; }
+
+  .balam-footer { flex-direction: column-reverse; }
+  .balam-footer .balam-btn { width: 100%; text-align: center; }
+
+  .modal-balam-footer { flex-direction: column-reverse; }
+  .modal-balam-footer .balam-btn { width: 100%; }
+}
+
+
+
+/* ── MODAL WIDE (3 columnas) ──────────────────────── */
+.balam-modal-wide {
+  max-width: 860px;
+}
+
+.balam-body-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 28px;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* Sección con título */
+.balam-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.balam-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bc-green);
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--bc-green-light);
+}
+
+/* Grid de 3 columnas */
+.balam-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px 18px;
+}
+
+/* Campo que ocupa toda la fila */
+.balam-full {
+  grid-column: 1 / -1;
+}
+
+/* Select */
+.balam-select {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--bc-border);
+  font-size: 13.5px;
+  color: var(--bc-text);
+  background: #fafafa;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%230F4C3A' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.balam-select:focus {
+  outline: none;
+  border-color: var(--bc-green);
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+}
+
+/* Textarea */
+.balam-textarea {
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--bc-border);
+  font-size: 13.5px;
+  color: var(--bc-text);
+  background: #fafafa;
+  resize: vertical;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: inherit;
+}
+
+.balam-textarea:focus {
+  outline: none;
+  border-color: var(--bc-green);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+}
+
+/* ── RESPONSIVE ───────────────────────────────────── */
+@media (max-width: 860px) {
+  .balam-modal-wide { max-width: 100%; }
+  .balam-fields-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .balam-fields-grid { grid-template-columns: 1fr; }
+  .balam-body-sections { padding: 18px; }
+}

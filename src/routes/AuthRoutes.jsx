@@ -1,9 +1,8 @@
-
 import { Route } from "react-router-dom"
-import Login from "../pages/Login"
-import Register from "../pages/Register"
+import Auth from "../pages/Auth"
+import LandingPage from "../pages/LandingPage"
 
 export const AuthRoutes = [
-  <Route path="/" element={<Login />} />,
-  <Route path="/register" element={<Register />} />
+  <Route key="landing" path="/" element={<LandingPage />} />,
+  <Route key="auth" path="/login" element={<Auth />} />
 ]

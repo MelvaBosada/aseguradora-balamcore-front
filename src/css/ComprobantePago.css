@@ -1,0 +1,44 @@
+.comprobante-modal{
+  max-width:500px;
+}
+
+.comprobante-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border-bottom:1px solid #e5e7eb;
+  padding-bottom:10px;
+}
+
+.comprobante-body{
+  margin-top:20px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.comprobante-row{
+  display:flex;
+  justify-content:space-between;
+  border-bottom:1px dashed #ddd;
+  padding-bottom:6px;
+}
+
+.label{
+  font-weight:600;
+  color:#555;
+}
+
+.value{
+  color:#222;
+}
+
+.monto{
+  font-weight:bold;
+  color:#16a34a;
+}
+
+.estatus {
+  font-weight: 600;
+  color: #222; /* Negro/Gris muy oscuro para todos */
+}

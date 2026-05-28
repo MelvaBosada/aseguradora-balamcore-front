@@ -1,7 +1,6 @@
 import { Button } from "@mui/material";
 
 function ButtonVerdeForm({ children, colorType = "green", ...props }) {
-
   const styles = {
     green: {
       backgroundColor: "#114C3A",
@@ -14,15 +13,19 @@ function ButtonVerdeForm({ children, colorType = "green", ...props }) {
   };
 
   return (
+  
     <Button
       variant="contained"
       sx={{
-        fontFamily: "Abhaya Libre",
-        fontWeight: 800,
-        borderRadius: "25px",
-        padding: "10px 25px",
+        fontFamily: "'Abhaya Libre', serif",
+        fontWeight: 500,
+        borderRadius: "20px",
+        padding: "8px 20px", // Aumenté un poco el padding vertical para mejor balance
         color: "#fff",
         textTransform: "none",
+        fontSize: "1rem",   
+        width: "auto",      // Deja que el padding defina el ancho
+        minWidth: "130px",  // Un poco menos de lo que tenías
         ...styles[colorType]
       }}
       {...props}

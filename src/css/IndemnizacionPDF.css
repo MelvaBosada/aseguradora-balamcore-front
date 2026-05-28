@@ -1,0 +1,205 @@
+/* ── PÁGINA PDF (ruta /admin/indemnizaciones/:id si se usa) ────── */
+.ipdf-page {
+  padding: 20px 28px;
+  min-height: 100vh;
+  background: #F3F4F6;
+}
+
+/* ── TOOLBAR (compartido entre modal y página) ───────────────── */
+.ipdf-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ipdf-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1.5px solid #E5E7EB;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+.ipdf-back:hover { background: #F9FAFB; }
+
+.ipdf-download {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #0F4C3A, #295E4E);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(15, 76, 58, 0.30);
+  transition: opacity 0.18s, transform 0.18s;
+}
+.ipdf-download:hover { opacity: 0.92; transform: translateY(-1px); }
+
+.ipdf-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+/* ── MODAL OVERLAY ───────────────────────────────────────────── */
+.ipdf-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.50);
+  backdrop-filter: blur(3px);
+  z-index: 1500;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+  animation: overlayIn 0.18s ease;
+}
+
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.ipdf-modal {
+  background: #F3F4F6;
+  border-radius: 18px;
+  padding: 24px;
+  width: 100%;
+  max-width: 920px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  animation: modalIn 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* ── DOCUMENTO ───────────────────────────────────────────────── */
+.doc {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  padding: 32px 36px;
+  width: 100%;
+  max-width: 860px;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #0F4C3A;
+}
+
+.titulo {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0F4C3A;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.sub  { font-size: 12px; color: #6B7280; margin-bottom: 2px; }
+.logo { width: 70px; height: 70px; object-fit: contain; flex-shrink: 0; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.grid1 { display: grid; grid-template-columns: 1fr;     gap: 16px; margin-bottom: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+
+.sec {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.sec-titulo {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #0F4C3A;
+  margin-bottom: 10px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.fila { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; align-items: flex-start; }
+.lbl  { font-size: 11px; color: #6B7280; font-weight: 600; flex-shrink: 0; }
+.val  { font-size: 11.5px; color: #1f2d2a; font-weight: 500; text-align: right; }
+.txt  { font-size: 11.5px; color: #374151; line-height: 1.65; margin-top: 4px; }
+
+.monto-total {
+  background: linear-gradient(135deg, #0F4C3A, #295E4E);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #dcfce7;
+  color: #16a34a;
+  margin-top: 4px;
+}
+
+.footer {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #6B7280;
+  line-height: 1.8;
+}
+
+/* ── Botón descargar en tabla ────────────────────────────────── */
+.tabla-btn-descargar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #0F4C3A, #295E4E);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.18s;
+}
+.tabla-btn-descargar:hover { opacity: 0.88; }
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .ipdf-page            { padding: 12px 14px; }
+  .ipdf-modal           { padding: 14px; }
+  .doc                  { padding: 20px 16px; }
+  .grid2, .grid3        { grid-template-columns: 1fr; }
+  .top                  { flex-direction: column; gap: 12px; }
+}

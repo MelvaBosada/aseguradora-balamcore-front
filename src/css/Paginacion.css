@@ -1,0 +1,213 @@
+/* ===================================================
+   PAGINACION.CSS
+   =================================================== */
+
+.paginacion-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  width: 100%;
+  padding: 0;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ── Paginado izquierda ── */
+.paginacion {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── Selector derecha ── */
+.paginacion-filas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+/* ── Botones de página ── */
+.pag-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1.5px solid #E5E7EB;
+  background: #fff;
+  color: #1f2d2a;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s;
+}
+
+.pag-btn:hover:not(:disabled):not(.active) {
+  background: rgba(15, 76, 58, 0.08);
+  border-color: #0F4C3A;
+  color: #0F4C3A;
+}
+
+.pag-btn.active {
+  background: #0F4C3A;
+  border-color: #0F4C3A;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(15, 76, 58, 0.3);
+}
+
+.pag-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pag-arrow { color: #374151; }
+
+/* ── Select wrapper — este es el que se ve, no el select ── */
+.pag-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  border-radius: 12px;
+  border: 1.5px solid #0F4C3A;
+  background-color: #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 76, 58, 0.15);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.pag-select-wrapper:hover {
+  transform: translateY(-1px);
+  background-color: rgba(15, 76, 58, 0.06);
+  box-shadow: 0 4px 12px rgba(15, 76, 58, 0.25);
+}
+
+/* ── Select — transparente, solo funcional ── */
+.pag-select {
+  height: 100%;
+  padding: 0 32px 0 14px;
+  border: none;
+  background: transparent;
+  color: #0F4C3A;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  outline: none;
+  position: relative;
+  z-index: 1;
+}
+
+.pag-select::-ms-expand {
+  display: none;
+}
+
+.pag-select option {
+  background-color: #ffffff;
+  color: #1f2d2a;
+  font-weight: 600;
+}
+
+/* ── Ícono — encima del select ── */
+.pag-select-icon {
+  position: absolute;
+  right: 6px;
+  pointer-events: none;
+  font-size: 22px !important;
+  color: #0F4C3A !important;
+  z-index: 2;
+  transition: transform 0.2s ease;
+}
+
+/* ===================================================
+   RESPONSIVO
+   =================================================== */
+
+@media (max-width: 900px) {
+  .pag-btn {
+    min-width: 34px;
+    height: 34px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 800px) {
+  .pag-btn {
+    min-width: 32px;
+    height: 32px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+  .pag-select-wrapper { height: 32px; }
+  .pag-select { font-size: 12px; }
+}
+
+@media (max-width: 600px) {
+  .paginacion-wrapper { gap: 8px; }
+  .pag-btn {
+    min-width: 30px;
+    height: 30px;
+    font-size: 12px;
+    padding: 0 6px;
+  }
+}
+
+@media (max-width: 500px) {
+  .paginacion-filas span { display: none; }
+  .pag-btn {
+    min-width: 28px;
+    height: 28px;
+    font-size: 11px;
+    border-radius: 7px;
+    padding: 0;
+  }
+  .pag-select-wrapper {
+    height: 28px;
+    border-radius: 8px;
+  }
+  .pag-select {
+    font-size: 11px;
+    padding: 0 26px 0 10px;
+  }
+  .paginacion { gap: 4px; }
+}
+
+@media (max-width: 400px) {
+  .pag-btn {
+    min-width: 26px;
+    height: 26px;
+    font-size: 10px;
+    border-radius: 6px;
+  }
+  .pag-select-wrapper {
+    height: 26px;
+    border-radius: 8px;
+  }
+  .pag-select {
+    font-size: 10px;
+    padding: 0 22px 0 8px;
+  }
+  .paginacion { gap: 3px; }
+}
+
+@media (max-width: 300px) {
+  .pag-arrow { display: none; }
+  .paginacion { gap: 2px; }
+  .pag-btn { min-width: 24px; height: 24px; font-size: 9px; }
+}
+
+@media (max-width: 200px) {
+  .paginacion-filas { display: none; }
+  .pag-btn { min-width: 20px; height: 20px; font-size: 8px; border-radius: 4px; }
+}

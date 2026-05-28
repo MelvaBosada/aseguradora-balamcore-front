@@ -1,0 +1,94 @@
+.tabla-acciones {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+/* BASE */
+.tabla-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, transform 0.15s, box-shadow 0.18s;
+  flex-shrink: 0;
+}
+
+.tabla-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* VER — verde sólido → hover blanco con borde */
+.tabla-btn-ver {
+   background: #ffffff;
+  color: #0F4C3A;
+  box-shadow: 0 0 0 1.5px #0F4C3A inset;
+  
+}
+.tabla-btn-ver:hover {
+ background: #0F4C3A;
+  color: #ffffff;
+}
+
+/* EDITAR — dorado quemado → hover blanco con borde */
+.tabla-btn-edit {
+  background: #ffffff;
+  color: #B8860B;
+  box-shadow: 0 0 0 1.5px #B8860B inset;
+  
+}
+.tabla-btn-edit:hover {
+  background: #BA9241;
+  color: #ffffff;
+}
+
+/* ELIMINAR — rojo sólido → hover blanco con borde */
+.tabla-btn-del {
+    background: #ffffff;
+  color: #C0392B;
+  box-shadow: 0 0 0 1.5px #C0392B inset;
+  
+}
+.tabla-btn-del:hover {
+background: #C0392B;
+  color: #ffffff;
+}
+
+.tabla-btn-agregar {
+  background: #ffffff;
+  color: #07241b;
+  box-shadow: 0 0 0 1.5px #07241b inset;
+}
+.tabla-btn-agregar:hover {
+  background: #051f17;
+  color: #ffffff;
+}
+
+
+.tabla-btn-avisado {
+  background: #f0faf4 !important;
+  color: #4caf50 !important;
+  box-shadow: 0 0 0 1.5px #4caf50 inset !important;
+  cursor: not-allowed !important;
+  opacity: 0.75;
+}
+.tabla-btn-avisado:hover {
+  transform: none !important;
+  background: #f0faf4 !important;
+  color: #4caf50 !important;
+}
+
+/* Responsive: en pantallas muy pequeñas reducir botones */
+@media (max-width: 480px) {
+  .tabla-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+  }
+}
+

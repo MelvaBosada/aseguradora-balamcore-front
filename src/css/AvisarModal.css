@@ -1,0 +1,157 @@
+/* ── AVISAR MODAL ────────────────────────────────── */
+.avisar-modal {
+  max-width: 420px;
+  width: 95%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.avisar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #041E17, #0F4C3A);
+  border-radius: 16px 16px 0 0;
+  flex-shrink: 0;
+}
+
+.avisar-header-icon {
+  width: 38px;
+  height: 38px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+}
+.avisar-header-icon svg { font-size: 20px !important; }
+
+.avisar-header-info { flex: 1; }
+.avisar-header-info h2 {
+  margin: 0 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+.avisar-header-info p {
+  margin: 0;
+  font-size: 11px;
+  color: rgba(255,255,255,0.65);
+}
+
+/* Body scrollable */
+.avisar-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db transparent;
+}
+
+.avisar-poliza-info {
+  background: #F9FAFB;
+  border: 1px solid #E5E7EB;
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.avisar-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.avisar-info-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6B7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.avisar-info-value {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1f2d2a;
+  text-align: right;
+}
+
+.avisar-vence {
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11.5px;
+}
+
+.avisar-email {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #0F4C3A;
+}
+
+/* Preview */
+.avisar-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.avisar-preview-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9CA3AF;
+}
+
+.avisar-preview-body {
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-left: 3px solid #0F4C3A;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  color: #374151;
+  line-height: 1.65;
+}
+
+.avisar-preview-body p { margin: 0 0 6px; }
+.avisar-preview-body p:last-child { margin-bottom: 0; }
+
+/* Send btn */
+.avisar-send-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* Pega esto al final de tu AvisarModal.css */
+
+.avisar-send-btn.avisar-enviado {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+  cursor: not-allowed;
+  pointer-events: none; /* bloquea completamente el click */
+  opacity: 1;           /* se ve normal, no apagado */
+}
+
+.avisar-send-btn.avisar-enviado:hover {
+  background: #15803d;  /* verde un poco más oscuro al hover */
+  border-color: #15803d;
+  color: #fff;
+}
