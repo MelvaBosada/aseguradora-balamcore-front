@@ -1,5 +1,5 @@
 // pages/admin/Polizas.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import '../../css/Clientes.css';
 
@@ -22,8 +22,6 @@ import ComputerIcon from "@mui/icons-material/Computer";
 import BuildIcon from "@mui/icons-material/Build";
 import WarningIcon from "@mui/icons-material/Warning";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import AddIcon from "@mui/icons-material/Add";
-import RemoveIcon from "@mui/icons-material/Remove";
 
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
@@ -85,7 +83,6 @@ const Polizas = () => {
   const [bienesCliente, setBienesCliente] = useState([]);
   const [cargandoBienes, setCargandoBienes] = useState(false);
   const [coberturas, setCoberturas] = useState([]);
-  const [cargandoCoberturas, setCargandoCoberturas] = useState(false);
   const [erroresBienes, setErroresBienes] = useState({});
 
   // Cargar coberturas al iniciar
@@ -94,7 +91,6 @@ const Polizas = () => {
   }, []);
 
   const cargarCoberturas = async () => {
-    setCargandoCoberturas(true);
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/coberturas`, {
@@ -103,12 +99,11 @@ const Polizas = () => {
       setCoberturas(response.data);
     } catch (error) {
       console.error('Error al cargar coberturas:', error);
-    } finally {
-      setCargandoCoberturas(false);
     }
   };
 
-  const cargarPolizas = async () => {
+  // ✅ CORRECCIÓN 3: useCallback con las mismas deps que el useEffect original
+  const cargarPolizas = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -123,14 +118,15 @@ const Polizas = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    cargarPolizas();
   }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
 
-  // Obtener cobertura según tipo de bien y tipo de póliza
-  const obtenerCoberturaParaBien = (bienTipo, polizaTipo) => {
+  // ✅ CORRECCIÓN 3: cargarPolizas incluida en el array de dependencias
+  useEffect(() => {
+    cargarPolizas();
+  }, [cargarPolizas]);
+
+  // ✅ CORRECCIÓN 2: eliminado el parámetro polizaTipo que no se usaba
+  const obtenerCoberturaParaBien = (bienTipo) => {
     const mapeoCoberturas = {
       'vehiculo': ['Daños Materiales', 'Robo Total', 'Robo Parcial', 'Responsabilidad Civil', 'Gastos Médicos Ocupantes'],
       'inmueble': ['Incendio y Explosión', 'Fenómenos Naturales', 'Responsabilidad Civil'],
@@ -142,7 +138,6 @@ const Polizas = () => {
     return coberturas.filter(c => nombresCobertura.includes(c.nombre) && c.estatus === 'activa');
   };
 
-  // Validar si el valor del bien está dentro de los rangos de la cobertura
   const validarValorBien = (valor, cobertura) => {
     if (!cobertura) return { valido: true, mensaje: '' };
     
@@ -166,7 +161,6 @@ const Polizas = () => {
     return { valido: true, mensaje: '' };
   };
 
-  // Calcular la prima total sumando todos los precios de los bienes seleccionados
   const calcularPrimaTotalDesdeBienes = (preciosBienes, bienesSeleccionados) => {
     let sumaTotal = 0;
     bienesSeleccionados.forEach(bienId => {
@@ -176,7 +170,6 @@ const Polizas = () => {
     return sumaTotal;
   };
 
-  // Actualizar prima total cuando cambian los precios o selección de bienes
   const actualizarPrimaTotal = (preciosBienes, bienesSeleccionados) => {
     const sumaBienes = calcularPrimaTotalDesdeBienes(preciosBienes, bienesSeleccionados);
     const neta = parseFloat(formData.prima_neta) || 0;
@@ -186,7 +179,7 @@ const Polizas = () => {
     setFormData(prev => ({ ...prev, prima_total: total.toFixed(2) }));
   };
 
-  // Validar todos los bienes seleccionados
+  // ✅ CORRECCIÓN 2: llamada actualizada sin el segundo argumento polizaTipo
   const validarBienesSeleccionados = async (bienesIds, polizaTipo, preciosBienes) => {
     const nuevosErrores = {};
     let todoValido = true;
@@ -195,7 +188,8 @@ const Polizas = () => {
       const bien = bienesCliente.find(b => b.id === bienId);
       if (bien) {
         const precio = parseFloat(preciosBienes?.[bienId]) || parseFloat(bien.valor) || 0;
-        const coberturasDisponibles = obtenerCoberturaParaBien(bien.tipo, polizaTipo);
+        // ✅ CORRECCIÓN 2: solo se pasa bienTipo
+        const coberturasDisponibles = obtenerCoberturaParaBien(bien.tipo);
         
         if (coberturasDisponibles.length === 0) {
           nuevosErrores[bienId] = `No hay coberturas disponibles para el tipo de bien: ${bien.tipo}`;
@@ -250,7 +244,6 @@ const Polizas = () => {
       
       const bienes = await cargarBienesPorClienteId(cliente.id);
       
-      // Inicializar precios por defecto con el valor del bien
       const preciosIniciales = {};
       bienes.forEach(bien => {
         preciosIniciales[bien.id] = bien.valor || 0;
@@ -325,11 +318,8 @@ const Polizas = () => {
     }
     
     setFormData(prev => ({ ...prev, bienes_seleccionados: nuevosSeleccionados }));
-    
-    // Actualizar prima total
     actualizarPrimaTotal(formData.precios_bienes, nuevosSeleccionados);
     
-    // Validar los bienes seleccionados
     if (formData.tipo) {
       await validarBienesSeleccionados(nuevosSeleccionados, formData.tipo, formData.precios_bienes);
     }
@@ -342,11 +332,8 @@ const Polizas = () => {
     };
     
     setFormData(prev => ({ ...prev, precios_bienes: nuevosPrecios }));
-    
-    // Actualizar prima total
     actualizarPrimaTotal(nuevosPrecios, formData.bienes_seleccionados);
     
-    // Revalidar el bien si está seleccionado
     if (formData.bienes_seleccionados.includes(bienId) && formData.tipo) {
       validarBienesSeleccionados(formData.bienes_seleccionados, formData.tipo, nuevosPrecios);
     }
@@ -375,7 +362,6 @@ const Polizas = () => {
       setTimeout(calcularPrimaTotal, 0);
     }
     
-    // Cuando cambia el tipo de póliza, revalidar bienes seleccionados
     if (name === 'tipo' && formData.bienes_seleccionados.length > 0) {
       await validarBienesSeleccionados(formData.bienes_seleccionados, value, formData.precios_bienes);
     }
@@ -404,7 +390,6 @@ const Polizas = () => {
         .filter(b => b.id_poliza === poliza.id)
         .map(b => b.id);
       
-      // Inicializar precios con el valor de cada bien
       const preciosIniciales = {};
       bienesResponse.data.forEach(bien => {
         preciosIniciales[bien.id] = bien.valor || 0;
@@ -446,7 +431,6 @@ const Polizas = () => {
       const token = localStorage.getItem('token');
       if (!formData.id_cliente) { alert('Primero busca un cliente por RFC'); return; }
       
-      // Validar bienes antes de guardar
       if (formData.bienes_seleccionados.length > 0) {
         const esValido = await validarBienesSeleccionados(formData.bienes_seleccionados, formData.tipo, formData.precios_bienes);
         if (!esValido) {
@@ -506,9 +490,10 @@ const Polizas = () => {
     }
   };
 
+  // ✅ CORRECCIÓN 2: llamada actualizada sin polizaTipo
   const getCoberturaInfo = (bien) => {
     const precio = formData.precios_bienes?.[bien.id] || bien.valor || 0;
-    const coberturasDisponibles = obtenerCoberturaParaBien(bien.tipo, formData.tipo);
+    const coberturasDisponibles = obtenerCoberturaParaBien(bien.tipo);
     if (coberturasDisponibles.length > 0) {
       const cobertura = coberturasDisponibles[0];
       const validacion = validarValorBien(parseFloat(precio), cobertura);
@@ -781,7 +766,6 @@ const Polizas = () => {
                             {bien.modelo && <span style={{ marginRight: '8px' }}>Modelo: {bien.modelo}</span>}
                           </div>
                           
-                          {/* Campo de precio */}
                           <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <label style={{ fontSize: '12px', fontWeight: '500', color: '#374151' }}>
                               Precio del bien:

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../css/Clientes.css";
 
@@ -20,12 +20,9 @@ import Paginacion from "../../components/Paginacion";
 
 const API_URL = "http://localhost:8000/api/reportes";
 
-// Configuración de columnas para la TablaForm
 const campos = ["poliza", "cliente", "siniestro", "estatus"];
 const columnas = ["# de Poliza", "Cliente", "# de Siniestro", "Estatus", "Acciones"];
 
-// CONFIGURACIÓN DE CAMPOS PARA EL FORMULARIO (EditModal)
-// Se eliminó "id_aseguradora" de esta lista para que no sea visible ni editable
 const FORM_CAMPOS = [
   { label: "# de Poliza", name: "id_poliza", type: "number" },
   { label: "Nombre del Reportante", name: "nombre_reportante", type: "text" },
@@ -62,7 +59,7 @@ const FORM_CAMPOS = [
 ];
 
 const FORM_VACIO = {
-  id_aseguradora: 1, // Se mantiene el valor interno pero no se muestra en el form
+  id_aseguradora: 1,
   id_poliza: "",
   id_empleado: 1,
   reportado_por: "cliente",
@@ -80,7 +77,6 @@ const FORM_VACIO = {
 const Reportes = () => {
   const navigate = useNavigate();
 
-  // Estados
   const [reportes, setReportes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -102,10 +98,17 @@ const Reportes = () => {
     "Authorization": `Bearer ${localStorage.getItem("token")}`,
   });
 
-  const fetchData = async () => {
+  // ✅ CORRECCIÓN: useCallback sin dependencias externas (getHeaders se llama dentro)
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(API_URL, { headers: getHeaders() });
+      const response = await fetch(API_URL, {
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         const mapeados = data.map(r => ({
@@ -122,11 +125,12 @@ const Reportes = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // ✅ sin dependencias: no depende de estado ni props externos
 
+  // ✅ CORRECCIÓN: fetchData incluida en el array de dependencias
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });

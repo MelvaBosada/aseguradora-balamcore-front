@@ -1,9 +1,8 @@
 // pages/admin/Siniestros.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from 'axios';
 import "../../css/Clientes.css";
 
-import AddIcon from "@mui/icons-material/Add";
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -70,10 +69,9 @@ const Siniestros = () => {
   const [buscarRfcTimer, setBuscarRfcTimer] = useState(null);
   const [polizasOptions, setPolizasOptions] = useState([]);
   const [reportesOptions, setReportesOptions] = useState([]);
-  const [cargandoPolizas, setCargandoPolizas] = useState(false);
-  const [cargandoReportes, setCargandoReportes] = useState(false);
 
-  const cargarSiniestros = async () => {
+  // ✅ CORRECCIÓN 3: useCallback con las mismas deps que el useEffect original
+  const cargarSiniestros = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -88,35 +86,35 @@ const Siniestros = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    cargarSiniestros();
   }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
 
-  // Función para cargar reportes directamente por RFC
+  // ✅ CORRECCIÓN 3: cargarSiniestros incluida en el array de dependencias
+  useEffect(() => {
+    cargarSiniestros();
+  }, [cargarSiniestros]);
+
+  // ✅ CORRECCIÓN 1 y 2: eliminados cargandoPolizas y cargandoReportes (nunca se usaban en JSX)
+  // ✅ CORRECCIÓN 4: eliminada buscarPolizasPorRfc (su lógica ya está cubierta por cargarReportesPorRfc)
   const cargarReportesPorRfc = async (rfc) => {
     if (!rfc || rfc.length < 8) return;
-    
-    setCargandoReportes(true);
+
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/siniestros/reportes/por-rfc`, {
         params: { rfc },
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       const data = response.data;
-      
+
       if (data.reportes && data.reportes.length > 0) {
         const reportesOpts = data.reportes.map(r => ({
           value: r.id,
           label: `${r.numero_reporte} - Póliza: ${r.numero_poliza} - ${r.fecha_reporte} - ${r.estado}`,
           id_poliza: r.id_poliza
         }));
-        
         setReportesOptions(reportesOpts);
-        
+
         const polizasOpts = data.polizas.map(p => ({
           value: p.id,
           label: `${p.numero_poliza} - ${p.tipo}`
@@ -126,7 +124,7 @@ const Siniestros = () => {
         setReportesOptions([]);
         setPolizasOptions([]);
       }
-      
+
       setFormData(prev => ({
         ...prev,
         id_cliente: data.cliente.id,
@@ -134,7 +132,7 @@ const Siniestros = () => {
         id_poliza: "",
         id_reporte: ""
       }));
-      
+
     } catch (error) {
       console.error('Error al cargar reportes por RFC:', error);
       if (error.response?.status === 404) {
@@ -142,84 +140,37 @@ const Siniestros = () => {
       }
       setReportesOptions([]);
       setPolizasOptions([]);
-    } finally {
-      setCargandoReportes(false);
-    }
-  };
-
-  const buscarPolizasPorRfc = async (rfc) => {
-    if (!rfc || rfc.length < 8) return;
-    
-    setCargandoPolizas(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/siniestros/polizas/por-rfc`, {
-        params: { rfc },
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const data = response.data;
-      const polizasOpts = data.polizas.map(p => ({
-        value: p.id,
-        label: `${p.numero_poliza} - ${p.tipo}`
-      }));
-      
-      setPolizasOptions(polizasOpts);
-      
-      setFormData(prev => ({
-        ...prev,
-        id_cliente: data.cliente.id,
-        nombre_cliente: `${data.cliente.nombre} ${data.cliente.apellido}`,
-        id_poliza: "",
-        id_reporte: ""
-      }));
-      
-      return data;
-    } catch (error) {
-      if (error.response?.status === 404) {
-        setFormData(prev => ({ ...prev, nombre_cliente: "Cliente no encontrado" }));
-        setPolizasOptions([]);
-      }
-      return null;
-    } finally {
-      setCargandoPolizas(false);
     }
   };
 
   const cargarReportesPorPoliza = async (polizaId) => {
     if (!polizaId) return;
-    
-    console.log('Cargando reportes para póliza ID:', polizaId);
-    
+
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/siniestros/reportes/por-poliza/${polizaId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
-      console.log('Reportes recibidos:', response.data);
-      
+
       if (response.data && response.data.length > 0) {
         const reportesOpts = response.data.map(r => ({
           value: r.id,
           label: `${r.numero_reporte} - ${r.fecha_reporte} - ${r.estado}${r.tiene_siniestro ? ' ⚠️' : ''}`
         }));
-        
-        console.log('Opciones de reportes:', reportesOpts);
         setReportesOptions(reportesOpts);
       } else {
-        console.log('No hay reportes para esta póliza');
         setReportesOptions([]);
       }
-      
+
       setFormData(prev => ({ ...prev, id_reporte: "" }));
-      
+
     } catch (error) {
       console.error('Error al cargar reportes:', error);
       setReportesOptions([]);
     }
   };
 
+  // ✅ buscarClientePorRfc se mantiene: llama a cargarReportesPorRfc que hace la búsqueda por RFC
   const buscarClientePorRfc = async (rfc) => {
     if (!rfc || rfc.length < 8) return;
     await cargarReportesPorRfc(rfc);
@@ -235,7 +186,7 @@ const Siniestros = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    
+
     if (name === 'id_poliza') {
       cargarReportesPorPoliza(value);
     }
@@ -257,7 +208,7 @@ const Siniestros = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = res.data;
-      
+
       setFormData({
         rfc_buscar: "",
         id_cliente: data.cliente_id,
@@ -269,7 +220,7 @@ const Siniestros = () => {
         monto_reclamado: data.monto_reclamado,
         deducible_aplicado: data.deducible_aplicado || ""
       });
-      
+
       if (data.poliza_id) {
         await cargarReportesPorPoliza(data.poliza_id);
       }
@@ -282,12 +233,12 @@ const Siniestros = () => {
   const handleGuardar = async () => {
     try {
       const token = localStorage.getItem('token');
-      
+
       if (!formData.id_reporte) {
         alert('Debes seleccionar un reporte');
         return;
       }
-      
+
       const dataToSend = {
         id_reporte: parseInt(formData.id_reporte),
         tipo: formData.tipo,
@@ -295,7 +246,7 @@ const Siniestros = () => {
         monto_reclamado: parseFloat(formData.monto_reclamado),
         deducible_aplicado: formData.deducible_aplicado ? parseFloat(formData.deducible_aplicado) : null
       };
-      
+
       if (editingSiniestro) {
         await axios.put(`${API_URL}/siniestros/${editingSiniestro.id}`, dataToSend, {
           headers: { Authorization: `Bearer ${token}` }
@@ -307,7 +258,7 @@ const Siniestros = () => {
         });
         alert('Siniestro creado');
       }
-      
+
       setShowModal(false);
       cargarSiniestros();
     } catch (error) {
@@ -323,9 +274,7 @@ const Siniestros = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = res.data;
-      
-      console.log('Respuesta:', data);
-      
+
       const items = [
         { icon: <AssignmentIcon />, label: "N° Siniestro", value: data.numero_siniestro },
         { icon: <ReportIcon />, label: "Tipo", value: data.tipo },
@@ -339,13 +288,10 @@ const Siniestros = () => {
         { icon: <PersonIcon />, label: "Cliente", value: data.cliente },
         { icon: <AssignmentIcon />, label: "Póliza", value: data.poliza || "—" }
       ];
-      
-      setSiniestroDetalle({
-        ...data,
-        items: items
-      });
+
+      setSiniestroDetalle({ ...data, items });
       setShowDetalleModal(true);
-      
+
     } catch (error) {
       console.error('Error:', error);
       alert('Error al cargar detalles');
@@ -383,7 +329,6 @@ const Siniestros = () => {
     setCurrentPage(1);
   };
 
-  // Actualizar opciones del select de póliza dinámicamente
   const camposConOpciones = FORM_CAMPOS_SINIESTRO.map(campo => {
     if (campo.name === 'id_poliza') {
       return { ...campo, options: polizasOptions };
@@ -479,7 +424,6 @@ const Siniestros = () => {
         onItemsPerPageChange={handleItemsPerPageChange}
       />
 
-      {/* MODAL PARA SINIESTROS (CREAR/EDITAR) */}
       <EditModal
         open={showModal}
         onClose={() => {
@@ -498,7 +442,6 @@ const Siniestros = () => {
         customHandlers={{ onRfcChange: handleRfcChange }}
       />
 
-      {/* MODAL DE CONFIRMACIÓN PARA ELIMINAR */}
       <ConfirmDeleteModal
         open={showDeleteModal}
         onClose={() => { setShowDeleteModal(false); setSiniestroToDelete(null); }}
@@ -516,7 +459,6 @@ const Siniestros = () => {
         )}
       </ConfirmDeleteModal>
 
-      {/* MODAL DE DETALLE - Usando ClienteDetalleModal reutilizable */}
       <ClienteDetalleModal
         open={showDetalleModal}
         onClose={() => { setShowDetalleModal(false); setSiniestroDetalle(null); }}

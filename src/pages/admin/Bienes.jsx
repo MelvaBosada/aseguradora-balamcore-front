@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "../../css/Clientes.css";
 
 // Iconos
@@ -35,8 +35,6 @@ const columnas = [
   "Acciones",
 ];
 
-// IMPORTANTE: Mantenemos "valor" aquí para que TablaForm reciba el dato,
-// pero lo formatearemos antes de enviarlo al componente.
 const campos = [
   "tipo",
   "descripcion",
@@ -221,15 +219,14 @@ const Bienes = () => {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   });
 
-  const fetchData = async () => {
+  // ✅ CORRECCIÓN: useCallback para evitar el warning de dependencias en useEffect
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(API_URL, { headers: getHeaders() });
       if (response.ok) {
         const data = await response.json();
         const finalData = Array.isArray(data) ? data : data.data || [];
-
-        // 1. ORDENAR POR ID (De mayor a menor)
         setBienes(finalData.sort((a, b) => b.id - a.id));
       }
     } catch (error) {
@@ -237,11 +234,12 @@ const Bienes = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // sin dependencias: API_URL es constante y getHeaders no cambia entre renders
 
+  // ✅ CORRECCIÓN: fetchData incluida en el array de dependencias
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleInputChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -332,7 +330,6 @@ const Bienes = () => {
     );
   });
 
-  // 2. FORMATEO DE VALOR PARA LA TABLA
   const paginated = filteredBienes
     .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
     .map((item) => ({
@@ -385,7 +382,6 @@ const Bienes = () => {
   const getDetalleItems = () => {
     if (!bienDetalle) return [];
 
-    // Usamos el valor del objeto original de bienes (que no tiene el $) para el modal
     const original = bienes.find((b) => b.id === bienDetalle.id);
     const valorDisplay = original
       ? `$${parseFloat(original.valor).toLocaleString("en-US", { minimumFractionDigits: 2 })}`
