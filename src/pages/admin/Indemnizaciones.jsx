@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -48,10 +48,10 @@ const Indemnizaciones = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [estatus, setEstatus] = useState("Todos");
-  
-  // ESTADOS DE PAGINACIÓN RESTAURADOS
+
+  // ESTADOS DE PAGINACIÓN
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(8); 
+  const [itemsPerPage, setItemsPerPage] = useState(8);
 
   const [modalData, setModalData] = useState(null);
 
@@ -61,17 +61,18 @@ const Indemnizaciones = () => {
 
   const getHeaders = () => ({
     "Content-Type": "application/json",
-    "Accept": "application/json",
-    "Authorization": `Bearer ${localStorage.getItem("token")}`,
+    Accept: "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
   });
 
-  const fetchData = async () => {
+  // ✅ useCallback para evitar el warning de useEffect
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(API_URL, { headers: getHeaders() });
       if (response.ok) {
         const data = await response.json();
-        
+
         const mapeados = data.map((i) => ({
           ...i,
           nSiniestro: i.numero_siniestro || `SIN-${String(i.id_siniestro).padStart(6, "0")}`,
@@ -84,10 +85,10 @@ const Indemnizaciones = () => {
           estatus: i.estatus,
 
           // Mapeo para PDF desde Joins
-          aseguradora: "Balamcore Seguros S.A. de C.V.", 
+          aseguradora: "Balamcore Seguros S.A. de C.V.",
           nPoliza: i.poliza_numero ? `POL-${i.poliza_numero}` : "POL-S/N",
           fechaEmision: new Date().toLocaleDateString(),
-          nombreAsegurado: i.asegurado_nombre || i.titular_cuenta, 
+          nombreAsegurado: i.asegurado_nombre || i.titular_cuenta,
           rfc: "CONSULTAR EXPEDIENTE",
           domicilio: i.lugar || "Mérida, Yucatán",
           telefono: i.asegurado_tel || "N/A",
@@ -111,7 +112,7 @@ const Indemnizaciones = () => {
           montoTotal: `$${parseFloat(i.monto_aprobado).toLocaleString()} MXN`,
           estatusPDF: i.estatus.toUpperCase(),
         }));
-        
+
         setDataIndemnizaciones(mapeados);
       }
     } catch (error) {
@@ -119,11 +120,12 @@ const Indemnizaciones = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []); // ✅ arreglo vacío porque API_URL es constante externa
 
+  // ✅ fetchData ya no genera warning
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   /* ─── LÓGICA DE FILTRADO Y PAGINACIÓN ─── */
   const filtered = dataIndemnizaciones.filter((p) => {
@@ -158,7 +160,10 @@ const Indemnizaciones = () => {
               className="pv-search"
               placeholder="Buscar por siniestro o titular..."
               value={search}
-              onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
         </div>
@@ -167,10 +172,15 @@ const Indemnizaciones = () => {
           <select
             className="form-select"
             value={estatus}
-            onChange={(e) => { setEstatus(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => {
+              setEstatus(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             {ESTATUS_OPTIONS.map((o) => (
-              <option key={o} value={o}>{o}</option>
+              <option key={o} value={o}>
+                {o}
+              </option>
             ))}
           </select>
         </div>
@@ -231,8 +241,14 @@ const Indemnizaciones = () => {
         </div>
       )}
 
-      <Snackbar open={snack} autoHideDuration={2500} onClose={() => setSnack(false)}>
-        <Alert severity="success" variant="filled">Documento exportado correctamente</Alert>
+      <Snackbar
+        open={snack}
+        autoHideDuration={2500}
+        onClose={() => setSnack(false)}
+      >
+        <Alert severity="success" variant="filled">
+          Documento exportado correctamente
+        </Alert>
       </Snackbar>
     </div>
   );

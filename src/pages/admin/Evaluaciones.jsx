@@ -1,5 +1,5 @@
 // pages/admin/Evaluaciones.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from 'axios';
 import "../../css/Clientes.css";
 
@@ -44,47 +44,7 @@ const columnas = [
   "Acciones"
 ];
 
-/* ─── FUNCIÓN PARA BADGES ─────────────────────── */
-const getPrioridadClass = (prioridad) => {
-  switch (prioridad) {
-    case "Alta":
-      return "badge-prioridad-alta";
-    case "Media":
-      return "badge-prioridad-media";
-    case "Baja":
-      return "badge-prioridad-baja";
-    default:
-      return "";
-  }
-};
 
-const getEstatusClass = (estatus) => {
-  switch (estatus) {
-    case "Aprobada":
-      return "badge-aprobado";
-    case "En revisión":
-      return "badge-proxima";
-    case "Rechazada":
-      return "badge-vencida";
-    case "Borrador":
-      return "badge-pendiente";
-    default:
-      return "";
-  }
-};
-
-const getDictamenClass = (dictamen) => {
-  switch (dictamen) {
-    case "Aprobado":
-      return "badge-aprobado";
-    case "No aprobado":
-      return "badge-no-aprobado";
-    case "Pendiente":
-      return "badge-pendiente";
-    default:
-      return "";
-  }
-};
 
 /* ─── VISTA PRINCIPAL ─────────────────── */
 const Evaluaciones = () => {
@@ -97,12 +57,12 @@ const Evaluaciones = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [modalData, setModalData] = useState(null);
 
-  // Hook reutilizable de exportación PDF
   const { printRef, snack, setSnack, handleDescargar } = usePDFExport(
     modalData ? `Evaluacion_${modalData.nEvaluacion}` : "Evaluacion"
   );
 
-  const cargarEvaluaciones = async () => {
+  // ✅ CORRECCIÓN: useCallback con las dependencias correctas
+  const cargarEvaluaciones = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -122,7 +82,7 @@ const Evaluaciones = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
 
   const cargarDetalleEvaluacion = async (id) => {
     try {
@@ -137,9 +97,10 @@ const Evaluaciones = () => {
     }
   };
 
+  // ✅ CORRECCIÓN: cargarEvaluaciones incluida en el array de dependencias
   useEffect(() => {
     cargarEvaluaciones();
-  }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
+  }, [cargarEvaluaciones]);
 
   /* ── Filtro ── */
   const handleSearch = (e) => {

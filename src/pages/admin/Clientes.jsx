@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import '../../css/Clientes.css';
 
@@ -7,11 +7,6 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import SearchIcon from "@mui/icons-material/Search";
-import PersonIcon from "@mui/icons-material/Person";
-import PhoneIcon from "@mui/icons-material/Phone";
-import EmailIcon from "@mui/icons-material/Email";
-import HomeIcon from "@mui/icons-material/Home";
-import BadgeIcon from "@mui/icons-material/Badge";
 
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
@@ -83,9 +78,9 @@ const Clientes = () => {
   const [itemsPerPage, setItemsPerPage] = useState(8);
   const [estatusFilter, setEstatusFilter] = useState("Todos");
   const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
 
-  const cargarClientes = async () => {
+  // ✅ CORRECCIÓN: useCallback con las dependencias correctas
+  const cargarClientes = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -101,7 +96,6 @@ const Clientes = () => {
       
       setClientes(response.data.data);
       setTotalPages(response.data.last_page);
-      setTotalItems(response.data.total);
     } catch (error) {
       console.error('Error al cargar clientes:', error);
       if (error.response?.status === 401) {
@@ -111,11 +105,12 @@ const Clientes = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, searchTerm, estatusFilter, itemsPerPage]); // ✅ mismas deps que el useEffect original
 
+  // ✅ CORRECCIÓN: cargarClientes incluida en el array de dependencias
   useEffect(() => {
     cargarClientes();
-  }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
+  }, [cargarClientes]);
 
   const handleInputChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -235,15 +230,6 @@ const Clientes = () => {
     setSearchTerm(e.target.value); 
     setCurrentPage(1); 
   };
-
-  const detalleItems = clienteDetalle ? [
-    { icon: <PersonIcon />, label: "Nombre completo", value: `${clienteDetalle.nombre} ${clienteDetalle.apellido}` },
-    { icon: <PhoneIcon />, label: "Teléfono", value: clienteDetalle.telefono },
-    { icon: <EmailIcon />, label: "Correo", value: clienteDetalle.correo },
-    { icon: <HomeIcon />, label: "Domicilio", value: clienteDetalle.domicilio },
-    { icon: <BadgeIcon />, label: "CURP", value: clienteDetalle.curp },
-    { icon: <BadgeIcon />, label: "RFC", value: clienteDetalle.rfc },
-  ] : [];
 
   if (loading && clientes.length === 0) {
     return (
