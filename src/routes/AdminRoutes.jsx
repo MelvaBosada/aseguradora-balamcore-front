@@ -3,7 +3,7 @@ import DashboardLayout from "../components/layout/DashboardLayout";
 import AdminHome from "../pages/admin/AdminHome";
 import Clientes from "../pages/admin/Clientes";
 import Dashboard from "../pages/admin/Dashboard";
-import Polizas from "../pages/admin/polizas";
+import Polizas from "../pages/admin/Polizas";
 import PolizasVencer from "../pages/admin/PolizasVencer";
 import SolicitudesRenovacion from "../pages/admin/SolicitudesRenovacion";
 import Indemnizaciones from "../pages/admin/Indemnizaciones";
