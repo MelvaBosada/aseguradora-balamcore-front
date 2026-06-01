@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import "../css/Login.css";
 import "../css/Register.css";
-import logo from "../assets/logo.png";
+import logo from "../assets/Logo.png";
 import ButtonVerdeForm from "../components/ButtonVerdeForm";
 import StepVerification from "../components/StepVerification";
 import StepCompany from "../components/StepCompany";
