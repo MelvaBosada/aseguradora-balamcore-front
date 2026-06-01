@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import "../../css/Clientes.css";
 
 // Iconos
@@ -25,7 +25,6 @@ import Paginacion from "../../components/Paginacion";
 
 const API_URL = "http://localhost:8000/api/coberturas";
 
-// Definición de columnas y campos para la tabla
 const columnas = [
   "Nombre",
   "Descripción",
@@ -44,7 +43,6 @@ const campos = [
   "estatus",
 ];
 
-// Configuración de campos para el formulario (Crear/Editar)
 const FORM_CAMPOS = [
   { label: "Nombre", name: "nombre", type: "text" },
   { label: "Descripción", name: "descripcion", type: "text" },
@@ -98,7 +96,6 @@ const FORM_CAMPOS = [
 ];
 
 const Cobertura = () => {
-  // Estados del componente
   const [coberturas, setCoberturas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -120,13 +117,13 @@ const Cobertura = () => {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   });
 
-  const fetchData = async () => {
+  // ✅ CORRECCIÓN: useCallback para evitar el warning de dependencias en useEffect
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(API_URL, { headers: getHeaders() });
       if (response.ok) {
         const data = await response.json();
-        // Ordenar por ID de menor a mayor
         const sortedData = data.sort((a, b) => a.id - b.id);
         setCoberturas(sortedData);
       }
@@ -135,11 +132,12 @@ const Cobertura = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // ✅ CORRECCIÓN: fetchData incluida en el array de dependencias
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -167,7 +165,6 @@ const Cobertura = () => {
   const handleEditar = (item) => {
     setEditingCobertura(item);
     const dataForModal = { ...item };
-    // Limpieza de nulos para inputs
     const camposNum = [
       "deducible",
       "porcentaje_deducible",
@@ -194,7 +191,6 @@ const Cobertura = () => {
     const isEdit = !!editingCobertura;
     const url = isEdit ? `${API_URL}/${editingCobertura.id}` : API_URL;
 
-    // Preparar datos para el envío (convertir vacíos a null)
     const dataToSubmit = { ...formData };
     const numericFields = [
       "deducible",
@@ -339,7 +335,6 @@ const Cobertura = () => {
       <div className="mb-4">
         <TablaForm
           columna={columnas}
-          // Datos limpios para la tabla (Sin signos de peso duplicados)
           data={paginated.map((c) => ({
             ...c,
             monto_minimo: c.monto_minimo || "0",

@@ -1,5 +1,5 @@
 // pages/admin/SolicitudesRenovacion.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from 'axios';
 import SearchIcon    from "@mui/icons-material/Search";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
@@ -30,6 +30,18 @@ const CAMPOS_RENOVAR = [
   { label: "Observaciones",    name: "observaciones",  type: "textarea", placeholder: "Observaciones de la renovación" }
 ];
 
+const FORM_VACIO = {
+  fecha_inicio: "",
+  fecha_fin: "",
+  forma_pago: "",
+  suma_asegurada: "",
+  prima_neta: "",
+  derecho_poliza: "",
+  iva: "",
+  prima_total: "",
+  observaciones: ""
+};
+
 const SolicitudesRenovacion = () => {
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,19 +56,10 @@ const SolicitudesRenovacion = () => {
   const [itemsPerPage, setItemsPerPage] = useState(8);
   const [totalPages, setTotalPages] = useState(1);
   const [estatusFilter, setEstatusFilter] = useState("Todos");
-  const [formData, setFormData] = useState({
-    fecha_inicio: "",
-    fecha_fin: "",
-    forma_pago: "",
-    suma_asegurada: "",
-    prima_neta: "",
-    derecho_poliza: "",
-    iva: "",
-    prima_total: "",
-    observaciones: ""
-  });
+  const [formData, setFormData] = useState(FORM_VACIO);
 
-  const cargarSolicitudes = async () => {
+  // ✅ CORRECCIÓN: useCallback con las mismas deps que el useEffect original
+  const cargarSolicitudes = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -76,11 +79,12 @@ const SolicitudesRenovacion = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, search, itemsPerPage, estatusFilter]);
 
+  // ✅ CORRECCIÓN: cargarSolicitudes incluida en el array de dependencias
   useEffect(() => {
     cargarSolicitudes();
-  }, [currentPage, search, itemsPerPage, estatusFilter]);
+  }, [cargarSolicitudes]);
 
   const cargarDetallePoliza = async (polizaId) => {
     try {
@@ -164,18 +168,7 @@ const SolicitudesRenovacion = () => {
       setSnackSeverity("success");
       setSnackOpen(true);
       cargarSolicitudes();
-      
-      setFormData({
-        fecha_inicio: "",
-        fecha_fin: "",
-        forma_pago: "",
-        suma_asegurada: "",
-        prima_neta: "",
-        derecho_poliza: "",
-        iva: "",
-        prima_total: "",
-        observaciones: ""
-      });
+      setFormData(FORM_VACIO);
       setDetallePoliza(null);
       
     } catch (error) {
@@ -252,17 +245,7 @@ const SolicitudesRenovacion = () => {
         onClose={() => {
           setModalOpen(false);
           setDetallePoliza(null);
-          setFormData({
-            fecha_inicio: "",
-            fecha_fin: "",
-            forma_pago: "",
-            suma_asegurada: "",
-            prima_neta: "",
-            derecho_poliza: "",
-            iva: "",
-            prima_total: "",
-            observaciones: ""
-          });
+          setFormData(FORM_VACIO);
         }}
         onRenovar={handleConfirmRenovar}
         poliza={selected}

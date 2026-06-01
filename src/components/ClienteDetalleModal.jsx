@@ -22,7 +22,7 @@ import InfoIcon from "@mui/icons-material/Info";
 import "../css/BalamCoreModal.css";
 import "../css/ClienteDetalleModal.css";
 
-function ClienteDetalleModal({ open, onClose, titulo, subtitulo, avatar, items, cliente, poliza }) {
+function ClienteDetalleModal({ open, onClose, titulo, subtitulo, avatar, items, cliente }) {
   if (!open) return null;
 
   // Si es una póliza (tiene items de póliza)
