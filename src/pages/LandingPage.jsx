@@ -1,9 +1,22 @@
-import { useState, useEffect } from "react";
+
+
+////////////////////////////////landing////////////////////////////////
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "../css/LandingPage.css";
 import logo from "../assets/LogoA.png";
 
-/* ─── SVG ICONS (inline, no dep) ─────────────────────── */
+/* ─── importa tus capturas aquí ─────────────────────────
+   Renómbralas como quieras y añade o quita slides en
+   el array SLIDES más abajo.
+   ──────────────────────────────────────────────────── */
+import screenshotDashboard  from "../assets/screenshots/dashboard.png";
+import screenshotPolizas    from "../assets/screenshots/polizas.png";
+import screenshotSiniestros from "../assets/screenshots/siniestros.png";
+import screenshotClientes   from "../assets/screenshots/clientes.png";
+import screenshotReportes   from "../assets/screenshots/reportes.png";
+
+/* ─── SVG ICONS ──────────────────────────────────────── */
 const IconShield = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M12 2L3 7v10l9 5 9-5V7L12 2z" />
@@ -44,8 +57,47 @@ const IconLock = () => (
         <path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" />
     </svg>
 );
+const IconChevronLeft = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <polyline points="15 18 9 12 15 6" />
+    </svg>
+);
+const IconChevronRight = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <polyline points="9 18 15 12 9 6" />
+    </svg>
+);
 
-/* ─── PLAN DATA (local fallback — enrich from API if needed) ── */
+/* ─── SLIDES — edita títulos/subtítulos y reemplaza las imágenes ── */
+const SLIDES = [
+    {
+        img:      screenshotDashboard,
+        titulo:   "Dashboard en tiempo real",
+        subtitulo: "KPIs, alertas de vencimiento y resumen operativo de un vistazo.",
+    },
+    {
+        img:      screenshotPolizas,
+        titulo:   "Gestión de pólizas",
+        subtitulo: "Registra, edita y filtra todas las pólizas activas con alertas automáticas.",
+    },
+    {
+        img:      screenshotSiniestros,
+        titulo:   "Control de siniestros",
+        subtitulo: "Flujo completo desde el reporte hasta la indemnización final.",
+    },
+    {
+        img:      screenshotClientes,
+        titulo:   "Expediente de clientes",
+        subtitulo: "Bienes, pólizas e historial de siniestros en un solo expediente.",
+    },
+    {
+        img:      screenshotReportes,
+        titulo:   "Reportes y exportación",
+        subtitulo: "Genera reportes en PDF listos para entregar en segundos.",
+    },
+];
+
+/* ─── PLAN DATA ───────────────────────────────────────── */
 const PLANES_BASE = [
     {
         key: "basico",
@@ -110,96 +162,207 @@ const PLANES_BASE = [
     },
 ];
 
-/* ─── SERVICIOS (array fuera del componente) ──────────────── */
 const SERVICIOS = [
-    { icon: IconDoc, title: "Gestión de pólizas", desc: "Registra, edita y da seguimiento a todas las pólizas activas. Alertas automáticas de vencimiento para nunca perder una renovación." },
-    { icon: IconAlert, title: "Control de siniestros", desc: "Flujo completo de reporte, evaluación e indemnización. Asigna ajustadores, sube evidencias y cierra casos eficientemente." },
-    { icon: IconPeople, title: "Gestión de clientes", desc: "Expediente completo de cada cliente con sus bienes, pólizas y siniestros en un solo lugar. Búsqueda y filtros avanzados." },
-    { icon: IconMoney, title: "Indemnizaciones y pagos", desc: "Autoriza montos, registra formas de pago y genera documentos PDF profesionales listos para entregar al cliente." },
-    { icon: IconChart, title: "Dashboard y reportes", desc: "Visualiza KPIs en tiempo real: pólizas activas, siniestros por mes, ingresos vs egresos. Exporta reportes cuando los necesites." },
-    { icon: IconLock, title: "Roles y permisos", desc: "Control total sobre quién ve qué. Crea roles personalizados para ajustadores, peritos, agentes y administrativos." },
+    { icon: IconDoc,    title: "Gestión de pólizas",      desc: "Registra, edita y da seguimiento a todas las pólizas activas. Alertas automáticas de vencimiento para nunca perder una renovación." },
+    { icon: IconAlert,  title: "Control de siniestros",   desc: "Flujo completo de reporte, evaluación e indemnización. Asigna ajustadores, sube evidencias y cierra casos eficientemente." },
+    { icon: IconPeople, title: "Gestión de clientes",     desc: "Expediente completo de cada cliente con sus bienes, pólizas y siniestros en un solo lugar. Búsqueda y filtros avanzados." },
+    { icon: IconMoney,  title: "Indemnizaciones y pagos", desc: "Autoriza montos, registra formas de pago y genera documentos PDF profesionales listos para entregar al cliente." },
+    { icon: IconChart,  title: "Dashboard y reportes",    desc: "Visualiza KPIs en tiempo real: pólizas activas, siniestros por mes, ingresos vs egresos. Exporta reportes cuando los necesites." },
+    { icon: IconLock,   title: "Roles y permisos",        desc: "Control total sobre quién ve qué. Crea roles personalizados para ajustadores, peritos, agentes y administrativos." },
 ];
 
-/* ──────────────────────────────────────────────────────────────
-   COMPONENT
-   ────────────────────────────────────────────────────────────── */
+const PLAN_BTN_LABEL = {
+    basico:   "Probar el plan Básico",
+    estandar: "Probar el plan Estándar",
+    premium:  "Activar plan Premium",
+};
+
+/* ══════════════════════════════════════════════════════════
+   CARRUSEL COMPONENT
+   ══════════════════════════════════════════════════════════ */
+function Carrusel() {
+    const [current, setCurrent]   = useState(0);
+    const [paused,  setPaused]    = useState(false);
+    const [animDir, setAnimDir]   = useState("next"); // "next" | "prev"
+    const [animating, setAnimating] = useState(false);
+
+    const goTo = useCallback((idx, dir = "next") => {
+        if (animating) return;
+        setAnimDir(dir);
+        setAnimating(true);
+        setTimeout(() => {
+            setCurrent(idx);
+            setAnimating(false);
+        }, 380);
+    }, [animating]);
+
+    const prev = () => goTo((current - 1 + SLIDES.length) % SLIDES.length, "prev");
+    const next = useCallback(() => goTo((current + 1) % SLIDES.length, "next"), [current, goTo]);
+
+    /* auto-avance cada 4.5 s */
+    useEffect(() => {
+        if (paused) return;
+        const id = setInterval(next, 4500);
+        return () => clearInterval(id);
+    }, [paused, next]);
+
+    /* swipe táctil */
+    const touchStart = useRef(null);
+    const onTouchStart = (e) => { touchStart.current = e.touches[0].clientX; };
+    const onTouchEnd   = (e) => {
+        if (touchStart.current === null) return;
+        const diff = touchStart.current - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 40) diff > 0 ? next() : prev();
+        touchStart.current = null;
+    };
+
+    const slide = SLIDES[current];
+
+    return (
+        <section
+            className="lp-carrusel fade-up"
+            onMouseEnter={() => setPaused(true)}
+            onMouseLeave={() => setPaused(false)}
+            onTouchStart={onTouchStart}
+            onTouchEnd={onTouchEnd}
+            aria-label="Capturas del sistema"
+        >
+            {/* encabezado */}
+            <div className="carrusel-header">
+                <div className="section-eyebrow">El sistema en acción</div>
+                <h2 className="section-title">Mira lo que verás al entrar</h2>
+                <p className="section-sub">
+                    Capturas reales del sistema. Sin mockups, sin demos infladas.
+                </p>
+            </div>
+
+            {/* slide */}
+            <div className={`carrusel-stage carrusel-anim-${animDir}${animating ? " animating" : ""}`}>
+                <img
+                    src={slide.img}
+                    alt={slide.titulo}
+                    className="carrusel-img"
+                    draggable="false"
+                />
+
+                {/* overlay de texto */}
+                <div className="carrusel-overlay">
+                    <p className="carrusel-slide-titulo">{slide.titulo}</p>
+                    <p className="carrusel-slide-sub">{slide.subtitulo}</p>
+                </div>
+
+                {/* botones prev / next */}
+                <button className="carrusel-btn carrusel-btn-prev" onClick={prev} aria-label="Anterior">
+                    <IconChevronLeft />
+                </button>
+                <button className="carrusel-btn carrusel-btn-next" onClick={next} aria-label="Siguiente">
+                    <IconChevronRight />
+                </button>
+            </div>
+
+            {/* dots */}
+            <div className="carrusel-dots" role="tablist">
+                {SLIDES.map((s, i) => (
+                    <button
+                        key={i}
+                        className={`carrusel-dot${i === current ? " active" : ""}`}
+                        onClick={() => goTo(i, i > current ? "next" : "prev")}
+                        aria-label={`Ir a ${s.titulo}`}
+                        role="tab"
+                        aria-selected={i === current}
+                    />
+                ))}
+            </div>
+
+            {/* barra de progreso */}
+            <div className="carrusel-progress-bar" key={`${current}-${paused}`}>
+                <div className={`carrusel-progress-fill${paused ? " paused" : ""}`} />
+            </div>
+        </section>
+    );
+}
+
+/* necesitamos useRef dentro del componente — lo importamos aquí */
+import { useRef } from "react";
+
+/* ══════════════════════════════════════════════════════════
+   LANDING PAGE
+   ══════════════════════════════════════════════════════════ */
 export default function LandingPage() {
     const navigate = useNavigate();
     const [anual, setAnual] = useState(false);
 
     useEffect(() => {
-        // Habilita scroll al entrar a la landing
         document.body.style.overflow = "auto";
-        document.body.style.height = "auto";
+        document.body.style.height   = "auto";
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add("visible");
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            { threshold: 0.10 }
+        );
+        document.querySelectorAll(".fade-up, .stagger-item").forEach((el) => observer.observe(el));
+
         return () => {
-            // Restaura cuando sale de la landing
             document.body.style.overflow = "hidden";
-            document.body.style.height = "100vh";
+            document.body.style.height   = "100vh";
+            observer.disconnect();
         };
     }, []);
 
-    const irLogin = () => navigate("/login");   // Auth route "/"
-    const irRegistro = () => navigate("/login");   // misma pantalla, tab registro si lo tienes
-
-    /* ── Scroll suave a sección planes ── */
-    const irPlanes = () => {
+    const irLogin    = () => navigate("/login");
+    const irRegistro = () => navigate("/login");
+    const irPlanes   = () => {
         const el = document.getElementById("planes");
         if (el) el.scrollIntoView({ behavior: "smooth" });
     };
 
-    /* ── Format MXN ── */
     const fmt = (n) => `$${Number(n).toLocaleString("es-MX")}`;
 
     return (
         <div className="lp">
 
-            {/* ─── NAV ─────────────────────────────────── */}
+            {/* NAV */}
             <nav className="lp-nav">
                 <a className="nav-logo" href="#">
                     <img src={logo} alt="BalamCore Logo" className="logo-img" />
                     <span className="nav-logo-text">BalamCore</span>
                 </a>
                 <div className="nav-btns">
-                    <button className="btn-ghost" onClick={irLogin}>
-                        Iniciar sesión
-                    </button>
-                    <button className="btn-solid" onClick={irRegistro}>
-                        Registrarse
-                    </button>
+                    <button className="btn-ghost" onClick={irLogin}>Iniciar sesión</button>
+                    <button className="btn-solid" onClick={irRegistro}>Ver precios</button>
                 </div>
             </nav>
 
-            {/* ─── HERO ────────────────────────────────── */}
+            {/* HERO */}
             <section className="lp-hero">
-                <div className="hero-badge">
-                    <IconShield />
-                    Sistema de gestión para aseguradoras
-                </div>
+                <div className="hero-badge"><IconShield />Sistema de gestión para aseguradoras</div>
                 <h1 className="hero-title">
-                    Gestiona tu aseguradora{" "}
-                    <span>de forma inteligente</span>
+                    Gestiona tu aseguradora <span>de forma inteligente</span>
                 </h1>
                 <p className="hero-sub">
                     BalamCore centraliza pólizas, siniestros, clientes y pagos en un solo
                     sistema diseñado especialmente para despachos ajustadores.
                 </p>
                 <div className="hero-btns">
-                    <button className="btn-hero-primary" onClick={irRegistro}>
-                        Prueba gratis 15 días
-                    </button>
-                    <button className="btn-hero-secondary" onClick={irPlanes}>
-                        Ver planes
-                    </button>
+                    <button className="btn-hero-primary"   onClick={irRegistro}>Empezar — 15 días de prueba</button>
+                    <button className="btn-hero-secondary" onClick={irPlanes}>Ver planes y precios</button>
                 </div>
             </section>
 
-            {/* ─── STATS ───────────────────────────────── */}
+            {/* STATS */}
             <div className="lp-stats">
                 {[
-                    { num: "15 días", label: "Prueba gratuita" },
+                    { num: "15 días", label: "Período de prueba" },
                     { num: "3 planes", label: "Para todo tamaño" },
-                    { num: "100%", label: "En la nube" },
-                    { num: "MXN", label: "Precios en pesos" },
+                    { num: "100%",    label: "En la nube" },
+                    { num: "MXN",     label: "Precios en pesos" },
                 ].map((s) => (
                     <div className="stat" key={s.label}>
                         <div className="stat-num">{s.num}</div>
@@ -208,19 +371,18 @@ export default function LandingPage() {
                 ))}
             </div>
 
-            {/* ─── SERVICIOS ───────────────────────────── */}
+            {/* SERVICIOS */}
             <section className="lp-section">
-                <div className="section-eyebrow">Servicios</div>
-                <h2 className="section-title">Todo lo que necesita tu despacho</h2>
-                <p className="section-sub">
-                    Desde el primer reporte hasta la indemnización final, BalamCore cubre
-                    cada etapa del proceso asegurador.
+                <div className="section-eyebrow fade-up">Servicios</div>
+                <h2 className="section-title fade-up">Todo lo que necesita tu despacho</h2>
+                <p className="section-sub fade-up">
+                    Desde el primer reporte hasta la indemnización final, BalamCore cubre cada etapa del proceso asegurador.
                 </p>
                 <div className="services-grid">
-                    {SERVICIOS.map((svc) => {
+                    {SERVICIOS.map((svc, i) => {
                         const SvcIcon = svc.icon;
                         return (
-                            <div className="service-card" key={svc.title}>
+                            <div className="service-card stagger-item" key={svc.title} style={{ "--stagger-delay": `${i * 80}ms` }}>
                                 <div className="service-icon"><SvcIcon /></div>
                                 <h3>{svc.title}</h3>
                                 <p>{svc.desc}</p>
@@ -230,22 +392,21 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ─── CÓMO FUNCIONA ───────────────────────── */}
+            {/* CÓMO FUNCIONA */}
             <section className="lp-section lp-section-white">
-                <div className="section-eyebrow">Cómo funciona</div>
-                <h2 className="section-title">En marcha en minutos</h2>
-                <p className="section-sub">
-                    Sin instalaciones, sin servidores propios. Solo regístrate y empieza a
-                    operar tu despacho desde el navegador.
+                <div className="section-eyebrow fade-up">Cómo funciona</div>
+                <h2 className="section-title fade-up">En marcha en minutos</h2>
+                <p className="section-sub fade-up">
+                    Sin instalaciones, sin servidores propios. Solo regístrate y empieza a operar tu despacho desde el navegador.
                 </p>
                 <div className="steps-grid">
                     {[
-                        { n: 1, title: "Regístrate", desc: "Crea tu cuenta y activa automáticamente 15 días de prueba gratuita con acceso completo al sistema." },
-                        { n: 2, title: "Configura tu despacho", desc: "Agrega empleados, define roles y permisos. El sistema se adapta a la estructura de tu organización." },
-                        { n: 3, title: "Importa tus datos", desc: "Registra clientes, pólizas y bienes. El flujo guiado hace el proceso sencillo desde el primer día." },
-                        { n: 4, title: "Opera con eficiencia", desc: "Gestiona siniestros, envía avisos automáticos y genera reportes sin salir del sistema." },
-                    ].map(({ n, title, desc }) => (
-                        <div className="step" key={n}>
+                        { n: 1, title: "Regístrate",             desc: "Crea tu cuenta e inicia tu período de prueba de 15 días con acceso completo al sistema." },
+                        { n: 2, title: "Configura tu despacho",  desc: "Agrega empleados, define roles y permisos. El sistema se adapta a la estructura de tu organización." },
+                        { n: 3, title: "Importa tus datos",      desc: "Registra clientes, pólizas y bienes. El flujo guiado hace el proceso sencillo desde el primer día." },
+                        { n: 4, title: "Opera con eficiencia",   desc: "Gestiona siniestros, envía avisos automáticos y genera reportes sin salir del sistema." },
+                    ].map(({ n, title, desc }, i) => (
+                        <div className="step stagger-item" key={n} style={{ "--stagger-delay": `${i * 100}ms` }}>
                             <div className="step-num">{n}</div>
                             <h3>{title}</h3>
                             <p>{desc}</p>
@@ -254,84 +415,53 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ─── PLANES ──────────────────────────────── */}
+            {/* ── CARRUSEL ── justo aquí, entre pasos y planes ── */}
+            <Carrusel />
+
+            {/* PLANES */}
             <section className="lp-plans" id="planes">
-                <div className="section-eyebrow">Planes</div>
-                <h2 className="section-title">Elige el plan que se adapta a tu despacho</h2>
-                <p className="section-sub">
-                    15 días de prueba gratuita en todos los planes. Sin tarjeta de crédito
-                    requerida.
+                <div className="section-eyebrow fade-up">Planes</div>
+                <h2 className="section-title fade-up">Elige el plan que se adapta a tu despacho</h2>
+                <p className="section-sub fade-up">
+                    Prueba cualquier plan 15 días sin costo. Al vencer, elige el que mejor
+                    se adapte a tu despacho y actívalo con pago mensual o anual.
                 </p>
 
-                {/* Toggle mensual / anual */}
-                <div className="plans-toggle">
-                    <button
-                        className={`ptbtn ${!anual ? "active" : "inactive"}`}
-                        onClick={() => setAnual(false)}
-                    >
-                        Mensual
-                    </button>
-                    <button
-                        className={`ptbtn ${anual ? "active" : "inactive"}`}
-                        onClick={() => setAnual(true)}
-                    >
-                        Anual — Ahorra
-                    </button>
+                <div className="plans-toggle fade-up">
+                    <button className={`ptbtn ${!anual ? "active" : "inactive"}`} onClick={() => setAnual(false)}>Mensual</button>
+                    <button className={`ptbtn ${anual  ? "active" : "inactive"}`} onClick={() => setAnual(true)}>Anual — Ahorra</button>
                 </div>
 
                 <div className="plans-grid">
-                    {PLANES_BASE.map((plan) => {
-                        const precio = anual ? plan.precioAnual : plan.precioMensual;
-                        const periodo = anual ? "/año" : "/mes";
-                        const equivMes = anual
-                            ? `Equivale a ${fmt(Math.round(plan.precioAnual / 12))}/mes`
-                            : null;
-
+                    {PLANES_BASE.map((plan, i) => {
+                        const precio   = anual ? plan.precioAnual : plan.precioMensual;
+                        const periodo  = anual ? "/año" : "/mes";
+                        const equivMes = anual ? `Equivale a ${fmt(Math.round(plan.precioAnual / 12))}/mes` : null;
                         return (
-                            <div
-                                key={plan.key}
-                                className={`plan-card${plan.featured ? " featured" : ""}`}
-                            >
-                                {plan.featured && (
-                                    <div className="plan-badge">⭐ Más completo</div>
-                                )}
+                            <div key={plan.key} className={`plan-card stagger-item${plan.featured ? " featured" : ""}`} style={{ "--stagger-delay": `${i * 120}ms` }}>
+                                {plan.featured && <div className="plan-badge">⭐ Más completo</div>}
                                 <div className="plan-name">{plan.nombre}</div>
                                 <div className="plan-desc">{plan.desc}</div>
-
                                 <div className="plan-price">
                                     <span className="plan-amount">{fmt(precio)}</span>
                                     <span className="plan-period">{periodo}</span>
-                                    {equivMes && (
-                                        <div className="plan-equiv">{equivMes}</div>
-                                    )}
+                                    {equivMes && <div className="plan-equiv">{equivMes}</div>}
                                 </div>
-
                                 <div className="plan-features">
                                     <div className="plan-feat-section-label">Módulos incluidos</div>
                                     {plan.modulos.map((m) => (
-                                        <div className="plan-feature" key={m}>
-                                            <span className="chk">✓</span> {m}
-                                        </div>
+                                        <div className="plan-feature" key={m}><span className="chk">✓</span> {m}</div>
                                     ))}
-
                                     <hr className="plan-divider" />
-
                                     <div className="plan-feat-section-label">Características</div>
                                     {plan.limites.map((l) => (
                                         <div className="plan-feature" key={l.texto}>
-                                            <span className={l.limitado ? "lim" : "chk"}>
-                                                {l.limitado ? "⊘" : "✓"}
-                                            </span>{" "}
-                                            {l.texto}
+                                            <span className={l.limitado ? "lim" : "chk"}>{l.limitado ? "⊘" : "✓"}</span> {l.texto}
                                         </div>
                                     ))}
                                 </div>
-
-                                <button
-                                    className={`plan-btn ${plan.featured ? "plan-btn-featured" : "plan-btn-default"}`}
-                                    onClick={irRegistro}
-                                >
-                                    Comenzar gratis
+                                <button className={`plan-btn ${plan.featured ? "plan-btn-featured" : "plan-btn-default"}`} onClick={irRegistro}>
+                                    {PLAN_BTN_LABEL[plan.key]}
                                 </button>
                             </div>
                         );
@@ -339,29 +469,23 @@ export default function LandingPage() {
                 </div>
             </section>
 
-            {/* ─── CTA ─────────────────────────────────── */}
+            {/* CTA */}
             <section className="lp-cta">
-                <h2>Empieza hoy con 15 días gratis</h2>
-                <p>
-                    Sin tarjeta de crédito. Sin compromisos. Acceso completo al sistema
-                    desde el primer día.
+                <h2 className="fade-up">Activa tu período de prueba hoy</h2>
+                <p className="fade-up">
+                    15 días de acceso completo para que evalúes el sistema sin compromiso.
+                    Al finalizar, elige el plan que mejor se adapte a tu despacho.
                 </p>
-                <div className="cta-btns">
-                    <button className="btn-hero-primary" onClick={irRegistro}>
-                        Crear cuenta gratis
-                    </button>
-                    <button className="btn-hero-secondary" onClick={irLogin}>
-                        Iniciar sesión
-                    </button>
+                <div className="cta-btns fade-up">
+                    <button className="btn-hero-primary"   onClick={irRegistro}>Ver planes y registrarse</button>
+                    <button className="btn-hero-secondary" onClick={irLogin}>Iniciar sesión</button>
                 </div>
             </section>
 
-            {/* ─── FOOTER ──────────────────────────────── */}
+            {/* FOOTER */}
             <footer className="lp-footer">
                 <div className="footer-logo">BalamCore</div>
-                <div className="footer-copy">
-                    © 2026 BalamCore · Sistema de Gestión de Aseguradoras
-                </div>
+                <div className="footer-copy">© 2026 BalamCore · Sistema de Gestión de Aseguradoras</div>
             </footer>
         </div>
     );

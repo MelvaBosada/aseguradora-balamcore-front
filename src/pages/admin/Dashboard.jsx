@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -8,17 +8,15 @@ import {
 import PolicyIcon from "@mui/icons-material/Policy";
 import ReportProblemIcon from "@mui/icons-material/ReportProblem";
 import PeopleIcon from "@mui/icons-material/People";
-import PaymentsIcon from "@mui/icons-material/Payments";
 
 import AvisosPanel from "../../components/Avisospanel";
+import ModalPlanes from "../../components/ModalPlanes";
 import "../../css/Dashboard.css";
 import usePermisos from "../../hooks/usePermisos";
 
 const API        = "http://localhost:8000/api";
 const PIE_COLORS = ["#0F4C3A", "#295E4E", "#4a9477", "#f59e0b", "#94a3b8"];
 
-
-// Convierte cualquier respuesta a array seguro
 const toArray = (data) => {
     if (!data) return [];
     if (Array.isArray(data)) return data;
@@ -26,7 +24,6 @@ const toArray = (data) => {
     return [];
 };
 
-/* ── TOOLTIP ──────────────────────────────────────── */
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
@@ -43,7 +40,6 @@ const CustomTooltip = ({ active, payload, label }) => {
     return null;
 };
 
-/* ── BADGE ESTADO ─────────────────────────────────── */
 const badgeEstado = (estado) => {
     const map = {
         abierto:       "badge-activo",
@@ -56,7 +52,6 @@ const badgeEstado = (estado) => {
     return <span className={`badge-estado ${map[estado] ?? ""}`}>{estado}</span>;
 };
 
-/* ── BOTONES FILTRO ───────────────────────────────── */
 const FiltroBtn = ({ valor, actual, onChange }) => (
     <button
         className={actual === valor ? "filtro-btn active" : "filtro-btn"}
@@ -66,23 +61,65 @@ const FiltroBtn = ({ valor, actual, onChange }) => (
     </button>
 );
 
-/* ── COMPONENTE ───────────────────────────────────── */
 const Dashboard = () => {
-    const { verificarPagoStripe } = usePermisos();
+    const { verificarPagoStripe, vencida } = usePermisos();
+    const interceptorRef = useRef(null);
+
+    const [openPlanes, setOpenPlanes]               = useState(false);
     const [kpis, setKpis]                           = useState(null);
     const [ingresos, setIngresos]                   = useState([]);
     const [polizasTipo, setPolizasTipo]             = useState([]);
     const [tendencia, setTendencia]                 = useState([]);
     const [ultimosSiniestros, setUltimosSiniestros] = useState([]);
 
-    const [filtroIngresos, setFiltroIngresos]     = useState("mensual");
-    const [filtroTendencia, setFiltroTendencia]   = useState("mensual");
+    const [filtroIngresos, setFiltroIngresos]   = useState("mensual");
+    const [filtroTendencia, setFiltroTendencia] = useState("mensual");
 
     const [loadingKpis, setLoadingKpis]           = useState(true);
     const [loadingIngresos, setLoadingIngresos]   = useState(true);
     const [loadingTendencia, setLoadingTendencia] = useState(true);
 
-    // ── Al montar ────────────────────────────────────
+    // ── Interceptor: si backend devuelve 403 por plan vencido → abrir modal ──
+    useEffect(() => {
+        interceptorRef.current = axios.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (error.response?.status === 403) {
+                    const msg = error.response.data?.message ?? "";
+                    if (
+                        msg.includes("vencido") ||
+                        msg.includes("expirado") ||
+                        msg.includes("prueba") ||
+                        msg.includes("suscripción") ||
+                        msg.includes("suscripcion")
+                    ) {
+                        setOpenPlanes(true);
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );
+        return () => {
+            axios.interceptors.response.eject(interceptorRef.current);
+        };
+    }, []);
+
+    // ── Abrir modal si vencida al montar ─────────────────
+    useEffect(() => {
+        if (vencida) setOpenPlanes(true);
+    }, [vencida]);
+
+    // ── Verificar pago Stripe al volver ──────────────────
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("pago") === "exitoso") {
+            verificarPagoStripe().then((res) => {
+                if (res) window.location.reload();
+            });
+        }
+    }, [verificarPagoStripe]);
+
+    // ── Al montar ─────────────────────────────────────────
     useEffect(() => {
         axios.get(`${API}/dashboard/kpis`)
             .then(res => setKpis(res.data ?? null))
@@ -95,31 +132,27 @@ const Dashboard = () => {
             .then(res => setUltimosSiniestros(toArray(res.data)));
     }, []);
 
-    // ── Ingresos ─────────────────────────────────────
+    // ── Ingresos ──────────────────────────────────────────
     useEffect(() => {
         let cancelado = false;
         setTimeout(() => { if (!cancelado) setLoadingIngresos(true); }, 0);
-
         axios.get(`${API}/dashboard/ingresos?filtro=${filtroIngresos}`)
             .then(res => { if (!cancelado) setIngresos(toArray(res.data)); })
             .finally(() => { if (!cancelado) setLoadingIngresos(false); });
-
         return () => { cancelado = true; };
     }, [filtroIngresos]);
 
-    // ── Tendencia ────────────────────────────────────
+    // ── Tendencia ─────────────────────────────────────────
     useEffect(() => {
         let cancelado = false;
         setTimeout(() => { if (!cancelado) setLoadingTendencia(true); }, 0);
-
         axios.get(`${API}/dashboard/tendencia-siniestros?filtro=${filtroTendencia}`)
             .then(res => { if (!cancelado) setTendencia(toArray(res.data)); })
             .finally(() => { if (!cancelado) setLoadingTendencia(false); });
-
         return () => { cancelado = true; };
     }, [filtroTendencia]);
 
-    // ── KPI cards ────────────────────────────────────
+    // ── KPI cards ─────────────────────────────────────────
     const kpiCards = kpis ? [
         {
             label: "Pólizas activas en total",
@@ -145,10 +178,8 @@ const Dashboard = () => {
             icon: <PeopleIcon />,
             bg: "#dbeafe", color: "#2563eb",
         },
-       
     ] : [];
 
-    // ── Stats alto/bajo tendencia ────────────────────
     const tendenciaValida = tendencia.filter(t => t && typeof t.siniestros === "number");
     const mesAlto = tendenciaValida.length
         ? tendenciaValida.reduce((a, b) => a.siniestros > b.siniestros ? a : b)
@@ -156,22 +187,20 @@ const Dashboard = () => {
     const mesBajo = tendenciaValida.length
         ? tendenciaValida.reduce((a, b) => a.siniestros < b.siniestros ? a : b)
         : null;
-useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("pago") === "exitoso") {
-        verificarPagoStripe().then((res) => {
-            if (res) {
-                // Mostrar snack o mensaje de éxito
-                console.log("Suscripción activada:", res.message);
-                // Recargar para que tome la nueva suscripción del localStorage
-                window.location.reload();
-            }
-        });
-    }
-}, [verificarPagoStripe]);
+
+    const handleLogout = () => {
+        localStorage.clear();
+        window.location.href = "/";
+    };
 
     return (
         <div className="dash-wrapper">
+
+            <ModalPlanes
+                open={openPlanes}
+                onClose={() => setOpenPlanes(false)}
+                onLogout={handleLogout}
+            />
 
             {/* KPIs */}
             <div className="dash-grid">
@@ -196,7 +225,6 @@ useEffect(() => {
 
             {/* GRÁFICAS */}
             <div className="dash-charts">
-
                 <div className="chart-card">
                     <div className="chart-header">
                         <h3>Ingresos vs Siniestros</h3>
@@ -261,12 +289,10 @@ useEffect(() => {
                         }
                     </div>
                 </div>
-
             </div>
 
             {/* BOTTOM */}
             <div className="dash-bottom">
-
                 <div className="chart-card">
                     <h3>Últimos siniestros</h3>
                     <div className="dash-table-wrapper">
@@ -352,13 +378,12 @@ useEffect(() => {
                         </div>
                     </div>
                 </div>
-
             </div>
 
             <AvisosPanel />
-
         </div>
     );
 };
 
 export default Dashboard;
+
