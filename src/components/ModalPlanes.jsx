@@ -10,26 +10,39 @@ import axios from "axios";
 import logo from "../assets/LogoA.png";
 
 const ModalPlanes = ({ open, onClose, onLogout }) => {
-  const [planes, setPlanes] = useState([]);
+  const [planes, setPlanes]   = useState([]);
   const [hovered, setHovered] = useState(null);
-  const [anual, setAnual] = useState(false);
+  const [anual, setAnual]     = useState(false);
   const [pagando, setPagando] = useState(null);
 
-  const { esPrueba, vencida, diasRestantes, suscripcion, iniciarPago } = usePermisos();
+  const {
+    esPrueba,
+    vencida,
+    planPagadoVencido,
+    diasRestantes,
+    suscripcion,
+    iniciarPago,
+  } = usePermisos();
 
-  const dias = diasRestantes();
-  const tienePlan = !esPrueba && suscripcion?.estatus === "activa";
-  const duracionTotal = suscripcion?.fecha_inicio_plan && suscripcion?.fecha_fin_plan
-    ? Math.round((new Date(suscripcion.fecha_fin_plan) - new Date(suscripcion.fecha_inicio_plan)) / (1000 * 60 * 60 * 24))
-    : 30;
-  const progreso = tienePlan ? Math.max(0, Math.min(100, (dias / duracionTotal) * 100)) : 0;
+  const dias         = diasRestantes();
+  const tienePlan    = !esPrueba && suscripcion?.estatus === "activa";
+  const duracionTotal =
+    suscripcion?.fecha_inicio_plan && suscripcion?.fecha_fin_plan
+      ? Math.round(
+          (new Date(suscripcion.fecha_fin_plan) - new Date(suscripcion.fecha_inicio_plan)) /
+          (1000 * 60 * 60 * 24)
+        )
+      : 30;
+  const progreso = tienePlan
+    ? Math.max(0, Math.min(100, (dias / duracionTotal) * 100))
+    : 0;
 
   useEffect(() => {
     if (!open) return;
     const cargar = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:8000/api/planes", {
+        const res   = await axios.get("http://localhost:80/api/planes", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const planesConModulos = await Promise.all(
@@ -51,6 +64,7 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
 
   if (!open) return null;
 
+  // Si está vencido (trial o plan pagado), X = logout; si no, X = cerrar
   const handleClose = () => {
     if (vencida) onLogout();
     else onClose();
@@ -94,6 +108,32 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
     return limites;
   };
 
+  // ── Textos del header según el contexto ──────────────
+  const headerTexto = (() => {
+    if (planPagadoVencido) {
+      return {
+        titulo:    "Tu plan ha vencido",
+        subtitulo: `Tu plan ${suscripcion?.plan ?? ""} expiró. Renuévalo para seguir usando BalamCore.`,
+      };
+    }
+    if (vencida) {
+      return {
+        titulo:    "Tu periodo de prueba ha terminado",
+        subtitulo: "Selecciona un plan para seguir usando BalamCore",
+      };
+    }
+    if (tienePlan) {
+      return {
+        titulo:    "Gestiona tu plan",
+        subtitulo: null, // se muestra la barra de progreso en su lugar
+      };
+    }
+    return {
+      titulo:    "Elige tu plan",
+      subtitulo: `Te quedan ${dias} día${dias === 1 ? "" : "s"} de tu prueba gratuita`,
+    };
+  })();
+
   return (
     <div style={{
       position: "fixed", inset: 0,
@@ -128,7 +168,7 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
           }
         `}</style>
 
-        {/* BOTON X */}
+        {/* BOTÓN X */}
         <button
           onClick={handleClose}
           style={{
@@ -147,12 +187,16 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
         {/* HEADER */}
         <div style={{ textAlign: "center", padding: "32px 28px 20px" }}>
           <img src={logo} style={{ width: 80, marginBottom: 14, opacity: 0.95 }} alt="BalamCore" />
-          <h2 style={{ fontSize: "1.7rem", fontWeight: 900, color: "#fff", margin: "0 0 8px", letterSpacing: "-0.03em" }}>
-            {vencida ? "Tu periodo de prueba ha terminado" : "Elige tu plan"}
+
+          <h2 style={{
+            fontSize: "1.7rem", fontWeight: 900, color: "#fff",
+            margin: "0 0 8px", letterSpacing: "-0.03em",
+          }}>
+            {headerTexto.titulo}
           </h2>
 
-          {/* INFO DEL PLAN ACTUAL */}
-          {tienePlan ? (
+          {/* Barra de progreso si tiene plan activo vigente */}
+          {tienePlan && !planPagadoVencido ? (
             <div style={{ margin: "0 auto 20px", maxWidth: 320 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 8 }}>
                 <WorkspacePremiumIcon style={{ fontSize: 16, color: "#D4AF37" }} />
@@ -161,7 +205,6 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
                 </span>
                 <span style={{ color: "rgba(255,255,255,0.4)", fontSize: 12 }}>activo</span>
               </div>
-              {/* Barra de progreso */}
               <div style={{
                 background: "rgba(255,255,255,0.08)", borderRadius: 99,
                 height: 6, overflow: "hidden", marginBottom: 6,
@@ -178,21 +221,17 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
               </div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
                 <AccessTimeIcon style={{ fontSize: 12, color: dias <= 7 ? "#e74c3c" : "rgba(255,255,255,0.4)" }} />
-                <span style={{
-                  color: dias <= 7 ? "#e74c3c" : "rgba(255,255,255,0.45)",
-                  fontSize: 11,
-                }}>
+                <span style={{ color: dias <= 7 ? "#e74c3c" : "rgba(255,255,255,0.45)", fontSize: 11 }}>
                   {dias <= 0 ? "Vence hoy" : `Vence en ${dias} día${dias === 1 ? "" : "s"}`}
                 </span>
               </div>
             </div>
           ) : (
-            <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, margin: "0 0 20px" }}>
-              {vencida
-                ? "Selecciona un plan para seguir usando BalamCore"
-                : `Te quedan ${dias} días de tu prueba gratuita`
-              }
-            </p>
+            headerTexto.subtitulo && (
+              <p style={{ color: "rgba(255,255,255,0.55)", fontSize: 14, margin: "0 0 20px" }}>
+                {headerTexto.subtitulo}
+              </p>
+            )
           )}
 
           {/* TOGGLE MENSUAL / ANUAL */}
@@ -234,9 +273,11 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
         }}>
           {planes.map((plan) => {
             const precioMostrar = anual ? plan.precio_anual : plan.precio;
-            const periodoLabel = anual ? "/año" : "/mes";
-            const esPlanActual = suscripcion?.id_plan === plan.id &&
-              suscripcion?.periodo === (anual ? "anual" : "mensual");
+            const periodoLabel  = anual ? "/año" : "/mes";
+            const esPlanActual  =
+              suscripcion?.id_plan === plan.id &&
+              suscripcion?.periodo === (anual ? "anual" : "mensual") &&
+              !planPagadoVencido; // si venció, ninguno es "actual" para forzar la compra
 
             return (
               <div
@@ -257,7 +298,6 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
                   boxShadow: hovered === plan.id ? "0 20px 40px rgba(0,0,0,0.3)" : "none",
                 }}
               >
-                {/* BADGE PLAN ACTUAL */}
                 {esPlanActual && (
                   <div style={{
                     background: "linear-gradient(90deg, #D4AF37, #f0d060)",
@@ -268,6 +308,20 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
                   }}>
                     <WorkspacePremiumIcon style={{ fontSize: 11 }} />
                     Plan actual
+                  </div>
+                )}
+
+                {/* Badge "Vencido" para el plan que expiró */}
+                {planPagadoVencido && suscripcion?.id_plan === plan.id && (
+                  <div style={{
+                    background: "rgba(220,38,38,0.15)",
+                    border: "1px solid rgba(220,38,38,0.4)",
+                    color: "#f87171",
+                    fontSize: 10, fontWeight: 800, padding: "3px 10px",
+                    borderRadius: 10, alignSelf: "flex-start", marginBottom: 8,
+                    display: "flex", alignItems: "center", gap: 4,
+                  }}>
+                    Plan vencido — Renueva
                   </div>
                 )}
 
@@ -355,9 +409,11 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
                     ? "Procesando..."
                     : esPlanActual
                       ? `✓ Plan activo · ${dias}d restantes`
-                      : suscripcion?.id_plan === plan.id
-                        ? `Cambiar a ${anual ? "anual" : "mensual"}`
-                        : `Contratar ${anual ? "anual" : "mensual"}`
+                      : planPagadoVencido && suscripcion?.id_plan === plan.id
+                        ? `Renovar ${anual ? "anual" : "mensual"}`
+                        : suscripcion?.id_plan === plan.id
+                          ? `Cambiar a ${anual ? "anual" : "mensual"}`
+                          : `Contratar ${anual ? "anual" : "mensual"}`
                   }
                 </button>
               </div>

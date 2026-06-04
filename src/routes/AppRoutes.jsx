@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes } from "react-router-dom"
 import { AuthRoutes } from "./AuthRoutes"
 import { AdminRoutes } from "./AdminRoutes"
+import { SuperAdminRoutes} from "./SuperAdminRoutes"
+
 
 function AppRoutes() {
   return (
@@ -8,6 +10,7 @@ function AppRoutes() {
       <Routes>
         {AuthRoutes}
         {AdminRoutes}
+        {SuperAdminRoutes}
       </Routes>
     </BrowserRouter>
   )

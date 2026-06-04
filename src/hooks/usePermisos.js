@@ -1,10 +1,7 @@
 import axios from "axios";
 
-// Estatus que significan plan pagado activo
 const ESTATUS_ACTIVO  = ["activa", "activo"];
-// Estatus que significan periodo de prueba
 const ESTATUS_PRUEBA  = ["prueba", "trial"];
-// Todos los estatus válidos
 const ESTATUS_VALIDOS = [...ESTATUS_ACTIVO, ...ESTATUS_PRUEBA];
 
 const usePermisos = () => {
@@ -13,29 +10,34 @@ const usePermisos = () => {
   const usuario     = JSON.parse(localStorage.getItem("usuario")     || "{}");
   const suscripcion = JSON.parse(localStorage.getItem("suscripcion") || "null");
 
-  // ── Tiene módulo y permiso ──────────────────────────
- // ✅ Pon esto
-const tieneModulo  = (clave) => modulos.length === 0 || modulos.includes(clave);
-const tienePermiso = (clave) => permisos.includes(clave);
-const tiene        = (clave) => tienePermiso(clave) && tieneModulo(clave);
-
-  const tieneAlguno = (...claves) => claves.some((c) => tiene(c));
+  const tieneModulo  = (clave) => modulos.length === 0 || modulos.includes(clave);
+  const tienePermiso = (clave) => permisos.includes(clave);
+  const tiene        = (clave) => tienePermiso(clave) && tieneModulo(clave);
+  const tieneAlguno  = (...claves) => claves.some((c) => tiene(c));
 
   // ── Estado del plan ─────────────────────────────────
-  const tienePlanActivo = suscripcion && ESTATUS_ACTIVO.includes(suscripcion.estatus);
-  const esPrueba        = !suscripcion || ESTATUS_PRUEBA.includes(suscripcion.estatus);
+  const estatusActivo = suscripcion && ESTATUS_ACTIVO.includes(suscripcion.estatus);
+
+  // Plan pagado activo Y que no ha vencido por fecha
+  const tienePlanActivo = (() => {
+    if (!estatusActivo) return false;
+    if (!suscripcion.fecha_fin_plan) return true; // sin fecha límite = activo
+    return new Date(suscripcion.fecha_fin_plan) > new Date();
+  })();
+
+  const esPrueba = !suscripcion || ESTATUS_PRUEBA.includes(suscripcion.estatus);
 
   // ── Días restantes ──────────────────────────────────
   const diasRestantes = () => {
     // Plan pagado — usar fecha_fin_plan
-    if (tienePlanActivo && suscripcion.fecha_fin_plan) {
+    if (estatusActivo && suscripcion.fecha_fin_plan) {
       const fin  = new Date(suscripcion.fecha_fin_plan);
       const hoy  = new Date();
       const diff = Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24));
       return diff > 0 ? diff : 0;
     }
 
-    // Trial — usar fecha_fin si existe, si no calcular desde fecha_registro
+    // Trial — usar fecha_fin si existe
     if (suscripcion?.fecha_fin) {
       const fin  = new Date(suscripcion.fecha_fin);
       const hoy  = new Date();
@@ -43,7 +45,7 @@ const tiene        = (clave) => tienePermiso(clave) && tieneModulo(clave);
       return diff > 0 ? diff : 0;
     }
 
-    // Fallback: calcular desde fecha_registro de la aseguradora
+    // Fallback: calcular desde fecha_registro
     const fechaRegistro = usuario.fecha_registro;
     if (fechaRegistro) {
       const registro   = new Date(fechaRegistro);
@@ -56,7 +58,14 @@ const tiene        = (clave) => tienePermiso(clave) && tieneModulo(clave);
     return 15;
   };
 
-  const vencida = diasRestantes() <= 0 && !tienePlanActivo;
+  // ── vencida: trial expirado O plan pagado vencido por fecha ──
+  const planPagadoVencido =
+    estatusActivo &&
+    suscripcion?.fecha_fin_plan &&
+    new Date(suscripcion.fecha_fin_plan) <= new Date();
+
+  const vencida = (diasRestantes() <= 0 && !estatusActivo) || planPagadoVencido;
+
   const esAdmin = usuario.rol === "Administrador" || usuario.id_rol === 1;
 
   // ── Límites del plan ────────────────────────────────
@@ -112,16 +121,13 @@ const tiene        = (clave) => tienePermiso(clave) && tieneModulo(clave);
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Actualizar suscripción en localStorage
       const resSus = await axios.get(
         "http://localhost:8000/api/suscripcion/actual",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       localStorage.setItem("suscripcion", JSON.stringify(resSus.data));
 
-      // Limpiar params de la URL sin recargar
       window.history.replaceState({}, "", window.location.pathname);
-
       return res.data;
     } catch (err) {
       console.error("Error al verificar pago:", err);
@@ -134,20 +140,18 @@ const tiene        = (clave) => tienePermiso(clave) && tieneModulo(clave);
     modulos,
     tiene,
     tieneAlguno,
+    tieneModulo,
     suscripcion,
     diasRestantes,
     esPrueba,
     tienePlanActivo,
     vencida,
+    planPagadoVencido,  // ← nuevo, útil para el modal
     esAdmin,
     limites,
     puedeCrear,
     iniciarPago,
     verificarPagoStripe,
-  tieneModulo,
-
-
-    
   };
 };
 

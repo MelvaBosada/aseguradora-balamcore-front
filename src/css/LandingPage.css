@@ -1,3 +1,4 @@
+
 /* ============================================
    BALAMCORE LANDING PAGE — CSS
    Breakpoints: 300, 400, 500, 600, 700, 800,
@@ -665,4 +666,378 @@ button { font-family: var(--font-body); }
   .plan-card { padding: 16px 12px; }
   .service-card { padding: 18px; }
   .section-title { font-size: 20px; }
+}
+
+
+
+
+/* ============================================
+   ANIMACIONES
+   ============================================ */
+
+/* ── keyframes ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes heroEntrance {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes badgeShimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes floatStat {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+@keyframes countUp {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Hero: entradas escalonadas al cargar ── */
+.lp-hero .hero-badge {
+  animation: heroEntrance 0.55s ease both;
+  animation-delay: 0.05s;
+}
+.lp-hero .hero-title {
+  animation: heroEntrance 0.60s ease both;
+  animation-delay: 0.15s;
+}
+.lp-hero .hero-sub {
+  animation: heroEntrance 0.60s ease both;
+  animation-delay: 0.28s;
+}
+.lp-hero .hero-btns {
+  animation: heroEntrance 0.60s ease both;
+  animation-delay: 0.40s;
+}
+
+/* ── Badge shimmer ── */
+.hero-badge {
+  background-size: 200% auto;
+  transition: background 0.3s;
+}
+.hero-badge:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.06) 0%,
+    rgba(255,255,255,0.18) 50%,
+    rgba(255,255,255,0.06) 100%
+  );
+  background-size: 200% auto;
+  animation: badgeShimmer 1.4s linear infinite;
+}
+
+/* ── Stats flota al hacer hover ── */
+.stat {
+  transition: transform 0.35s ease;
+}
+.stat:hover {
+  animation: floatStat 1.8s ease-in-out infinite;
+}
+.stat-num {
+  animation: countUp 0.5s ease both;
+  animation-delay: 0.5s;
+  opacity: 0;
+  animation-fill-mode: forwards;
+}
+
+/* ── fade-up: elemento oculto hasta que sea visible ── */
+.fade-up {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+.fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── stagger-item: cards con retraso escalonado ── */
+.stagger-item {
+  opacity: 0;
+  transform: translateY(30px);
+  transition:
+    opacity   0.50s ease,
+    transform 0.50s ease,
+    box-shadow 0.25s ease;
+  transition-delay: var(--stagger-delay, 0ms);
+}
+.stagger-item.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Cards de servicio: hover más llamativo ── */
+.service-card:hover {
+  box-shadow: 0 18px 44px rgba(15,76,58,0.14);
+  transform: translateY(-5px);
+  border-color: #c8dfd8;
+}
+
+/* ── Step numbers: pulse suave al hacer hover ── */
+.step:hover .step-num {
+  transform: scale(1.12);
+  transition: transform 0.25s ease;
+  box-shadow: 0 10px 28px rgba(15,76,58,0.35);
+}
+.step-num {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* ── Plan cards: glow de color en hover ── */
+.plan-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 50px rgba(0,0,0,0.30);
+}
+.plan-card.featured:hover {
+  box-shadow: 0 24px 50px rgba(212,175,55,0.20);
+}
+
+/* ── Botón hero primario: pulse sutil para llamar atención ── */
+@keyframes pulseGreen {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0.40); }
+  50%       { box-shadow: 0 0 0 8px rgba(74,222,128,0); }
+}
+.btn-hero-primary {
+  animation: pulseGreen 2.6s ease-in-out infinite;
+  animation-delay: 1.2s;
+}
+.btn-hero-primary:hover {
+  animation: none;
+}
+
+/* ── Toggle de planes: transición suave ── */
+.ptbtn {
+  transition: background 0.2s, color 0.2s;
+}
+
+/* ── Botón plan featured: shimmer en hover ── */
+@keyframes shimmerGold {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.plan-btn-featured:hover {
+  background: linear-gradient(
+    90deg,
+    var(--gold) 0%,
+    var(--gold-light) 40%,
+    var(--gold) 100%
+  );
+  background-size: 200% auto;
+  animation: shimmerGold 1.2s linear infinite;
+}
+
+/* ── Reducir animaciones para usuarios que lo prefieren ── */
+@media (prefers-reduced-motion: reduce) {
+  .fade-up, .stagger-item,
+  .lp-hero .hero-badge,
+  .lp-hero .hero-title,
+  .lp-hero .hero-sub,
+  .lp-hero .hero-btns,
+  .stat-num,
+  .btn-hero-primary {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ============================================
+   CARRUSEL — pega esto al final de LandingPage.css
+   ============================================ */
+
+/* ── Sección contenedora ── */
+.lp-carrusel {
+  background: var(--green-800);
+  padding: 80px 6%;
+  text-align: center;
+}
+
+.lp-carrusel .section-eyebrow { color: var(--lime); }
+.lp-carrusel .section-title   { color: var(--white); }
+.lp-carrusel .section-sub     { color: rgba(255,255,255,0.50); margin: 0 auto; }
+
+.carrusel-header { margin-bottom: 40px; }
+
+/* ── Stage: contiene imagen + overlay + botones ── */
+.carrusel-stage {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  max-width: 1100px;
+  margin: 0 auto;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.45);
+  background: var(--green-900);
+  aspect-ratio: 16 / 9;
+  cursor: grab;
+}
+.carrusel-stage:active { cursor: grabbing; }
+
+/* ── Imagen ── */
+.carrusel-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+  display: block;
+  user-select: none;
+  transition: transform 0.4s ease;
+}
+.carrusel-stage:hover .carrusel-img {
+  transform: scale(1.012);
+}
+
+/* ── Overlay de texto (gradiente abajo) ── */
+.carrusel-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 48px 32px 28px;
+  background: linear-gradient(to top, rgba(4,30,23,0.92) 0%, transparent 100%);
+  text-align: left;
+  pointer-events: none;
+}
+.carrusel-slide-titulo {
+  font-family: var(--font-main);
+  font-size: clamp(16px, 2.2vw, 22px);
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 5px;
+  letter-spacing: -0.02em;
+}
+.carrusel-slide-sub {
+  font-size: clamp(12px, 1.4vw, 14px);
+  color: rgba(255,255,255,0.65);
+  line-height: 1.5;
+  max-width: 540px;
+}
+
+/* ── Botones prev / next ── */
+.carrusel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  background: rgba(4,30,23,0.65);
+  backdrop-filter: blur(6px);
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  z-index: 10;
+}
+.carrusel-btn svg { width: 20px; height: 20px; }
+.carrusel-btn:hover {
+  background: rgba(15,76,58,0.85);
+  border-color: var(--lime);
+  transform: translateY(-50%) scale(1.08);
+}
+.carrusel-btn-prev { left: 16px; }
+.carrusel-btn-next { right: 16px; }
+
+/* ── Dots ── */
+.carrusel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 22px;
+}
+.carrusel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255,255,255,0.25);
+  cursor: pointer;
+  transition: background 0.25s, transform 0.25s, width 0.25s;
+  padding: 0;
+}
+.carrusel-dot.active {
+  background: var(--lime);
+  width: 22px;
+  border-radius: 4px;
+  transform: none;
+}
+.carrusel-dot:hover:not(.active) {
+  background: rgba(255,255,255,0.55);
+  transform: scale(1.2);
+}
+
+/* ── Barra de progreso ── */
+.carrusel-progress-bar {
+  max-width: 1100px;
+  margin: 10px auto 0;
+  height: 2px;
+  background: rgba(255,255,255,0.10);
+  border-radius: 2px;
+  overflow: hidden;
+}
+@keyframes progressFill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+.carrusel-progress-fill {
+  height: 100%;
+  background: var(--lime);
+  border-radius: 2px;
+  animation: progressFill 4.5s linear forwards;
+}
+.carrusel-progress-fill.paused {
+  animation-play-state: paused;
+}
+
+/* ── Animación de transición entre slides ── */
+@keyframes slideInNext {
+  from { opacity: 0; transform: translateX(48px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slideInPrev {
+  from { opacity: 0; transform: translateX(-48px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.carrusel-anim-next.animating .carrusel-img,
+.carrusel-anim-next.animating .carrusel-overlay {
+  animation: slideInNext 0.38s ease both;
+}
+.carrusel-anim-prev.animating .carrusel-img,
+.carrusel-anim-prev.animating .carrusel-overlay {
+  animation: slideInPrev 0.38s ease both;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .lp-carrusel { padding: 60px 5%; }
+  .carrusel-btn { width: 38px; height: 38px; }
+  .carrusel-btn svg { width: 17px; height: 17px; }
+}
+@media (max-width: 600px) {
+  .lp-carrusel { padding: 48px 4%; }
+  .carrusel-overlay { padding: 32px 18px 18px; }
+  .carrusel-btn-prev { left: 8px; }
+  .carrusel-btn-next { right: 8px; }
+  .carrusel-btn { width: 34px; height: 34px; }
+}
+@media (max-width: 400px) {
+  .carrusel-btn { display: none; }
+}
+
+/* ── Reducir movimiento ── */
+@media (prefers-reduced-motion: reduce) {
+  .carrusel-img { transition: none; }
+  .carrusel-anim-next.animating .carrusel-img,
+  .carrusel-anim-prev.animating .carrusel-img { animation: none; }
+  .carrusel-progress-fill { animation: none; width: 100%; }
 }
