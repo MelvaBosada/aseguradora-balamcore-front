@@ -22,6 +22,7 @@ const FORM_VACIO  = { nombre: "" };
 const Perfiles = () => {
   const [perfiles,            setPerfiles]            = useState([]);
   const [permisosDisponibles, setPermisosDisponibles] = useState([]);
+  const [loading,             setLoading]             = useState(true); // ◄ Estado de carga inicial
   const [showModal,           setShowModal]           = useState(false);
   const [showDeleteModal,     setShowDeleteModal]     = useState(false);
   const [showPermisosModal,   setShowPermisosModal]   = useState(false);
@@ -36,14 +37,17 @@ const Perfiles = () => {
   useEffect(() => {
     const cargar = async () => {
       try {
+        setLoading(true);
         const [resRoles, resPermisos] = await Promise.all([
           axios.get(`${API}/roles`),
           axios.get(`${API}/permisos`),
         ]);
         setPerfiles(resRoles.data);
-        setPermisosDisponibles(resPermisos.data); // objetos completos {id, nombre, clave}
+        setPermisosDisponibles(resPermisos.data);
       } catch (err) {
         console.error("Error al cargar datos:", err);
+      } finally {
+        setLoading(false);
       }
     };
     cargar();
@@ -74,6 +78,7 @@ const Perfiles = () => {
 
   const handleGuardar = async () => {
     try {
+      setLoading(true);
       if (editingPerfil) {
         await axios.put(`${API}/roles/${editingPerfil.id}`, formData);
       } else {
@@ -83,6 +88,8 @@ const Perfiles = () => {
       setShowModal(false);
     } catch (err) {
       console.error("Error al guardar perfil:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -90,28 +97,35 @@ const Perfiles = () => {
 
   const handleConfirmarEliminar = async () => {
     try {
+      setLoading(true);
       await axios.delete(`${API}/roles/${perfilToDelete.id}`);
       await recargarPerfiles();
       setShowDeleteModal(false);
       setPerfilToDelete(null);
     } catch (err) {
       console.error("Error al eliminar perfil:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleAsignarPermisos = async (perfil) => {
     try {
+      setLoading(true);
       const res = await axios.get(`${API}/roles/${perfil.id}/permisos`);
-      setPermisosDelPerfil(res.data.map(p => p.id)); // array de ids [1, 3, 5]
+      setPermisosDelPerfil(res.data.map(p => p.id));
       setPerfilPermisos(perfil);
       setShowPermisosModal(true);
     } catch (err) {
       console.error("Error al cargar permisos del perfil:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGuardarPermisos = async (idsSeleccionados) => {
     try {
+      setLoading(true);
       await axios.post(`${API}/roles/${perfilPermisos.id}/permisos`, {
         permisos: idsSeleccionados,
       });
@@ -119,11 +133,25 @@ const Perfiles = () => {
       setPerfilPermisos(null);
     } catch (err) {
       console.error("Error al guardar permisos:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const totalPages = Math.ceil(perfiles.length / itemsPerPage);
   const paginated  = perfiles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // 🔄 CORTAFUEGOS: Pantalla completa de carga con el spinner verde
+  if (loading && perfiles.length === 0) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success"></div>
+          <p>Cargando perfiles...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-4">

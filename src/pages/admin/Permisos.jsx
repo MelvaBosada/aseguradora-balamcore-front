@@ -26,6 +26,7 @@ const FORM_VACIO = { nombre: "", descripcion: "", clave: "" };
 
 const Permisos = () => {
   const [permisos,        setPermisos]        = useState([]);
+  const [loading,         setLoading]         = useState(true); // ◄ Estado de carga inicial
   const [showModal,       setShowModal]       = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [permisoToDelete, setPermisoToDelete] = useState(null);
@@ -38,10 +39,13 @@ const Permisos = () => {
   useEffect(() => {
     const cargar = async () => {
       try {
+        setLoading(true);
         const res = await axios.get(`${API}/permisos`);
         setPermisos(res.data);
       } catch (err) {
         console.error("Error al cargar permisos:", err);
+      } finally {
+        setLoading(false);
       }
     };
     cargar();
@@ -76,6 +80,7 @@ const Permisos = () => {
 
   const handleGuardar = async () => {
     try {
+      setLoading(true);
       if (editingPermiso) {
         await axios.put(`${API}/permisos/${editingPermiso.id}`, formData);
       } else {
@@ -85,6 +90,8 @@ const Permisos = () => {
       setShowModal(false);
     } catch (err) {
       console.error("Error al guardar permiso:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,12 +99,15 @@ const Permisos = () => {
 
   const handleConfirmarEliminar = async () => {
     try {
+      setLoading(true);
       await axios.delete(`${API}/permisos/${permisoToDelete.id}`);
       await recargarPermisos();
       setShowDeleteModal(false);
       setPermisoToDelete(null);
     } catch (err) {
       console.error("Error al eliminar permiso:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,6 +118,18 @@ const Permisos = () => {
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const handleSearch = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
+
+
+  if (loading && permisos.length === 0) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success"></div>
+          <p>Cargando permisos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-4">
