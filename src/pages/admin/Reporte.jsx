@@ -98,7 +98,6 @@ const Reportes = () => {
     "Authorization": `Bearer ${localStorage.getItem("token")}`,
   });
 
-  // ✅ CORRECCIÓN: useCallback sin dependencias externas (getHeaders se llama dentro)
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -125,9 +124,8 @@ const Reportes = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // ✅ sin dependencias: no depende de estado ni props externos
+  }, []);
 
-  // ✅ CORRECCIÓN: fetchData incluida en el array de dependencias
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -158,6 +156,7 @@ const Reportes = () => {
     const url = isEdit ? `${API_URL}/${editingItem.id}` : API_URL;
 
     try {
+      setLoading(true);
       const response = await fetch(url, {
         method: isEdit ? "PUT" : "POST",
         headers: getHeaders(),
@@ -170,6 +169,8 @@ const Reportes = () => {
       }
     } catch (error) {
       console.error("Error al guardar:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -180,6 +181,7 @@ const Reportes = () => {
 
   const handleConfirmarEliminar = async () => {
     try {
+      setLoading(true);
       const response = await fetch(`${API_URL}/${itemToDelete.id}`, {
         method: "DELETE",
         headers: getHeaders(),
@@ -190,6 +192,8 @@ const Reportes = () => {
       }
     } catch (error) {
       console.error("Error al eliminar:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -203,10 +207,23 @@ const Reportes = () => {
     );
   });
 
+  const totalPages = Math.ceil(filteredReportes.length / itemsPerPage);
   const paginated = filteredReportes.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
+
+  // 🔄 CORTAFUEGOS: Pantalla completa de carga con el spinner verde si no hay registros
+  if (loading && reportes.length === 0) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success"></div>
+          <p>Cargando reportes...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-4">
@@ -242,12 +259,11 @@ const Reportes = () => {
             { titulo: "Eliminar", clase: "tabla-btn-del", icono: <DeleteIcon fontSize="small" />, onClick: handleEliminarClick },
           ]}
         />
-        {loading && <p className="text-center mt-3">Cargando...</p>}
       </div>
 
       <Paginacion
         currentPage={currentPage}
-        totalPages={Math.ceil(filteredReportes.length / itemsPerPage)}
+        totalPages={totalPages}
         onPageChange={setCurrentPage}
         itemsPerPage={itemsPerPage}
         onItemsPerPageChange={setItemsPerPage}

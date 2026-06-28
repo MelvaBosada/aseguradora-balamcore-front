@@ -219,7 +219,6 @@ const Bienes = () => {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   });
 
-  // ✅ CORRECCIÓN: useCallback para evitar el warning de dependencias en useEffect
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -234,9 +233,8 @@ const Bienes = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // sin dependencias: API_URL es constante y getHeaders no cambia entre renders
+  }, []);
 
-  // ✅ CORRECCIÓN: fetchData incluida en el array de dependencias
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -436,6 +434,18 @@ const Bienes = () => {
     return items;
   };
 
+  // 🔄 CORTAFUEGOS: Pantalla completa de carga inicial si no hay registros aún
+  if (loading && bienes.length === 0) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success"></div>
+          <p>Cargando bienes asegurados...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container py-4">
       <h1 className="h2 fw-bold mb-3">Bienes asegurados</h1>
@@ -491,7 +501,6 @@ const Bienes = () => {
             },
           ]}
         />
-        {loading && <p className="text-center mt-3">Cargando...</p>}
       </div>
 
       <Paginacion
