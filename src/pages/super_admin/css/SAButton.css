@@ -1,0 +1,57 @@
+/* ── SAButton.css ─────────────────────────────────────────────────── */
+
+.sa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--sa-font);
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 20px;
+  padding: 8px 18px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 200ms, color 200ms, border-color 200ms, opacity 200ms;
+  white-space: nowrap;
+}
+
+.sa-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sa-btn--accent {
+  background: var(--sa-accent);
+  color: #fff;
+}
+.sa-btn--accent:hover:not(:disabled) {
+  background: var(--sa-accent-mid);
+}
+
+.sa-btn--gold {
+  background: var(--sa-gold);
+  color: #1a1408;
+}
+.sa-btn--gold:hover:not(:disabled) {
+  background: #b89638;
+}
+
+.sa-btn--outline {
+  background: transparent;
+  color: var(--sa-text);
+  border-color: var(--sa-border);
+}
+.sa-btn--outline:hover:not(:disabled) {
+  border-color: var(--sa-accent-mid);
+  color: var(--sa-accent-mid);
+}
+
+.sa-btn--danger {
+  background: transparent;
+  color: var(--sa-danger);
+  border-color: rgba(224, 82, 82, 0.3);
+}
+.sa-btn--danger:hover:not(:disabled) {
+  background: rgba(224, 82, 82, 0.1);
+}

@@ -6,8 +6,11 @@ import "./SuperAdminLayout.css";
 
 const NAV_ITEMS = [
   { to: "/superadmin/dashboard",    icon: "⬡", label: "Dashboard"    },
+  { to: "/superadmin/suscripciones",  icon: "▣", label: "Suscripciones"  }, 
   { to: "/superadmin/aseguradoras", icon: "◈", label: "Aseguradoras" },
   { to: "/superadmin/planes",       icon: "◆", label: "Planes"       },
+  { to: "/superadmin/modulos",      icon: "⊞", label: "Módulos"      }, 
+  { to: "/superadmin/usuarios",       icon: "◉", label: "Usuarios"       }, 
 ];
 
 export default function SuperAdminLayout() {
