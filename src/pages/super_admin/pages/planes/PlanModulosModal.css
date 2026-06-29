@@ -1,0 +1,100 @@
+/* ── PlanModulosModal.css ─────────────────────────────────────────── */
+
+.sa-pxm-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--sa-border);
+}
+
+.sa-pxm-count {
+  font-size: 12px;
+  font-family: var(--sa-mono);
+  color: var(--sa-muted);
+}
+
+.sa-pxm-toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sa-pxm-link {
+  background: none;
+  border: none;
+  color: var(--sa-accent-mid);
+  font-size: 12px;
+  font-family: var(--sa-font);
+  cursor: pointer;
+  padding: 0;
+}
+.sa-pxm-link:hover {
+  text-decoration: underline;
+}
+
+.sa-pxm-sep {
+  color: var(--sa-border);
+  font-size: 12px;
+}
+
+.sa-pxm-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.sa-pxm-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-radius-sm);
+  cursor: pointer;
+  transition: background 200ms, border-color 200ms;
+}
+.sa-pxm-item:hover {
+  background: var(--sa-surface-2);
+  border-color: var(--sa-accent-mid);
+}
+
+.sa-pxm-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--sa-accent);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sa-pxm-item__nombre {
+  font-size: 13px;
+  color: var(--sa-text);
+  flex: 1;
+}
+
+.sa-pxm-item__clave {
+  font-size: 10px;
+  font-family: var(--sa-mono);
+  color: var(--sa-muted);
+}
+
+.sa-pxm-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--sa-muted);
+  font-size: 13px;
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 600px) {
+  .sa-pxm-list {
+    grid-template-columns: 1fr;
+  }
+}

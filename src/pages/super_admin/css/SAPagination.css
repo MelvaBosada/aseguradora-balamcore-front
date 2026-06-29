@@ -1,0 +1,100 @@
+/* ── SAPagination.css ─────────────────────────────────────────────── */
+
+.sa-pag-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--sa-border);
+}
+
+.sa-pag {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sa-pag-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: var(--sa-radius-sm);
+  border: 1px solid var(--sa-border);
+  background: transparent;
+  color: var(--sa-muted);
+  font-family: var(--sa-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 200ms, color 200ms, border-color 200ms;
+}
+
+.sa-pag-btn:hover:not(:disabled) {
+  background: var(--sa-surface-2);
+  color: var(--sa-text);
+}
+
+.sa-pag-btn--active {
+  background: var(--sa-accent-dim);
+  color: var(--sa-accent-mid);
+  border-color: var(--sa-accent-mid);
+}
+
+.sa-pag-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.sa-pag-arrow {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sa-pag-filas {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--sa-muted);
+  font-family: var(--sa-mono);
+}
+
+.sa-pag-select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sa-pag-select {
+  appearance: none;
+  background: var(--sa-surface);
+  border: 1px solid var(--sa-border);
+  color: var(--sa-text);
+  font-family: var(--sa-mono);
+  font-size: 11px;
+  padding: 5px 24px 5px 10px;
+  border-radius: var(--sa-radius-sm);
+  cursor: pointer;
+}
+
+.sa-pag-select:focus {
+  outline: none;
+  border-color: var(--sa-accent-mid);
+}
+
+.sa-pag-select-icon {
+  position: absolute;
+  right: 8px;
+  pointer-events: none;
+  color: var(--sa-muted);
+  font-size: 10px;
+  transition: transform 200ms;
+}
+
+.sa-pag-select-icon--open {
+  transform: rotate(180deg);
+}

@@ -1,0 +1,13 @@
+/* ── CambiarPlanModal.css ─────────────────────────────────────────── */
+
+.sa-cambiar-plan__intro {
+  font-size: 13px;
+  color: var(--sa-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.sa-cambiar-plan__intro strong {
+  color: var(--sa-text);
+}
+

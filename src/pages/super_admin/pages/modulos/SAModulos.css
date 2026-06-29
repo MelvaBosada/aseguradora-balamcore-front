@@ -1,0 +1,41 @@
+/* ── SAModulos.css ────────────────────────────────────────────────── */
+
+.sa-aseg-filtros {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sa-aseg-search {
+  flex: 1;
+  min-width: 220px;
+  background: var(--sa-surface);
+  border: 1px solid var(--sa-border);
+  color: var(--sa-text);
+  font-family: var(--sa-font);
+  font-size: 13px;
+  padding: 9px 14px;
+  border-radius: var(--sa-radius-sm);
+}
+.sa-aseg-search:focus {
+  outline: none;
+  border-color: var(--sa-accent-mid);
+}
+
+.sa-modulo-clave {
+  font-size: 11px;
+  font-family: var(--sa-mono);
+  color: var(--sa-muted);
+  background: var(--sa-surface-2);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+@media (max-width: 600px) {
+  .sa-aseg-filtros {
+    flex-direction: column;
+  }
+  .sa-aseg-search {
+    width: 100%;
+  }
+}
