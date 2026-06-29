@@ -18,7 +18,6 @@ import NotesIcon          from "@mui/icons-material/Notes";
 import CheckCircleIcon    from "@mui/icons-material/CheckCircle";
 import Snackbar           from "@mui/material/Snackbar";
 import Alert              from "@mui/material/Alert";
-import CircularProgress   from "@mui/material/CircularProgress";
 
 import TablaForm           from "../../components/TablaForm";
 import Paginacion          from "../../components/Paginacion";
@@ -128,7 +127,6 @@ const PolizasVencer = () => {
   const openDetalle = (p) => { setSelected(p); setDetalleOpen(true); };
   const openRenovar = (p) => { setSelected(p); setRenovarOpen(true); };
 
-  // Recarga la tabla y muestra snack cuando el correo fue enviado
   const handleEnviado = () => {
     showSnack(`Correo enviado a ${selected?.correo || "cliente"}`);
     fetchPolizas(estatus);
@@ -157,10 +155,22 @@ const PolizasVencer = () => {
     { icon: <EventIcon />,         label: "Día de pago",          value: selected.dia_pago        ?? "—"  },
     { icon: <CalendarTodayIcon />, label: "Primer pago",          value: selected.fecha_primer_pago || "—"},
     { icon: <CalendarTodayIcon />, label: "Siguiente pago",       value: selected.siguiente_pago  || "—"  },
-    { icon: <SupportAgentIcon />,  label: "Asesor",               value: selected.asesor                  },
+    { icon: <SupportAgentIcon />,  label: "Asesor",               value: selected.asesor                   },
     { icon: <EmailIcon />,         label: "Correo cliente",       value: selected.correo          || "—"  },
     { icon: <NotesIcon />,         label: "Observaciones",        value: selected.observaciones   || "—"  },
   ] : [];
+
+  // 🔄 CORTAFUEGOS: Pantalla completa de carga con el spinner verde si no hay registros cargados
+  if (loading && polizas.length === 0) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success"></div>
+          <p className="mt-2">Cargando pólizas por vencer...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-4">
@@ -189,12 +199,7 @@ const PolizasVencer = () => {
         </div>
       </div>
 
-      {loading ? (
-        <div className="pv-loading">
-          <CircularProgress size={40} />
-          <span>Cargando pólizas...</span>
-        </div>
-      ) : error ? (
+      {error ? (
         <div className="pv-error">{error}</div>
       ) : (
         <div className="mb-4">

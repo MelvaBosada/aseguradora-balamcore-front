@@ -1,0 +1,145 @@
+/* ── SAForm.css ───────────────────────────────────────────────────── */
+/* Estas reglas ya existen en SAModal.css (sa-form-grid, sa-field, etc).
+   Se repiten aquí para que SAForm sea un componente autocontenido y no
+   dependa de que la página también haya importado SAModal.css.
+   Si ambos CSS se cargan a la vez no hay conflicto: son las mismas reglas. */
+
+.sa-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.sa-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sa-field--span2 { grid-column: 1 / -1; }
+
+.sa-field label {
+  font-size: 11px;
+  font-family: var(--sa-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sa-muted);
+}
+
+.sa-field input,
+.sa-field select,
+.sa-field textarea {
+  background: var(--sa-bg);
+  border: 1px solid var(--sa-border);
+  color: var(--sa-text);
+  font-family: var(--sa-font);
+  font-size: 13px;
+  padding: 9px 12px;
+  border-radius: var(--sa-radius-sm);
+  transition: border-color 200ms;
+}
+
+.sa-field input:focus,
+.sa-field select:focus,
+.sa-field textarea:focus {
+  outline: none;
+  border-color: var(--sa-accent-mid);
+}
+
+.sa-field input:disabled,
+.sa-field select:disabled,
+.sa-field textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.sa-field textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.sa-field-error {
+  font-size: 11px;
+  color: var(--sa-danger);
+}
+
+.sa-field-hint {
+  font-size: 11px;
+  color: var(--sa-muted);
+}
+
+.sa-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--sa-border);
+}
+
+/* ── Upload de imagen ─────────────────────────────────────────────── */
+.sa-logo-upload {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.sa-logo-upload__preview {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--sa-radius);
+  border: 1px solid var(--sa-border);
+  background: var(--sa-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  color: var(--sa-muted);
+  font-size: 20px;
+}
+
+.sa-logo-upload__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sa-logo-upload__input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sa-logo-upload__btn {
+  font-size: 12px;
+  font-family: var(--sa-mono);
+  color: var(--sa-accent-mid);
+  background: var(--sa-accent-dim);
+  border: 1px solid rgba(26, 107, 70, 0.3);
+  padding: 6px 12px;
+  border-radius: var(--sa-radius-sm);
+  cursor: pointer;
+  width: fit-content;
+}
+
+.sa-logo-upload__hint {
+  font-size: 10px;
+  color: var(--sa-muted);
+}
+
+/* ── Error banner ─────────────────────────────────────────────────── */
+.sa-modal-error {
+  background: rgba(224, 82, 82, 0.1);
+  border: 1px solid rgba(224, 82, 82, 0.3);
+  color: var(--sa-danger);
+  font-size: 12px;
+  padding: 10px 14px;
+  border-radius: var(--sa-radius-sm);
+  margin-bottom: 14px;
+}
+
+@media (max-width: 600px) {
+  .sa-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

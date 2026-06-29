@@ -117,7 +117,6 @@ const Cobertura = () => {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   });
 
-  // ✅ CORRECCIÓN: useCallback para evitar el warning de dependencias en useEffect
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -134,7 +133,6 @@ const Cobertura = () => {
     }
   }, []);
 
-  // ✅ CORRECCIÓN: fetchData incluida en el array de dependencias
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -188,6 +186,8 @@ const Cobertura = () => {
 
   const handleGuardar = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
+    setLoading(true); // ◄ Agregado para mantener feedback visual
+
     const isEdit = !!editingCobertura;
     const url = isEdit ? `${API_URL}/${editingCobertura.id}` : API_URL;
 
@@ -226,6 +226,8 @@ const Cobertura = () => {
       }
     } catch (error) {
       console.error("Error de red:", error);
+    } finally {
+      setLoading(false); // ◄ Fin de carga
     }
   };
 
@@ -303,6 +305,18 @@ const Cobertura = () => {
       ]
     : [];
 
+  // 🔄 CORTAFUEGOS: Bloque completo de pantalla de carga inicial si no hay datos
+  if (loading && coberturas.length === 0) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success"></div>
+          <p>Cargando coberturas...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container py-4">
       <h1 className="h2 fw-bold mb-3">Listado de Coberturas</h1>
@@ -369,7 +383,6 @@ const Cobertura = () => {
             },
           ]}
         />
-        {loading && <p className="text-center mt-3">Cargando...</p>}
       </div>
 
       <Paginacion
@@ -395,6 +408,7 @@ const Cobertura = () => {
         open={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={async () => {
+          setLoading(true);
           try {
             const response = await fetch(`${API_URL}/${coberturaToDelete.id}`, {
               method: "DELETE",
@@ -406,6 +420,8 @@ const Cobertura = () => {
             }
           } catch (error) {
             console.error("Error al eliminar:", error);
+          } finally {
+            setLoading(false);
           }
         }}
         title="Eliminar Cobertura"

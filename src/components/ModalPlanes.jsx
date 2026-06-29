@@ -42,7 +42,7 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
     const cargar = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res   = await axios.get("http://localhost:80/api/planes", {
+        const res   = await axios.get("http://localhost:8000/api/planes", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const planesConModulos = await Promise.all(

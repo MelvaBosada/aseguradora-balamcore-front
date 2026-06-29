@@ -180,7 +180,7 @@ const SolicitudesRenovacion = () => {
   };
 
   if (loading && solicitudes.length === 0) {
-    return <div className="container py-4"><div className="text-center py-5"><div className="spinner-border text-success"></div><p>Cargando solicitudes...</p></div></div>;
+    return <div className="container py-4"><div className="text-center py-5"><div className="spinner-border text-success"></div><p>Cargando renovaciones...</p></div></div>;
   }
 
   return (

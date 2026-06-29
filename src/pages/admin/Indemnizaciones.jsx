@@ -120,7 +120,7 @@ const Indemnizaciones = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // ✅ arreglo vacío porque API_URL es constante externa
+  }, []);
 
   // ✅ fetchData ya no genera warning
   useEffect(() => {
@@ -143,6 +143,18 @@ const Indemnizaciones = () => {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  // 🔄 PANTALLA DE CARGA ADAPTADA (Líneas agregadas)
+  if (loading && dataIndemnizaciones.length === 0) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success"></div>
+          <p>Cargando indemnizaciones...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-4">
@@ -210,7 +222,6 @@ const Indemnizaciones = () => {
             },
           ]}
         />
-        {loading && <p className="text-center mt-3">Cargando...</p>}
       </div>
 
       {/* PAGINACIÓN CON SELECTOR DE ITEMS POR PÁGINA */}
