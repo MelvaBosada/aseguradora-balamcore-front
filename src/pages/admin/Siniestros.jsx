@@ -1,5 +1,7 @@
 // pages/admin/Siniestros.jsx
 import { useState, useEffect, useCallback } from "react";
+// Importamos useLocation desde react-router-dom
+import { useLocation } from "react-router-dom"; 
 import axios from 'axios';
 import "../../css/Clientes.css";
 
@@ -52,6 +54,9 @@ const FORM_VACIO_SINIESTRO = {
 };
 
 const Siniestros = () => {
+  // Hook para capturar el state enviado desde la navegación
+  const location = useLocation();
+
   const [siniestros, setSiniestros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -70,7 +75,6 @@ const Siniestros = () => {
   const [polizasOptions, setPolizasOptions] = useState([]);
   const [reportesOptions, setReportesOptions] = useState([]);
 
-  // ✅ CORRECCIÓN 3: useCallback con las mismas deps que el useEffect original
   const cargarSiniestros = useCallback(async () => {
     setLoading(true);
     try {
@@ -88,13 +92,63 @@ const Siniestros = () => {
     }
   }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
 
-  // ✅ CORRECCIÓN 3: cargarSiniestros incluida en el array de dependencias
   useEffect(() => {
     cargarSiniestros();
   }, [cargarSiniestros]);
 
-  // ✅ CORRECCIÓN 1 y 2: eliminados cargandoPolizas y cargandoReportes (nunca se usaban en JSX)
-  // ✅ CORRECCIÓN 4: eliminada buscarPolizasPorRfc (su lógica ya está cubierta por cargarReportesPorRfc)
+  // Función para obtener la información necesaria basándonos exclusivamente en el reporteId recibido
+  const cargarDatosPorReporteId = async (reporteId) => {
+    try {
+      const token = localStorage.getItem('token');
+      // Petición al backend usando el ID del reporte
+      const response = await axios.get(`${API_URL}/siniestros/reportes/por-id/${reporteId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const data = response.data;
+
+      const reportesOpts = data.reportes.map(r => ({
+        value: r.id,
+        label: `${r.numero_reporte} - Póliza: ${r.numero_poliza} - ${r.fecha_reporte} - ${r.estado}`,
+        id_poliza: r.id_poliza
+      }));
+      setReportesOptions(reportesOpts);
+
+      const polizasOpts = data.polizas.map(p => ({
+        value: p.id,
+        label: `${p.numero_poliza} - ${p.tipo}`
+      }));
+      setPolizasOptions(polizasOpts);
+
+      setFormData({
+        rfc_buscar: data.cliente.rfc || "",
+        id_cliente: data.cliente.id,
+        nombre_cliente: `${data.cliente.nombre} ${data.cliente.apellido}`,
+        id_poliza: data.reporte_actual.id_poliza, 
+        id_reporte: reporteId 
+      });
+
+      setShowModal(true);
+    } catch (error) {
+      console.error('Error al cargar datos del reporte redireccionado:', error);
+      // Fallback: Si el endpoint falla o no lo tienes implementado aún, abre el modal limpio
+      handleNuevoSiniestro(); 
+    }
+  };
+
+  // Efecto que detecta de inmediato la redirección automática desde el módulo de Reportes
+  useEffect(() => {
+    if (location.state && location.state.reporteId) {
+      const reporteIdDesdeEstado = location.state.reporteId;
+      
+      // Limpia el historial del navegador para evitar aperturas infinitas al recargar con F5
+      window.history.replaceState({}, document.title); 
+      
+      // Lanza el flujo automático
+      cargarDatosPorReporteId(reporteIdDesdeEstado);
+    }
+  }, [location]);
+
   const cargarReportesPorRfc = async (rfc) => {
     if (!rfc || rfc.length < 8) return;
 
@@ -170,7 +224,6 @@ const Siniestros = () => {
     }
   };
 
-  // ✅ buscarClientePorRfc se mantiene: llama a cargarReportesPorRfc que hace la búsqueda por RFC
   const buscarClientePorRfc = async (rfc) => {
     if (!rfc || rfc.length < 8) return;
     await cargarReportesPorRfc(rfc);
