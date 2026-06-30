@@ -29,7 +29,7 @@ function AvisarModal({ open, onClose, poliza, onEnviado }) {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "http://localhost:8000/api/polizas-vencer/avisar",
+        "/api/polizas-vencer/avisar",
         { poliza_id: poliza.id },
         { headers: { Authorization: `Bearer ${token}` } }
       );

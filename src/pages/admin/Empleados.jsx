@@ -20,7 +20,7 @@ import EditModal           from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion          from "../../components/Paginacion";
 
-const API      = "http://localhost:8000/api";
+const API      = "/api";
 const campos   = ["nombre", "apellidos", "curp", "numero_de_telefono", "correo", "rol"];
 const columnas = ["Nombre", "Apellidos", "CURP", "Teléfono", "Correo", "Rol", "Acciones"];
 

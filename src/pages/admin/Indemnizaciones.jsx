@@ -16,7 +16,7 @@ import usePDFExport from "../../components/usePDFExport";
 import "../../css/PolizasVencer.css";
 import "../../css/IndemnizacionPDF.css";
 
-const API_URL = "http://localhost:8000/api/indemnizaciones";
+const API_URL = "/api/indemnizaciones";
 const ESTATUS_OPTIONS = ["Todos", "pendiente", "autorizada", "pagada", "rechazada"];
 
 /* ─── CONFIGURACIÓN DE TABLA ───────────────── */

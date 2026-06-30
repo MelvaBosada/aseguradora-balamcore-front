@@ -24,7 +24,7 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const campos = ["nSiniestro", "tipo", "cliente", "estatus", "prioridad"];
 const columnas = ["N° Siniestro", "Tipo", "Cliente", "Estatus", "Prioridad", "Acciones"];

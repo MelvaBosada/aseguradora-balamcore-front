@@ -18,7 +18,7 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 
-const API_URL = "http://localhost:8000/api/reportes";
+const API_URL = "/api/reportes";
 
 const campos = ["poliza", "cliente", "siniestro", "estatus"];
 const columnas = ["# de Poliza", "Cliente", "# de Siniestro", "Estatus", "Acciones"];

@@ -13,7 +13,7 @@ import RenovarPolizaModal from "../../components/RenovarPolizaModal";
 
 import "../../css/PolizasVencer.css";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const campos   = ["nPoliza", "nombre", "apellido", "tipo", "vigencia", "vence", "asesor", "estatus"];
 const columnas = ["N° Póliza", "Nombre", "Apellido(s)", "Tipo", "Vigencia", "Vence", "Asesor", "Estatus", "Acciones"];

@@ -23,7 +23,7 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 
-const API_URL = "http://localhost:8000/api/coberturas";
+const API_URL = "/api/coberturas";
 
 const columnas = [
   "Nombre",

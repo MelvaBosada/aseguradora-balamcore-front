@@ -94,7 +94,7 @@ const usePermisos = () => {
     try {
       const token = localStorage.getItem("token");
       const res   = await axios.post(
-        "http://localhost:8000/api/suscripcion/checkout",
+        "/api/suscripcion/checkout",
         { id_plan: idPlan, periodo },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -116,13 +116,13 @@ const usePermisos = () => {
     try {
       const token = localStorage.getItem("token");
       const res   = await axios.post(
-        "http://localhost:8000/api/suscripcion/verificar-pago",
+        "/api/suscripcion/verificar-pago",
         { session_id: sessionId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const resSus = await axios.get(
-        "http://localhost:8000/api/suscripcion/actual",
+        "/api/suscripcion/actual",
         { headers: { Authorization: `Bearer ${token}` } }
       );
       localStorage.setItem("suscripcion", JSON.stringify(resSus.data));

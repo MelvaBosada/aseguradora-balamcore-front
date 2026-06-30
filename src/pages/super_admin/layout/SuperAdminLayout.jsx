@@ -42,7 +42,7 @@ export default function SuperAdminLayout() {
   const handleLogout = async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:8000/api/logout", {}, {
+      await axios.post("/api/logout", {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
     } catch (_) {}

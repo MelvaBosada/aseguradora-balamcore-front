@@ -40,9 +40,10 @@ function Login({ onGoToRegister }) {
     setLoading(true);
 
     try {
+      
       // 2. Manda correo y password al backend Laravel
       const res = await axios.post(
-        "http://localhost:8000/api/login",
+        "/api/login",
         {
           correo,
           password,
