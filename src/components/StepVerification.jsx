@@ -61,7 +61,7 @@ function StepVerification({ correo = "", onNext, onBack }) {
     if (code.length < 6) { setErrOtp(true); return; }
     setLoading(true);
     try {
-      await axios.post("http://localhost:8000/api/verificar-otp", { correo, codigo: code });
+      await axios.post("/api/verificar-otp", { correo, codigo: code });
       onNext();
     } catch {
       setErrOtp(true);
@@ -72,7 +72,7 @@ function StepVerification({ correo = "", onNext, onBack }) {
 
   const handleResend = async () => {
     try {
-      await axios.post("http://localhost:8000/api/enviar-otp", { correo });
+      await axios.post("/api/enviar-otp", { correo });
       setSegundos(600);
       setExpirado(false);
       setResent(true);

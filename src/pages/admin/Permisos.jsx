@@ -12,7 +12,7 @@ import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import Paginacion         from "../../components/Paginacion";
 import "../../css/Clientes.css";
 
-const API      = "http://localhost:8000/api";
+const API      = "/api";
 const campos   = ["nombre", "descripcion", "clave"];
 const columnas = ["Nombre", "Descripción", "Clave", "Acciones"];
 

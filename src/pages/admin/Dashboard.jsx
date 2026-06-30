@@ -14,7 +14,7 @@ import ModalPlanes from "../../components/ModalPlanes";
 import "../../css/Dashboard.css";
 import usePermisos from "../../hooks/usePermisos";
 
-const API        = "http://localhost:8000/api";
+const API        = "/api";
 const PIE_COLORS = ["#0F4C3A", "#295E4E", "#4a9477", "#f59e0b", "#94a3b8"];
 
 const toArray = (data) => {

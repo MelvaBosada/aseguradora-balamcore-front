@@ -42,13 +42,13 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
     const cargar = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res   = await axios.get("http://localhost:8000/api/planes", {
+        const res   = await axios.get("/api/planes", {
           headers: { Authorization: `Bearer ${token}` },
         });
         const planesConModulos = await Promise.all(
           res.data.map(async (plan) => {
             const resMod = await axios.get(
-              `http://localhost:8000/api/planes/${plan.id}/modulos`,
+              `/api/planes/${plan.id}/modulos`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             return { ...plan, modulos: resMod.data };

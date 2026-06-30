@@ -111,7 +111,7 @@ function StepCompany({ onFinish, onBack, correo, password }) {
       formData.append("password", password);
       if (logoFile) formData.append("logo", logoFile);
 
-      await axios.post("http://localhost:8000/api/registro", formData, {
+      await axios.post("/api/registro", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
