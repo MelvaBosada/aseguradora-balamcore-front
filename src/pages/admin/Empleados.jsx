@@ -23,7 +23,14 @@ import Paginacion          from "../../components/Paginacion";
 const API      = "http://localhost:8000/api";
 const campos   = ["nombre", "apellidos", "curp", "numero_de_telefono", "correo", "rol"];
 const columnas = ["Nombre", "Apellidos", "CURP", "Teléfono", "Correo", "Rol", "Acciones"];
-const usuario  = JSON.parse(localStorage.getItem("usuario") || "{}");
+
+// ❌ ANTES: const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
+// Esa línea vivía a nivel de módulo y solo se ejecutaba UNA VEZ, cuando el
+// archivo se importaba por primera vez (a veces antes de que el login
+// terminara de guardar el usuario en localStorage). Por eso fallaba la
+// primera carga tras iniciar sesión y se arreglaba solo al recargar.
+// ✅ AHORA: usuario se lee dentro del componente, con useState lazy init,
+// así se evalúa en el momento del montaje, no en el momento del import.
 
 const FORM_VACIO = {
   nombre: "", apellidos: "", fecha_nacimiento: "", genero: "",
@@ -146,9 +153,14 @@ const generarCampos = (roles) => [
 ];
 
 const Empleados = () => {
+  // ✅ FIX: usuario ahora se lee dentro del componente con un lazy initializer.
+  // El callback de useState solo corre una vez, en el momento del primer
+  // render del componente (no en el momento en que el módulo es importado),
+  // así siempre lee el localStorage actualizado tras el login.
+  const [usuario]           = useState(() => JSON.parse(localStorage.getItem("usuario") || "{}"));
   const [empleados,        setEmpleados]        = useState([]);
   const [roles,            setRoles]            = useState([]);
-  const [loading,          setLoading]          = useState(true); // ✅ Estado loading agregado
+  const [loading,          setLoading]          = useState(true);
   const [showModal,        setShowModal]        = useState(false);
   const [showDeleteModal,  setShowDeleteModal]  = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
@@ -164,7 +176,7 @@ const Empleados = () => {
   useEffect(() => {
     const cargar = async () => {
       try {
-        setLoading(true); // ✅ Activamos la carga antes de la petición
+        setLoading(true);
         const [resEmp, resRoles] = await Promise.all([
           axios.get(`${API}/empleados`, {
             headers: { "X-Usuario": JSON.stringify(usuario) }
@@ -176,11 +188,11 @@ const Empleados = () => {
       } catch (err) {
         console.error("Error al cargar datos:", err);
       } finally {
-        setLoading(false); // ✅ Desactivamos la carga al finalizar
+        setLoading(false);
       }
     };
     cargar();
-  }, []);
+  }, [usuario]);
 
   const recargarEmpleados = async () => {
     try {
@@ -336,7 +348,6 @@ const Empleados = () => {
     { icon: <PhoneIcon  />, label: "Tel. emergencia",       value: empDetalle.contacto_emergencia_telefono    },
   ] : [];
 
-  // 🔄 PANTALLA DE CARGA ADAPTADA (Si está cargando y no hay empleados en el estado)
   if (loading && empleados.length === 0) {
     return (
       <div className="container py-4">
