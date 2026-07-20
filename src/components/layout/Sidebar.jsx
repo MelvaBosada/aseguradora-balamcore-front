@@ -58,8 +58,10 @@ const Sidebar = ({ open, onClose }) => {
             <div className={`submenu ${openMenu === "operaciones" ? "open" : ""}`}>
               {tiene("polizas")         && <NavLink to="/admin/polizas"         className="submenu-item" onClick={onClose}>Pólizas</NavLink>}
               {tiene("siniestros")      && <NavLink to="/admin/siniestros"      className="submenu-item" onClick={onClose}>Siniestros</NavLink>}
+              {tiene("evaluaciones")    && <NavLink to="/admin/evaluaciones"    className="submenu-item" onClick={onClose}>Evaluaciones</NavLink>}
               {tiene("indemnizaciones") && <NavLink to="/admin/indemnizaciones" className="submenu-item" onClick={onClose}>Indemnizaciones</NavLink>}
               {tiene("pagos")           && <NavLink to="/admin/pagos"           className="submenu-item" onClick={onClose}>Pagos</NavLink>}
+
             </div>
           </div>
         )}
@@ -76,7 +78,6 @@ const Sidebar = ({ open, onClose }) => {
               {tiene("empleados")    && <NavLink to="/admin/empleados"     className="submenu-item" onClick={onClose}>Empleados</NavLink>}
               {tiene("bienes")       && <NavLink to="/admin/bienes"        className="submenu-item" onClick={onClose}>Bienes</NavLink>}
               {tiene("coberturas")   && <NavLink to="/admin/coberturas"    className="submenu-item" onClick={onClose}>Coberturas</NavLink>}
-              {tiene("evaluaciones") && <NavLink to="/admin/evaluaciones"  className="submenu-item" onClick={onClose}>Evaluaciones</NavLink>}
               {tiene("perfiles")     && <NavLink to="/admin/perfiles"      className="submenu-item" onClick={onClose}>Perfiles</NavLink>}
               {tiene("permisos")     && <NavLink to="/admin/permisos"      className="submenu-item" onClick={onClose}>Permisos</NavLink>}
             </div>

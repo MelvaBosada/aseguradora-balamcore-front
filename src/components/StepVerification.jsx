@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import axios from "axios";
 import ButtonVerdeForm from "./ButtonVerdeForm";
+const API_BASE = import.meta.env.VITE_API_URL || "";
 
 function StepVerification({ correo = "", onNext, onBack }) {
   const [digits,   setDigits]   = useState(["", "", "", "", "", ""]);
@@ -61,7 +62,7 @@ function StepVerification({ correo = "", onNext, onBack }) {
     if (code.length < 6) { setErrOtp(true); return; }
     setLoading(true);
     try {
-      await axios.post("/api/verificar-otp", { correo, codigo: code });
+     await axios.post(`${API_BASE}/verificar-otp`, { correo, codigo: code });
       onNext();
     } catch {
       setErrOtp(true);
@@ -72,7 +73,7 @@ function StepVerification({ correo = "", onNext, onBack }) {
 
   const handleResend = async () => {
     try {
-      await axios.post("/api/enviar-otp", { correo });
+      await axios.post(`${API_BASE}/enviar-otp`, { correo });
       setSegundos(600);
       setExpirado(false);
       setResent(true);

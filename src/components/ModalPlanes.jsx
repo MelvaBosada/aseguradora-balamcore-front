@@ -9,6 +9,8 @@ import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import axios from "axios";
 import logo from "../assets/LogoA.png";
 
+const API = import.meta.env.VITE_API_URL || '/api';
+
 const ModalPlanes = ({ open, onClose, onLogout }) => {
   const [planes, setPlanes]   = useState([]);
   const [hovered, setHovered] = useState(null);
@@ -42,13 +44,13 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
     const cargar = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res   = await axios.get("/api/planes", {
+        const res   = await axios.get(`${API}/planes`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const planesConModulos = await Promise.all(
           res.data.map(async (plan) => {
             const resMod = await axios.get(
-              `/api/planes/${plan.id}/modulos`,
+             `${API}/planes/${plan.id}/modulos`,
               { headers: { Authorization: `Bearer ${token}` } }
             );
             return { ...plan, modulos: resMod.data };

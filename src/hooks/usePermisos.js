@@ -1,5 +1,7 @@
 import axios from "axios";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 const ESTATUS_ACTIVO  = ["activa", "activo"];
 const ESTATUS_PRUEBA  = ["prueba", "trial"];
 const ESTATUS_VALIDOS = [...ESTATUS_ACTIVO, ...ESTATUS_PRUEBA];
@@ -71,10 +73,10 @@ const usePermisos = () => {
   // ── Límites del plan ────────────────────────────────
   const limites = {
     siniestrosMes:      suscripcion?.limite_siniestros_mes      ?? null,
-    polizasVencerDia:   suscripcion?.limite_polizas_vencer_dia  ?? null,
-    bienesPorCliente:   suscripcion?.limite_bienes_por_cliente  ?? null,
-    pdfIlimitado:       suscripcion?.pdf_ilimitado              ?? false,
-    soportePrioritario: suscripcion?.soporte_prioritario        ?? false,
+    polizasVencerDia:   suscripcion?.limite_polizas_vencer_dia   ?? null,
+    bienesPorCliente:   suscripcion?.limite_bienes_por_cliente   ?? null,
+    pdfIlimitado:       suscripcion?.pdf_ilimitado               ?? false,
+    soportePrioritario: suscripcion?.soporte_prioritario         ?? false,
   };
 
   const puedeCrear = (tipo, countActual) => {
@@ -94,7 +96,7 @@ const usePermisos = () => {
     try {
       const token = localStorage.getItem("token");
       const res   = await axios.post(
-        "/api/suscripcion/checkout",
+        `${API_BASE}/suscripcion/checkout`,
         { id_plan: idPlan, periodo },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -116,13 +118,13 @@ const usePermisos = () => {
     try {
       const token = localStorage.getItem("token");
       const res   = await axios.post(
-        "/api/suscripcion/verificar-pago",
+        `${API_BASE}/suscripcion/verificar-pago`,
         { session_id: sessionId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const resSus = await axios.get(
-        "/api/suscripcion/actual",
+        `${API_BASE}/suscripcion/actual`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       localStorage.setItem("suscripcion", JSON.stringify(resSus.data));
@@ -146,7 +148,7 @@ const usePermisos = () => {
     esPrueba,
     tienePlanActivo,
     vencida,
-    planPagadoVencido,  // ← nuevo, útil para el modal
+    planPagadoVencido,
     esAdmin,
     limites,
     puedeCrear,

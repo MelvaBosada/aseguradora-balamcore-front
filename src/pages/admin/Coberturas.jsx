@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import "../../css/Clientes.css";
 
 // Iconos
@@ -23,7 +24,18 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 
-const API_URL = "/api/coberturas";
+const API_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/coberturas`
+  : "/api/coberturas";
+
+// Configuración de headers para Axios
+const getAuthConfig = () => ({
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token")}`,
+  },
+});
 
 const columnas = [
   "Nombre",
@@ -34,6 +46,7 @@ const columnas = [
   "Estatus",
   "Acciones",
 ];
+
 const campos = [
   "nombre",
   "descripcion",
@@ -111,23 +124,19 @@ const Cobertura = () => {
   const [formData, setFormData] = useState({});
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
-  const getHeaders = () => ({
-    "Content-Type": "application/json",
-    Accept: "application/json",
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
-  });
-
+  // GET: Obtener coberturas
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch(API_URL, { headers: getHeaders() });
-      if (response.ok) {
-        const data = await response.json();
-        const sortedData = data.sort((a, b) => a.id - b.id);
-        setCoberturas(sortedData);
-      }
+      const response = await axios.get(API_URL, getAuthConfig());
+      const data = Array.isArray(response.data) ? response.data : [];
+      const sortedData = data.sort((a, b) => a.id - b.id);
+      setCoberturas(sortedData);
     } catch (error) {
-      console.error("Error al obtener datos:", error);
+      console.error(
+        "Error al obtener datos:",
+        error.response?.data || error.message
+      );
     } finally {
       setLoading(false);
     }
@@ -172,8 +181,9 @@ const Cobertura = () => {
       "monto_maximo_siniestro",
     ];
     camposNum.forEach((f) => {
-      if (dataForModal[f] === null || dataForModal[f] === undefined)
+      if (dataForModal[f] === null || dataForModal[f] === undefined) {
         dataForModal[f] = "";
+      }
     });
     setFormData(dataForModal);
     setShowModal(true);
@@ -184,9 +194,10 @@ const Cobertura = () => {
     setShowDetalleModal(true);
   };
 
+  // POST / PUT: Guardar registro enviando 0 si el campo se deja vacío
   const handleGuardar = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    setLoading(true); // ◄ Agregado para mantener feedback visual
+    setLoading(true);
 
     const isEdit = !!editingCobertura;
     const url = isEdit ? `${API_URL}/${editingCobertura.id}` : API_URL;
@@ -202,43 +213,62 @@ const Cobertura = () => {
     ];
 
     numericFields.forEach((field) => {
-      if (dataToSubmit[field] === "" || dataToSubmit[field] === undefined) {
-        dataToSubmit[field] = null;
+      const val = dataToSubmit[field];
+      if (val === "" || val === undefined || val === null || Number.isNaN(val)) {
+        dataToSubmit[field] = 0;
+      } else {
+        dataToSubmit[field] = Number(val);
       }
     });
 
     try {
-      const response = await fetch(url, {
-        method: isEdit ? "PUT" : "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(dataToSubmit),
-      });
-
-      if (response.ok) {
-        setShowModal(false);
-        fetchData();
+      if (isEdit) {
+        await axios.put(url, dataToSubmit, getAuthConfig());
       } else {
-        const errorData = await response.json();
-        alert(
-          "Error al guardar: " +
-            JSON.stringify(errorData.errors || errorData.message),
-        );
+        await axios.post(url, dataToSubmit, getAuthConfig());
       }
+
+      setShowModal(false);
+      fetchData();
     } catch (error) {
-      console.error("Error de red:", error);
+      const errorData = error.response?.data;
+      console.error("Error API:", errorData);
+      alert(
+        "Error al guardar: " +
+          JSON.stringify(errorData?.errors || errorData?.message || error.message)
+      );
     } finally {
-      setLoading(false); // ◄ Fin de carga
+      setLoading(false);
+    }
+  };
+
+  // DELETE: Eliminar registro
+  const handleConfirmDelete = async () => {
+    if (!coberturaToDelete) return;
+    setLoading(true);
+
+    try {
+      await axios.delete(`${API_URL}/${coberturaToDelete.id}`, getAuthConfig());
+      setShowDeleteModal(false);
+      fetchData();
+    } catch (error) {
+      console.error(
+        "Error al eliminar:",
+        error.response?.data || error.message
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   const filtered = coberturas.filter((c) =>
-    c.nombre.toLowerCase().includes(searchTerm.toLowerCase()),
+    (c.nombre || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated = filtered.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   const detalleItems = coberturaDetalle
@@ -251,7 +281,9 @@ const Cobertura = () => {
         {
           icon: <RuleIcon />,
           label: "Estatus",
-          value: coberturaDetalle.estatus.toUpperCase(),
+          value: coberturaDetalle.estatus
+            ? coberturaDetalle.estatus.toUpperCase()
+            : "-",
         },
         {
           icon: <NumbersIcon />,
@@ -278,7 +310,8 @@ const Cobertura = () => {
           label: "Deducible (Monto)",
           value:
             coberturaDetalle.deducible === null ||
-            coberturaDetalle.deducible === 0
+            coberturaDetalle.deducible === "" ||
+            Number(coberturaDetalle.deducible) === 0
               ? "Sin deducible"
               : coberturaDetalle.deducible,
         },
@@ -295,17 +328,20 @@ const Cobertura = () => {
         {
           icon: <SettingsIcon />,
           label: "Tipo de Cálculo",
-          value: coberturaDetalle.tipo_calculo.replace("_", " "),
+          value: coberturaDetalle.tipo_calculo
+            ? coberturaDetalle.tipo_calculo.replace("_", " ")
+            : "-",
         },
         {
           icon: <FactCheckIcon />,
           label: "Aplica Sobre",
-          value: coberturaDetalle.aplica_sobre.replace("_", " "),
+          value: coberturaDetalle.aplica_sobre
+            ? coberturaDetalle.aplica_sobre.replace("_", " ")
+            : "-",
         },
       ]
     : [];
 
-  // 🔄 CORTAFUEGOS: Bloque completo de pantalla de carga inicial si no hay datos
   if (loading && coberturas.length === 0) {
     return (
       <div className="container py-4">
@@ -354,7 +390,9 @@ const Cobertura = () => {
             monto_minimo: c.monto_minimo || "0",
             monto_maximo: c.monto_maximo || "0",
             deducible:
-              c.deducible === null || c.deducible === 0
+              c.deducible === null ||
+              c.deducible === "" ||
+              Number(c.deducible) === 0
                 ? "Sin deducible"
                 : c.deducible,
           }))}
@@ -407,23 +445,7 @@ const Cobertura = () => {
       <ConfirmDeleteModal
         open={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
-        onConfirm={async () => {
-          setLoading(true);
-          try {
-            const response = await fetch(`${API_URL}/${coberturaToDelete.id}`, {
-              method: "DELETE",
-              headers: getHeaders(),
-            });
-            if (response.ok) {
-              setShowDeleteModal(false);
-              fetchData();
-            }
-          } catch (error) {
-            console.error("Error al eliminar:", error);
-          } finally {
-            setLoading(false);
-          }
-        }}
+        onConfirm={handleConfirmDelete}
         title="Eliminar Cobertura"
         subtitle="¿Estás seguro de que deseas eliminar este registro?"
       >
@@ -439,7 +461,9 @@ const Cobertura = () => {
         onClose={() => setShowDetalleModal(false)}
         titulo={coberturaDetalle ? coberturaDetalle.nombre : ""}
         subtitulo={coberturaDetalle ? `ID #${coberturaDetalle.id}` : ""}
-        avatar={coberturaDetalle ? coberturaDetalle.nombre.charAt(0) : "C"}
+        avatar={
+          coberturaDetalle?.nombre ? coberturaDetalle.nombre.charAt(0) : "C"
+        }
         items={detalleItems}
       />
     </div>

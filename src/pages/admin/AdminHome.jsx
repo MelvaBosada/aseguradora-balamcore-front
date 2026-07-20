@@ -9,7 +9,7 @@ const AdminHome = () => {
       {/* LOGO DE FONDO CON TRANSPARENCIA — centrado */}
       <img
         src={logo}
-        alt=""
+        alt="Logo de la aseguradora"
         style={{
           position: "absolute",
           width: "320px",
@@ -27,9 +27,9 @@ const AdminHome = () => {
       <div style={{ position: "relative", zIndex: 1 }}>
 
         {/* TÍTULO */}
-        <h1 className="h2 fw-bold mb-1" >Panel Principal</h1>
-        <p style={{ color: "#172e0e", fontSize: 18, marginBottom: 0, marginTop: 20}}>
-          Bienvenido de nuevo  {usuario.nombre || usuario.correo || "Usuario"}, gestiona tu aseguradora desde aquí.
+        <h1 className="h2 fw-bold mb-1">Panel Principal</h1>
+        <p style={{ color: "#172e0e", fontSize: 18, marginBottom: 0, marginTop: 20 }}>
+          Bienvenido de nuevo {usuario.nombre || usuario.correo || "Usuario"}, gestiona tu aseguradora desde aquí.
         </p>
         <p style={{ color: "#172e0e", fontSize: 18, margin: 0 }}>
           Selecciona una opción del menú para comenzar a trabajar.

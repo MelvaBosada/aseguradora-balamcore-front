@@ -7,7 +7,6 @@ import axios from 'axios'
 // 1. Configura la URL base
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
-// 2. ¡ESTA LÍNEA ES LA QUE FALTA PARA EL CORS!
 // Le dice al navegador que permita el intercambio seguro de datos con Render
 axios.defaults.withCredentials = true;
 

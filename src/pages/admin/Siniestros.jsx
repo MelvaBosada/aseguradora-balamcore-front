@@ -1,10 +1,10 @@
 // pages/admin/Siniestros.jsx
-import { useState, useEffect, useCallback } from "react";
-// Importamos useLocation desde react-router-dom
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "react-router-dom"; 
 import axios from 'axios';
 import "../../css/Clientes.css";
 
+// Iconos
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -17,6 +17,8 @@ import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import InfoIcon from "@mui/icons-material/Info";
 import ReportIcon from "@mui/icons-material/Report";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+
+// Componentes
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
 import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
@@ -53,8 +55,12 @@ const FORM_VACIO_SINIESTRO = {
   deducible_aplicado: ""
 };
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return { headers: { Authorization: `Bearer ${token}` } };
+};
+
 const Siniestros = () => {
-  // Hook para capturar el state enviado desde la navegación
   const location = useLocation();
 
   const [siniestros, setSiniestros] = useState([]);
@@ -62,31 +68,34 @@ const Siniestros = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
+  
   const [siniestroToDelete, setSiniestroToDelete] = useState(null);
   const [siniestroDetalle, setSiniestroDetalle] = useState(null);
   const [editingSiniestro, setEditingSiniestro] = useState(null);
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO_SINIESTRO);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [estatusFilter, setEstatusFilter] = useState("Todos");
   const [totalPages, setTotalPages] = useState(1);
-  const [buscarRfcTimer, setBuscarRfcTimer] = useState(null);
+  
   const [polizasOptions, setPolizasOptions] = useState([]);
   const [reportesOptions, setReportesOptions] = useState([]);
+
+  const timerRfcRef = useRef(null);
 
   const cargarSiniestros = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/siniestros`, {
         params: { page: currentPage, search: searchTerm, estatus: estatusFilter, per_page: itemsPerPage },
-        headers: { Authorization: `Bearer ${token}` }
+        ...getAuthHeaders()
       });
-      setSiniestros(response.data.data);
-      setTotalPages(response.data.last_page);
+      setSiniestros(response.data.data || []);
+      setTotalPages(response.data.last_page || 1);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error cargando siniestros:', error);
     } finally {
       setLoading(false);
     }
@@ -96,84 +105,70 @@ const Siniestros = () => {
     cargarSiniestros();
   }, [cargarSiniestros]);
 
-  // Función para obtener la información necesaria basándonos exclusivamente en el reporteId recibido
-  const cargarDatosPorReporteId = async (reporteId) => {
+  const cargarDatosPorReporteId = useCallback(async (reporteId) => {
     try {
-      const token = localStorage.getItem('token');
-      // Petición al backend usando el ID del reporte
-      const response = await axios.get(`${API_URL}/siniestros/reportes/por-id/${reporteId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+      const response = await axios.get(`${API_URL}/siniestros/reportes/por-id/${reporteId}`, getAuthHeaders());
       const data = response.data;
 
-      const reportesOpts = data.reportes.map(r => ({
+      const reportesOpts = (data.reportes || []).map(r => ({
         value: r.id,
-        label: `${r.numero_reporte} - Póliza: ${r.numero_poliza} - ${r.fecha_reporte} - ${r.estado}`,
+        label: `${r.numero_reporte || r.id} - Póliza: ${r.numero_poliza || ''} - ${r.fecha_reporte || ''}`,
         id_poliza: r.id_poliza
       }));
       setReportesOptions(reportesOpts);
 
-      const polizasOpts = data.polizas.map(p => ({
+      const polizasOpts = (data.polizas || []).map(p => ({
         value: p.id,
-        label: `${p.numero_poliza} - ${p.tipo}`
+        label: `${p.numero_poliza || p.id} - ${p.tipo || ''}`
       }));
       setPolizasOptions(polizasOpts);
 
       setFormData({
-        rfc_buscar: data.cliente.rfc || "",
-        id_cliente: data.cliente.id,
-        nombre_cliente: `${data.cliente.nombre} ${data.cliente.apellido}`,
-        id_poliza: data.reporte_actual.id_poliza, 
+        ...FORM_VACIO_SINIESTRO,
+        rfc_buscar: data.cliente?.rfc || "",
+        id_cliente: data.cliente?.id || "",
+        nombre_cliente: `${data.cliente?.nombre || ""} ${data.cliente?.apellido || ""}`.trim(),
+        id_poliza: data.reporte_actual?.id_poliza || "", 
         id_reporte: reporteId 
       });
 
       setShowModal(true);
     } catch (error) {
       console.error('Error al cargar datos del reporte redireccionado:', error);
-      // Fallback: Si el endpoint falla o no lo tienes implementado aún, abre el modal limpio
       handleNuevoSiniestro(); 
     }
-  };
+  }, []);
 
-  // Efecto que detecta de inmediato la redirección automática desde el módulo de Reportes
   useEffect(() => {
     if (location.state && location.state.reporteId) {
       const reporteIdDesdeEstado = location.state.reporteId;
-      
-      // Limpia el historial del navegador para evitar aperturas infinitas al recargar con F5
       window.history.replaceState({}, document.title); 
-      
-      // Lanza el flujo automático
       cargarDatosPorReporteId(reporteIdDesdeEstado);
     }
-  }, [location]);
+  }, [location, cargarDatosPorReporteId]);
 
   const cargarReportesPorRfc = async (rfc) => {
     if (!rfc || rfc.length < 8) return;
 
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/siniestros/reportes/por-rfc`, {
         params: { rfc },
-        headers: { Authorization: `Bearer ${token}` }
+        ...getAuthHeaders()
       });
 
       const data = response.data;
 
       if (data.reportes && data.reportes.length > 0) {
-        const reportesOpts = data.reportes.map(r => ({
+        setReportesOptions(data.reportes.map(r => ({
           value: r.id,
-          label: `${r.numero_reporte} - Póliza: ${r.numero_poliza} - ${r.fecha_reporte} - ${r.estado}`,
+          label: `${r.numero_reporte || r.id} - Póliza: ${r.numero_poliza || ''}`,
           id_poliza: r.id_poliza
-        }));
-        setReportesOptions(reportesOpts);
+        })));
 
-        const polizasOpts = data.polizas.map(p => ({
+        setPolizasOptions((data.polizas || []).map(p => ({
           value: p.id,
-          label: `${p.numero_poliza} - ${p.tipo}`
-        }));
-        setPolizasOptions(polizasOpts);
+          label: `${p.numero_poliza || p.id} - ${p.tipo || ''}`
+        })));
       } else {
         setReportesOptions([]);
         setPolizasOptions([]);
@@ -181,17 +176,14 @@ const Siniestros = () => {
 
       setFormData(prev => ({
         ...prev,
-        id_cliente: data.cliente.id,
-        nombre_cliente: `${data.cliente.nombre} ${data.cliente.apellido}`,
+        id_cliente: data.cliente?.id || "",
+        nombre_cliente: data.cliente ? `${data.cliente.nombre} ${data.cliente.apellido}` : "Cliente no encontrado",
         id_poliza: "",
         id_reporte: ""
       }));
 
     } catch (error) {
       console.error('Error al cargar reportes por RFC:', error);
-      if (error.response?.status === 404) {
-        setFormData(prev => ({ ...prev, nombre_cliente: "Cliente no encontrado" }));
-      }
       setReportesOptions([]);
       setPolizasOptions([]);
     }
@@ -201,22 +193,16 @@ const Siniestros = () => {
     if (!polizaId) return;
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/siniestros/reportes/por-poliza/${polizaId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await axios.get(`${API_URL}/siniestros/reportes/por-poliza/${polizaId}`, getAuthHeaders());
 
       if (response.data && response.data.length > 0) {
-        const reportesOpts = response.data.map(r => ({
+        setReportesOptions(response.data.map(r => ({
           value: r.id,
-          label: `${r.numero_reporte} - ${r.fecha_reporte} - ${r.estado}${r.tiene_siniestro ? ' ⚠️' : ''}`
-        }));
-        setReportesOptions(reportesOpts);
+          label: `${r.numero_reporte || r.id} - ${r.fecha_reporte || ''} - ${r.estado || ''}`
+        })));
       } else {
         setReportesOptions([]);
       }
-
-      setFormData(prev => ({ ...prev, id_reporte: "" }));
 
     } catch (error) {
       console.error('Error al cargar reportes:', error);
@@ -224,151 +210,176 @@ const Siniestros = () => {
     }
   };
 
-  const buscarClientePorRfc = async (rfc) => {
-    if (!rfc || rfc.length < 8) return;
-    await cargarReportesPorRfc(rfc);
-  };
-
   const handleRfcChange = (e) => {
     const rfc = e.target.value;
     setFormData(prev => ({ ...prev, rfc_buscar: rfc }));
-    if (buscarRfcTimer) clearTimeout(buscarRfcTimer);
-    setBuscarRfcTimer(setTimeout(() => buscarClientePorRfc(rfc), 500));
+
+    if (timerRfcRef.current) clearTimeout(timerRfcRef.current);
+    timerRfcRef.current = setTimeout(() => {
+      if (rfc.length >= 8) cargarReportesPorRfc(rfc);
+    }, 500);
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData(prev => ({ ...prev, [name]: value }));
 
     if (name === 'id_poliza') {
       cargarReportesPorPoliza(value);
     }
   };
 
-  const handleNuevoSiniestro = () => {
+  const cerrarModal = () => {
+    setShowModal(false);
     setEditingSiniestro(null);
     setFormData(FORM_VACIO_SINIESTRO);
     setPolizasOptions([]);
     setReportesOptions([]);
+  };
+
+  const handleNuevoSiniestro = () => {
+    cerrarModal();
     setShowModal(true);
   };
 
+  // EDITAR CORREGIDO
   const handleEditar = async (siniestro) => {
-    setEditingSiniestro(siniestro);
+    const id = siniestro.id || siniestro.id_siniestro;
+    if (!id) {
+      console.error("No se pudo identificar el ID del siniestro:", siniestro);
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_URL}/siniestros/${siniestro.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await axios.get(`${API_URL}/siniestros/${id}`, getAuthHeaders());
       const data = res.data;
 
+      // Cargar opciones si vienen en la respuesta del backend
+      if (data.reportes) {
+        setReportesOptions(data.reportes.map(r => ({
+          value: r.id,
+          label: `${r.numero_reporte || r.id} - Póliza: ${r.numero_poliza || ''}`
+        })));
+      }
+      if (data.polizas) {
+        setPolizasOptions(data.polizas.map(p => ({
+          value: p.id,
+          label: `${p.numero_poliza || p.id} - ${p.tipo || ''}`
+        })));
+      }
+
+      // Si no vienen opciones agrupadas pero sí el ID de póliza, cargamos sus reportes
+      const polizaIdVal = data.id_poliza || data.poliza_id;
+      if (polizaIdVal && (!data.reportes || data.reportes.length === 0)) {
+        await cargarReportesPorPoliza(polizaIdVal);
+      }
+
       setFormData({
-        rfc_buscar: "",
-        id_cliente: data.cliente_id,
-        nombre_cliente: data.cliente,
-        id_poliza: data.poliza_id,
-        id_reporte: data.id_reporte,
-        tipo: data.tipo.toLowerCase(),
-        prioridad: data.prioridad.toLowerCase(),
-        monto_reclamado: data.monto_reclamado,
+        rfc_buscar: data.cliente_rfc || data.rfc || "",
+        id_cliente: data.id_cliente || data.cliente_id || "",
+        nombre_cliente: data.cliente || data.nombre_cliente || "",
+        id_poliza: polizaIdVal || "",
+        id_reporte: data.id_reporte || data.reporte_id || "",
+        tipo: (data.tipo || "").toLowerCase(),
+        prioridad: (data.prioridad || "").toLowerCase(),
+        monto_reclamado: data.monto_reclamado || "",
         deducible_aplicado: data.deducible_aplicado || ""
       });
 
-      if (data.poliza_id) {
-        await cargarReportesPorPoliza(data.poliza_id);
-      }
+      setEditingSiniestro(siniestro);
+      setShowModal(true);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error al obtener siniestro para editar:', error);
+      alert('Error al obtener datos del siniestro para editar');
     }
-    setShowModal(true);
   };
 
   const handleGuardar = async () => {
+    if (!formData.id_reporte) {
+      alert('Debes seleccionar un reporte');
+      return;
+    }
+
     try {
-      const token = localStorage.getItem('token');
-
-      if (!formData.id_reporte) {
-        alert('Debes seleccionar un reporte');
-        return;
-      }
-
       const dataToSend = {
-        id_reporte: parseInt(formData.id_reporte),
+        id_reporte: parseInt(formData.id_reporte, 10),
         tipo: formData.tipo,
         prioridad: formData.prioridad,
         monto_reclamado: parseFloat(formData.monto_reclamado),
         deducible_aplicado: formData.deducible_aplicado ? parseFloat(formData.deducible_aplicado) : null
       };
 
-      if (editingSiniestro) {
-        await axios.put(`${API_URL}/siniestros/${editingSiniestro.id}`, dataToSend, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        alert('Siniestro actualizado');
+      const idToEdit = editingSiniestro?.id || editingSiniestro?.id_siniestro;
+
+      if (editingSiniestro && idToEdit) {
+        await axios.put(`${API_URL}/siniestros/${idToEdit}`, dataToSend, getAuthHeaders());
       } else {
-        await axios.post(`${API_URL}/siniestros`, dataToSend, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        alert('Siniestro creado');
+        await axios.post(`${API_URL}/siniestros`, dataToSend, getAuthHeaders());
       }
 
-      setShowModal(false);
+      cerrarModal();
       cargarSiniestros();
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error al guardar el siniestro:', error);
       alert('Error al guardar: ' + (error.response?.data?.message || error.message));
     }
   };
 
+  // VER DETALLE CORREGIDO (con fallback por si falla la llamada individual)
   const handleVerDetalle = async (siniestro) => {
+    const id = siniestro.id || siniestro.id_siniestro;
+
+    let data = siniestro;
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_URL}/siniestros/${siniestro.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = res.data;
-
-      const items = [
-        { icon: <AssignmentIcon />, label: "N° Siniestro", value: data.numero_siniestro },
-        { icon: <ReportIcon />, label: "Tipo", value: data.tipo },
-        { icon: <InfoIcon />, label: "Estatus", value: data.estatus },
-        { icon: <PriorityHighIcon />, label: "Prioridad", value: data.prioridad },
-        { icon: <AttachMoneyIcon />, label: "Monto Reclamado", value: `$${Number(data.monto_reclamado).toLocaleString()}` },
-        { icon: <AttachMoneyIcon />, label: "Deducible Aplicado", value: data.deducible_aplicado ? `$${Number(data.deducible_aplicado).toLocaleString()}` : "—" },
-        { icon: <DateRangeIcon />, label: "Fecha de Creación", value: data.fecha_creacion },
-        { icon: <DateRangeIcon />, label: "Fecha de Cierre", value: data.fecha_cierre || "—" },
-        { icon: <AssignmentIcon />, label: "Motivo de Cierre", value: data.motivo_cierre || "—" },
-        { icon: <PersonIcon />, label: "Cliente", value: data.cliente },
-        { icon: <AssignmentIcon />, label: "Póliza", value: data.poliza || "—" }
-      ];
-
-      setSiniestroDetalle({ ...data, items });
-      setShowDetalleModal(true);
-
+      if (id) {
+        const res = await axios.get(`${API_URL}/siniestros/${id}`, getAuthHeaders());
+        data = res.data;
+      }
     } catch (error) {
-      console.error('Error:', error);
-      alert('Error al cargar detalles');
+      console.warn('No se pudieron obtener detalles extendidos de la API, usando datos locales:', error);
     }
+
+    const items = [
+      { icon: <AssignmentIcon />, label: "N° Siniestro", value: data.numero_siniestro || data.nSiniestro || "—" },
+      { icon: <ReportIcon />, label: "Tipo", value: data.tipo || "—" },
+      { icon: <InfoIcon />, label: "Estatus", value: data.estatus || "—" },
+      { icon: <PriorityHighIcon />, label: "Prioridad", value: data.prioridad || "—" },
+      { icon: <AttachMoneyIcon />, label: "Monto Reclamado", value: data.monto_reclamado ? `$${Number(data.monto_reclamado).toLocaleString()}` : "—" },
+      { icon: <AttachMoneyIcon />, label: "Deducible Aplicado", value: data.deducible_aplicado ? `$${Number(data.deducible_aplicado).toLocaleString()}` : "—" },
+      { icon: <DateRangeIcon />, label: "Fecha de Creación", value: data.fecha_creacion || "—" },
+      { icon: <DateRangeIcon />, label: "Fecha de Cierre", value: data.fecha_cierre || "—" },
+      { icon: <AssignmentIcon />, label: "Motivo de Cierre", value: data.motivo_cierre || "—" },
+      { icon: <PersonIcon />, label: "Cliente", value: data.cliente || "—" },
+      { icon: <AssignmentIcon />, label: "Póliza", value: data.poliza || "—" }
+    ];
+
+    setSiniestroDetalle({ ...data, items });
+    setShowDetalleModal(true);
   };
 
+  // ELIMINAR CORREGIDO
   const handleEliminarClick = (s) => {
     setSiniestroToDelete(s);
     setShowDeleteModal(true);
   };
 
   const handleConfirmarEliminar = async () => {
-    if (siniestroToDelete) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.delete(`${API_URL}/siniestros/${siniestroToDelete.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setShowDeleteModal(false);
-        cargarSiniestros();
-      } catch (error) {
-        console.error('Error:', error);
-        alert('Error al eliminar');
-      }
+    if (!siniestroToDelete) return;
+
+    const id = siniestroToDelete.id || siniestroToDelete.id_siniestro;
+    if (!id) {
+      alert("No se encontró el ID del registro a eliminar");
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_URL}/siniestros/${id}`, getAuthHeaders());
+      setShowDeleteModal(false);
+      setSiniestroToDelete(null);
+      cargarSiniestros();
+    } catch (error) {
+      console.error('Error al eliminar siniestro:', error);
+      alert('Error al eliminar el siniestro: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -383,17 +394,20 @@ const Siniestros = () => {
   };
 
   const camposConOpciones = FORM_CAMPOS_SINIESTRO.map(campo => {
-    if (campo.name === 'id_poliza') {
-      return { ...campo, options: polizasOptions };
-    }
-    if (campo.name === 'id_reporte') {
-      return { ...campo, options: reportesOptions };
-    }
+    if (campo.name === 'id_poliza') return { ...campo, options: polizasOptions };
+    if (campo.name === 'id_reporte') return { ...campo, options: reportesOptions };
     return campo;
   });
 
   if (loading && siniestros.length === 0) {
-    return <div className="container py-4"><div className="text-center py-5"><div className="spinner-border text-success"></div><p>Cargando siniestros...</p></div></div>;
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success"></div>
+          <p className="mt-2">Cargando siniestros...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -479,11 +493,7 @@ const Siniestros = () => {
 
       <EditModal
         open={showModal}
-        onClose={() => {
-          setShowModal(false);
-          setPolizasOptions([]);
-          setReportesOptions([]);
-        }}
+        onClose={cerrarModal}
         onSave={handleGuardar}
         editando={!!editingSiniestro}
         titulo={editingSiniestro ? "Editar siniestro" : "Agregar nuevo siniestro"}
@@ -504,10 +514,10 @@ const Siniestros = () => {
       >
         {siniestroToDelete && (
           <div>
-            <p><strong>Siniestro #{siniestroToDelete.nSiniestro}</strong></p>
-            <p>Cliente: {siniestroToDelete.cliente}</p>
-            <p>Tipo: {siniestroToDelete.tipo}</p>
-            <p>Estatus: {siniestroToDelete.estatus}</p>
+            <p><strong>Siniestro #{siniestroToDelete.nSiniestro || siniestroToDelete.numero_siniestro || siniestroToDelete.id}</strong></p>
+            <p>Cliente: {siniestroToDelete.cliente || "—"}</p>
+            <p>Tipo: {siniestroToDelete.tipo || "—"}</p>
+            <p>Estatus: {siniestroToDelete.estatus || "—"}</p>
           </div>
         )}
       </ConfirmDeleteModal>
@@ -515,8 +525,8 @@ const Siniestros = () => {
       <ClienteDetalleModal
         open={showDetalleModal}
         onClose={() => { setShowDetalleModal(false); setSiniestroDetalle(null); }}
-        titulo={siniestroDetalle ? `Siniestro #${siniestroDetalle.numero_siniestro}` : ""}
-        subtitulo={siniestroDetalle ? siniestroDetalle.cliente : ""}
+        titulo={siniestroDetalle ? `Siniestro #${siniestroDetalle.numero_siniestro || siniestroDetalle.nSiniestro || siniestroDetalle.id}` : ""}
+        subtitulo={siniestroDetalle ? (siniestroDetalle.cliente || "") : ""}
         avatar="S"
         items={siniestroDetalle?.items || []}
       />

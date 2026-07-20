@@ -28,8 +28,11 @@ function AvisarModal({ open, onClose, poliza, onEnviado }) {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      // Mandamos a llamar tu variable de entorno
+      const API_URL = import.meta.env.VITE_API_URL;
+
       await axios.post(
-        "/api/polizas-vencer/avisar",
+        `${API_URL}/polizas-vencer/avisar`,
         { poliza_id: poliza.id },
         { headers: { Authorization: `Bearer ${token}` } }
       );

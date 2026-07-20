@@ -13,7 +13,7 @@ import AsignarPermisosModal from "../../components/AsignarPermisosModal";
 import Paginacion           from "../../components/Paginacion";
 import "../../css/Clientes.css";
 
-const API      = "/api";
+const API = import.meta.env.VITE_API_URL || '/api';
 const campos   = ["nombre"];
 const columnas = ["Nombre", "Acciones"];
 const FORM_CAMPOS = [{ label: "Nombre del perfil", name: "nombre", type: "text" }];
