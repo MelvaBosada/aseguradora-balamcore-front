@@ -20,17 +20,9 @@ import EditModal           from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion          from "../../components/Paginacion";
 
-const API      = "/api";
+const API = import.meta.env.VITE_API_URL || '/api';
 const campos   = ["nombre", "apellidos", "curp", "numero_de_telefono", "correo", "rol"];
 const columnas = ["Nombre", "Apellidos", "CURP", "Teléfono", "Correo", "Rol", "Acciones"];
-
-// ❌ ANTES: const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
-// Esa línea vivía a nivel de módulo y solo se ejecutaba UNA VEZ, cuando el
-// archivo se importaba por primera vez (a veces antes de que el login
-// terminara de guardar el usuario en localStorage). Por eso fallaba la
-// primera carga tras iniciar sesión y se arreglaba solo al recargar.
-// ✅ AHORA: usuario se lee dentro del componente, con useState lazy init,
-// así se evalúa en el momento del montaje, no en el momento del import.
 
 const FORM_VACIO = {
   nombre: "", apellidos: "", fecha_nacimiento: "", genero: "",
@@ -52,7 +44,7 @@ const FORM_VACIO = {
 const generarCampos = (roles) => [
   // ── Datos personales ──────────────────────────────
   { seccion: "Datos personales", label: "Nombre",              name: "nombre",              type: "text"   },
-  { seccion: "Datos personales", label: "Apellidos",          name: "apellidos",           type: "text"   },
+  { seccion: "Datos personales", label: "Apellidos",           name: "apellidos",           type: "text"   },
   { seccion: "Datos personales", label: "Fecha nacimiento",   name: "fecha_nacimiento",    type: "date"   },
   { seccion: "Datos personales", label: "Género",             name: "genero",              type: "select",
     options: [{ value: "M", label: "Masculino" }, { value: "F", label: "Femenino" }] },
@@ -102,11 +94,11 @@ const generarCampos = (roles) => [
   { seccion: "Datos laborales", label: "Tipo empleado",  name: "tipo_empleado",  type: "select",
     options: [
       { value: "ajustador", label: "Ajustador"     },
-      { value: "perito",    label: "Perito"         },
-      { value: "agente",    label: "Agente"         },
-      { value: "promotor",  label: "Promotor"       },
-      { value: "cobrador",  label: "Cobrador"       },
-      { value: "abogado",   label: "Abogado"        },
+      { value: "perito",    label: "Perito"        },
+      { value: "agente",    label: "Agente"        },
+      { value: "promotor",  label: "Promotor"      },
+      { value: "cobrador",  label: "Cobrador"      },
+      { value: "abogado",   label: "Abogado"       },
       { value: "admin",     label: "Administrativo" },
     ]},
   { seccion: "Datos laborales", label: "Puesto",          name: "puesto",         type: "text" },
@@ -153,10 +145,6 @@ const generarCampos = (roles) => [
 ];
 
 const Empleados = () => {
-  // ✅ FIX: usuario ahora se lee dentro del componente con un lazy initializer.
-  // El callback de useState solo corre una vez, en el momento del primer
-  // render del componente (no en el momento en que el módulo es importado),
-  // así siempre lee el localStorage actualizado tras el login.
   const [usuario]           = useState(() => JSON.parse(localStorage.getItem("usuario") || "{}"));
   const [empleados,        setEmpleados]        = useState([]);
   const [roles,            setRoles]            = useState([]);
@@ -173,18 +161,50 @@ const Empleados = () => {
   const [itemsPerPage,     setItemsPerPage]     = useState(10);
   const [errores,          setErrores]          = useState({});
 
+  // Helper para generar cabeceras unificadas en todas las peticiones
+  const getHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      Authorization: `Bearer ${token}`,
+      "X-Usuario": JSON.stringify(usuario)
+    };
+  };
+
+  // Normaliza las respuestas y formatea la columna 'rol' para TablaForm
+  const normalizarEmpleados = (data, listaRoles = []) => {
+    const lista = Array.isArray(data) ? data : (data?.data || []);
+    return lista.map(emp => {
+      let nombreRol = "Sin rol";
+      if (typeof emp.rol === 'string') {
+        nombreRol = emp.rol;
+      } else if (emp.rol && typeof emp.rol === 'object') {
+        nombreRol = emp.rol.nombre || "Sin rol";
+      } else if (emp.id_rol) {
+        const r = listaRoles.find(role => String(role.id) === String(emp.id_rol));
+        if (r) nombreRol = r.nombre;
+      }
+
+      return {
+        ...emp,
+        id_rol: emp.id_rol ? String(emp.id_rol) : "",
+        rol: nombreRol
+      };
+    });
+  };
+
   useEffect(() => {
     const cargar = async () => {
       try {
         setLoading(true);
+        const headers = getHeaders();
         const [resEmp, resRoles] = await Promise.all([
-          axios.get(`${API}/empleados`, {
-            headers: { "X-Usuario": JSON.stringify(usuario) }
-          }),
-          axios.get(`${API}/roles`),
+          axios.get(`${API}/empleados`, { headers }),
+          axios.get(`${API}/roles`, { headers }),
         ]);
-        setEmpleados(resEmp.data);
-        setRoles(resRoles.data);
+
+        const listaRoles = Array.isArray(resRoles.data) ? resRoles.data : (resRoles.data?.data || []);
+        setRoles(listaRoles);
+        setEmpleados(normalizarEmpleados(resEmp.data, listaRoles));
       } catch (err) {
         console.error("Error al cargar datos:", err);
       } finally {
@@ -196,10 +216,9 @@ const Empleados = () => {
 
   const recargarEmpleados = async () => {
     try {
-      const res = await axios.get(`${API}/empleados`, {
-        headers: { "X-Usuario": JSON.stringify(usuario) }
-      });
-      setEmpleados(res.data);
+      const headers = getHeaders();
+      const res = await axios.get(`${API}/empleados`, { headers });
+      setEmpleados(normalizarEmpleados(res.data, roles));
     } catch (err) {
       console.error("Error al recargar empleados:", err);
     }
@@ -217,7 +236,7 @@ const Empleados = () => {
           ...prev,
           codigo_postal: value,
           municipio: lugar["place name"] || prev.municipio,
-          estado:    lugar["state"]       || prev.estado,
+          estado:    lugar["state"]      || prev.estado,
         }));
       } catch {
         // CP no encontrado
@@ -234,7 +253,10 @@ const Empleados = () => {
 
   const handleEditar = (emp) => {
     setEditingEmp(emp);
-    setFormData(emp);
+    setFormData({
+      ...emp,
+      id_rol: emp.id_rol ? String(emp.id_rol) : ""
+    });
     setErrores({});
     setShowModal(true);
   };
@@ -270,10 +292,13 @@ const Empleados = () => {
     try {
       const payload = { ...formData, id_aseguradora: usuario.id_aseguradora };
       if (!payload.password) delete payload.password;
+      
+      const headers = getHeaders();
+
       if (editingEmp) {
-        await axios.put(`${API}/empleados/${editingEmp.id}`, payload);
+        await axios.put(`${API}/empleados/${editingEmp.id}`, payload, { headers });
       } else {
-        await axios.post(`${API}/empleados`, payload);
+        await axios.post(`${API}/empleados`, payload, { headers });
       }
       await recargarEmpleados();
       setShowModal(false);
@@ -283,11 +308,12 @@ const Empleados = () => {
     }
   };
 
-  const handleEliminarClick  = (e) => { setEmpToDelete(e); setShowDeleteModal(true); };
+  const handleEliminarClick = (e) => { setEmpToDelete(e); setShowDeleteModal(true); };
 
   const handleConfirmarEliminar = async () => {
     try {
-      await axios.delete(`${API}/empleados/${empToDelete.id}`);
+      const headers = getHeaders();
+      await axios.delete(`${API}/empleados/${empToDelete.id}`, { headers });
       await recargarEmpleados();
       setShowDeleteModal(false);
       setEmpToDelete(null);
@@ -311,41 +337,41 @@ const Empleados = () => {
   const handleVerDetalle = (e) => { setEmpDetalle(e); setShowDetalleModal(true); };
 
   const detalleItems = empDetalle ? [
-    { icon: <PersonIcon />, label: "Nombre",                value: empDetalle.nombre                          },
-    { icon: <PersonIcon />, label: "Apellidos",             value: empDetalle.apellidos                       },
-    { icon: <BadgeIcon  />, label: "CURP",                  value: empDetalle.curp                            },
-    { icon: <BadgeIcon  />, label: "RFC",                   value: empDetalle.rfc                             },
-    { icon: <BadgeIcon  />, label: "NSS",                   value: empDetalle.nss                             },
-    { icon: <BadgeIcon  />, label: "Tipo identificación",   value: empDetalle.tipo_identificacion             },
-    { icon: <BadgeIcon  />, label: "No. identificación",    value: empDetalle.numero_identificacion           },
-    { icon: <PhoneIcon  />, label: "Teléfono",              value: empDetalle.numero_de_telefono              },
-    { icon: <PhoneIcon  />, label: "Teléfono alternativo",  value: empDetalle.telefono_alternativo  || "—"    },
-    { icon: <EmailIcon  />, label: "Correo",                value: empDetalle.correo                          },
-    { icon: <HomeIcon   />, label: "Domicilio",             value: empDetalle.domicilio                       },
-    { icon: <HomeIcon   />, label: "Municipio",             value: empDetalle.municipio                       },
-    { icon: <HomeIcon   />, label: "Estado",                value: empDetalle.estado                          },
-    { icon: <HomeIcon   />, label: "Código postal",         value: empDetalle.codigo_postal                   },
-    { icon: <BadgeIcon  />, label: "Fecha nacimiento",      value: empDetalle.fecha_nacimiento                },
-    { icon: <BadgeIcon  />, label: "Género",                value: empDetalle.genero                          },
-    { icon: <BadgeIcon  />, label: "Estado civil",          value: empDetalle.estado_civil                    },
-    { icon: <BadgeIcon  />, label: "Nacionalidad",          value: empDetalle.nacionalidad                    },
-    { icon: <BadgeIcon  />, label: "Puesto",                value: empDetalle.puesto                          },
-    { icon: <BadgeIcon  />, label: "Departamento",          value: empDetalle.departamento                    },
-    { icon: <BadgeIcon  />, label: "Tipo empleado",         value: empDetalle.tipo_empleado                   },
-    { icon: <BadgeIcon  />, label: "Horario",               value: empDetalle.horario                         },
-    { icon: <BadgeIcon  />, label: "Estado laboral",        value: empDetalle.estado_laboral                  },
-    { icon: <BadgeIcon  />, label: "Fecha ingreso",         value: empDetalle.fecha_ingreso                   },
-    { icon: <BadgeIcon  />, label: "Rol",                   value: empDetalle.rol                             },
+    { icon: <PersonIcon />, label: "Nombre",                value: empDetalle.nombre                                          },
+    { icon: <PersonIcon />, label: "Apellidos",             value: empDetalle.apellidos                                       },
+    { icon: <BadgeIcon  />, label: "CURP",                  value: empDetalle.curp                                            },
+    { icon: <BadgeIcon  />, label: "RFC",                   value: empDetalle.rfc                                             },
+    { icon: <BadgeIcon  />, label: "NSS",                   value: empDetalle.nss                                             },
+    { icon: <BadgeIcon  />, label: "Tipo identificación",   value: empDetalle.tipo_identificacion                             },
+    { icon: <BadgeIcon  />, label: "No. identificación",    value: empDetalle.numero_identificacion                           },
+    { icon: <PhoneIcon  />, label: "Teléfono",              value: empDetalle.numero_de_telefono                              },
+    { icon: <PhoneIcon  />, label: "Teléfono alternativo",  value: empDetalle.telefono_alternativo  || "—"                    },
+    { icon: <EmailIcon  />, label: "Correo",                value: empDetalle.correo                                          },
+    { icon: <HomeIcon   />, label: "Domicilio",             value: empDetalle.domicilio                                       },
+    { icon: <HomeIcon   />, label: "Municipio",             value: empDetalle.municipio                                       },
+    { icon: <HomeIcon   />, label: "Estado",                value: empDetalle.estado                                          },
+    { icon: <HomeIcon   />, label: "Código postal",         value: empDetalle.codigo_postal                                   },
+    { icon: <BadgeIcon  />, label: "Fecha nacimiento",      value: empDetalle.fecha_nacimiento                                },
+    { icon: <BadgeIcon  />, label: "Género",                value: empDetalle.genero                                          },
+    { icon: <BadgeIcon  />, label: "Estado civil",          value: empDetalle.estado_civil                                    },
+    { icon: <BadgeIcon  />, label: "Nacionalidad",          value: empDetalle.nacionalidad                                    },
+    { icon: <BadgeIcon  />, label: "Puesto",                value: empDetalle.puesto                                          },
+    { icon: <BadgeIcon  />, label: "Departamento",          value: empDetalle.departamento                                    },
+    { icon: <BadgeIcon  />, label: "Tipo empleado",         value: empDetalle.tipo_empleado                                   },
+    { icon: <BadgeIcon  />, label: "Horario",               value: empDetalle.horario                                         },
+    { icon: <BadgeIcon  />, label: "Estado laboral",        value: empDetalle.estado_laboral                                  },
+    { icon: <BadgeIcon  />, label: "Fecha ingreso",         value: empDetalle.fecha_ingreso                                   },
+    { icon: <BadgeIcon  />, label: "Rol",                   value: empDetalle.rol                                             },
     { icon: <BadgeIcon  />, label: "Salario",               value: empDetalle.salario ? `$${Number(empDetalle.salario).toLocaleString()}` : "—" },
-    { icon: <BadgeIcon  />, label: "Tipo nómina",           value: empDetalle.tipo_nomina                     },
-    { icon: <BadgeIcon  />, label: "Banco",                 value: empDetalle.banco                           },
-    { icon: <BadgeIcon  />, label: "Cuenta bancaria",       value: empDetalle.cuenta_bancaria                 },
-    { icon: <BadgeIcon  />, label: "CLABE interbancaria",   value: empDetalle.clabe_interbancaria             },
-    { icon: <BadgeIcon  />, label: "Cédula profesional",    value: empDetalle.cedula_profesional    || "—"    },
-    { icon: <BadgeIcon  />, label: "Especialidad",          value: empDetalle.especialidad          || "—"    },
-    { icon: <PersonIcon />, label: "Contacto emergencia",   value: empDetalle.contacto_emergencia_nombre      },
-    { icon: <BadgeIcon  />, label: "Parentesco",            value: empDetalle.contacto_emergencia_parentesco  },
-    { icon: <PhoneIcon  />, label: "Tel. emergencia",       value: empDetalle.contacto_emergencia_telefono    },
+    { icon: <BadgeIcon  />, label: "Tipo nómina",           value: empDetalle.tipo_nomina                                     },
+    { icon: <BadgeIcon  />, label: "Banco",                 value: empDetalle.banco                                           },
+    { icon: <BadgeIcon  />, label: "Cuenta bancaria",       value: empDetalle.cuenta_bancaria                                 },
+    { icon: <BadgeIcon  />, label: "CLABE interbancaria",   value: empDetalle.clabe_interbancaria                             },
+    { icon: <BadgeIcon  />, label: "Cédula profesional",    value: empDetalle.cedula_profesional    || "—"                    },
+    { icon: <BadgeIcon  />, label: "Especialidad",          value: empDetalle.especialidad          || "—"                    },
+    { icon: <PersonIcon />, label: "Contacto emergencia",   value: empDetalle.contacto_emergencia_nombre                      },
+    { icon: <BadgeIcon  />, label: "Parentesco",            value: empDetalle.contacto_emergencia_parentesco                  },
+    { icon: <PhoneIcon  />, label: "Tel. emergencia",       value: empDetalle.contacto_emergencia_telefono                    },
   ] : [];
 
   if (loading && empleados.length === 0) {
@@ -383,7 +409,7 @@ const Empleados = () => {
           campos={campos}
           acciones={[
             { titulo: "Ver",      clase: "tabla-btn-ver",  icono: <VisibilityIcon fontSize="small" />, onClick: handleVerDetalle    },
-            { titulo: "Editar",   clase: "tabla-btn-edit", icono: <EditIcon       fontSize="small" />, onClick: handleEditar        },
+            { titulo: "Editar",   clase: "tabla-btn-edit", icono: <EditIcon       fontSize="small" />, onClick: handleEditar       },
             { titulo: "Eliminar", clase: "tabla-btn-del",  icono: <DeleteIcon     fontSize="small" />, onClick: handleEliminarClick },
           ]}
         />

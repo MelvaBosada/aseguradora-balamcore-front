@@ -7,6 +7,8 @@ import ModalBienvenida from "../ModalBienvenida";
 import usePermisos    from "../../hooks/usePermisos";
 import "./layout.css";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 const DashboardLayout = () => {
   const [sidebarOpen,      setSidebarOpen]      = useState(false);
   const [showPlanes,       setShowPlanes]       = useState(false);
@@ -44,7 +46,10 @@ const DashboardLayout = () => {
   const handleLogout = async () => {
     try {
       const axios = (await import("axios")).default;
-      await axios.post("http://localhost:8000/api/logout");
+      const token = localStorage.getItem("token");
+      await axios.post(`${API_BASE}/logout`, {}, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
     } catch (e) {
       console.error(e);
     }

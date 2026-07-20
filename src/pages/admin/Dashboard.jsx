@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -14,30 +14,27 @@ import ModalPlanes from "../../components/ModalPlanes";
 import "../../css/Dashboard.css";
 import usePermisos from "../../hooks/usePermisos";
 
-const API        = "/api";
+const API = import.meta.env.VITE_API_URL || '/api';
 const PIE_COLORS = ["#0F4C3A", "#295E4E", "#4a9477", "#f59e0b", "#94a3b8"];
 
-const toArray = (data) => {
-    if (!data) return [];
-    if (Array.isArray(data)) return data;
-    if (typeof data === "object") return Object.values(data);
-    return [];
-};
+const toArray = (data) => Array.isArray(data) ? data : (data && typeof data === "object" ? Object.values(data) : []);
 
 const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="dash-tooltip">
-                <p className="dash-tooltip-label">{label}</p>
-                {payload.map((entry, i) => (
-                    <p key={`tooltip-${i}`} style={{ color: entry.color, margin: "2px 0" }}>
-                        {entry.name}: <strong>${(entry.value ?? 0).toLocaleString()}</strong>
-                    </p>
-                ))}
-            </div>
-        );
-    }
-    return null;
+    if (!active || !payload?.length) return null;
+    return (
+        <div className="dash-tooltip">
+            <p className="dash-tooltip-label">{label}</p>
+            {payload.map((entry, i) => (
+                <p key={`tooltip-${i}`} style={{ color: entry.color, margin: "2px 0" }}>
+                    {entry.name}: <strong>
+                        {typeof entry.value === "number" && entry.name.toLowerCase().includes("ingreso")
+                            ? `$${entry.value.toLocaleString()}`
+                            : entry.value?.toLocaleString() ?? 0}
+                    </strong>
+                </p>
+            ))}
+        </div>
+    );
 };
 
 const badgeEstado = (estado) => {
@@ -63,7 +60,6 @@ const FiltroBtn = ({ valor, actual, onChange }) => (
 
 const Dashboard = () => {
     const { verificarPagoStripe, vencida } = usePermisos();
-    const interceptorRef = useRef(null);
 
     const [openPlanes, setOpenPlanes]               = useState(false);
     const [kpis, setKpis]                           = useState(null);
@@ -79,37 +75,12 @@ const Dashboard = () => {
     const [loadingIngresos, setLoadingIngresos]   = useState(true);
     const [loadingTendencia, setLoadingTendencia] = useState(true);
 
-    // ── Interceptor: si backend devuelve 403 por plan vencido → abrir modal ──
-    useEffect(() => {
-        interceptorRef.current = axios.interceptors.response.use(
-            (response) => response,
-            (error) => {
-                if (error.response?.status === 403) {
-                    const msg = error.response.data?.message ?? "";
-                    if (
-                        msg.includes("vencido") ||
-                        msg.includes("expirado") ||
-                        msg.includes("prueba") ||
-                        msg.includes("suscripción") ||
-                        msg.includes("suscripcion")
-                    ) {
-                        setOpenPlanes(true);
-                    }
-                }
-                return Promise.reject(error);
-            }
-        );
-        return () => {
-            axios.interceptors.response.eject(interceptorRef.current);
-        };
-    }, []);
-
-    // ── Abrir modal si vencida al montar ─────────────────
+    // Abrir modal si la suscripción está vencida
     useEffect(() => {
         if (vencida) setOpenPlanes(true);
     }, [vencida]);
 
-    // ── Verificar pago Stripe al volver ──────────────────
+    // Verificar pago de Stripe al retornar a la pantalla
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         if (params.get("pago") === "exitoso") {
@@ -119,40 +90,64 @@ const Dashboard = () => {
         }
     }, [verificarPagoStripe]);
 
-    // ── Al montar ─────────────────────────────────────────
+    // Carga inicial de datos estáticos
     useEffect(() => {
-        axios.get(`${API}/dashboard/kpis`)
-            .then(res => setKpis(res.data ?? null))
-            .finally(() => setLoadingKpis(false));
+        const controller = new AbortController();
 
-        axios.get(`${API}/dashboard/polizas-por-tipo`)
-            .then(res => setPolizasTipo(toArray(res.data)));
+        const fetchInicial = async () => {
+            try {
+                const [kpisRes, polizasRes, siniestrosRes] = await Promise.all([
+                    axios.get(`${API}/dashboard/kpis`, { signal: controller.signal }),
+                    axios.get(`${API}/dashboard/polizas-por-tipo`, { signal: controller.signal }),
+                    axios.get(`${API}/dashboard/ultimos-siniestros`, { signal: controller.signal })
+                ]);
 
-        axios.get(`${API}/dashboard/ultimos-siniestros`)
-            .then(res => setUltimosSiniestros(toArray(res.data)));
+                setKpis(kpisRes.data ?? null);
+                setPolizasTipo(toArray(polizasRes.data));
+                setUltimosSiniestros(toArray(siniestrosRes.data));
+            } catch (err) {
+                if (axios.isCancel(err)) return;
+                if (err.response?.status === 403) setOpenPlanes(true);
+            } finally {
+                setLoadingKpis(false);
+            }
+        };
+
+        fetchInicial();
+        return () => controller.abort();
     }, []);
 
-    // ── Ingresos ──────────────────────────────────────────
+    // Carga de Ingresos por filtro
     useEffect(() => {
-        let cancelado = false;
-        setTimeout(() => { if (!cancelado) setLoadingIngresos(true); }, 0);
-        axios.get(`${API}/dashboard/ingresos?filtro=${filtroIngresos}`)
-            .then(res => { if (!cancelado) setIngresos(toArray(res.data)); })
-            .finally(() => { if (!cancelado) setLoadingIngresos(false); });
-        return () => { cancelado = true; };
+        const controller = new AbortController();
+        setLoadingIngresos(true);
+
+        axios.get(`${API}/dashboard/ingresos?filtro=${filtroIngresos}`, { signal: controller.signal })
+            .then(res => setIngresos(toArray(res.data)))
+            .catch(err => {
+                if (!axios.isCancel(err) && err.response?.status === 403) setOpenPlanes(true);
+            })
+            .finally(() => setLoadingIngresos(false));
+
+        return () => controller.abort();
     }, [filtroIngresos]);
 
-    // ── Tendencia ─────────────────────────────────────────
+    // Carga de Tendencia por filtro
     useEffect(() => {
-        let cancelado = false;
-        setTimeout(() => { if (!cancelado) setLoadingTendencia(true); }, 0);
-        axios.get(`${API}/dashboard/tendencia-siniestros?filtro=${filtroTendencia}`)
-            .then(res => { if (!cancelado) setTendencia(toArray(res.data)); })
-            .finally(() => { if (!cancelado) setLoadingTendencia(false); });
-        return () => { cancelado = true; };
+        const controller = new AbortController();
+        setLoadingTendencia(true);
+
+        axios.get(`${API}/dashboard/tendencia-siniestros?filtro=${filtroTendencia}`, { signal: controller.signal })
+            .then(res => setTendencia(toArray(res.data)))
+            .catch(err => {
+                if (!axios.isCancel(err) && err.response?.status === 403) setOpenPlanes(true);
+            })
+            .finally(() => setLoadingTendencia(false));
+
+        return () => controller.abort();
     }, [filtroTendencia]);
 
-    // ── KPI cards ─────────────────────────────────────────
+    // KPI Cards
     const kpiCards = kpis ? [
         {
             label: "Pólizas activas en total",
@@ -195,7 +190,6 @@ const Dashboard = () => {
 
     return (
         <div className="dash-wrapper">
-
             <ModalPlanes
                 open={openPlanes}
                 onClose={() => setOpenPlanes(false)}
@@ -291,7 +285,7 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* BOTTOM */}
+            {/* SECCIÓN INFERIOR */}
             <div className="dash-bottom">
                 <div className="chart-card">
                     <h3>Últimos siniestros</h3>
@@ -362,7 +356,7 @@ const Dashboard = () => {
                                 <span className="tfs-mes">{mesAlto?.periodo ?? "-"}</span>
                             </div>
                             <span className="tfs-val tfs-val-alto">
-                                ${mesAlto ? (mesAlto.siniestros ?? 0).toLocaleString() : 0}
+                                {mesAlto ? (mesAlto.siniestros ?? 0).toLocaleString() : 0}
                             </span>
                         </div>
                         <div className="tfs-divider" />
@@ -373,7 +367,7 @@ const Dashboard = () => {
                                 <span className="tfs-mes">{mesBajo?.periodo ?? "-"}</span>
                             </div>
                             <span className="tfs-val tfs-val-bajo">
-                                ${mesBajo ? (mesBajo.siniestros ?? 0).toLocaleString() : 0}
+                                {mesBajo ? (mesBajo.siniestros ?? 0).toLocaleString() : 0}
                             </span>
                         </div>
                     </div>
@@ -386,4 +380,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

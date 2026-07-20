@@ -22,7 +22,9 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 
-const API_URL = "/api/bienes";
+const API_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/bienes`
+  : "/api/bienes";
 
 const columnas = [
   "Tipo",
@@ -227,6 +229,9 @@ const Bienes = () => {
         const data = await response.json();
         const finalData = Array.isArray(data) ? data : data.data || [];
         setBienes(finalData.sort((a, b) => b.id - a.id));
+      } else if (response.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
       }
     } catch (error) {
       console.error("Error al cargar bienes:", error);
@@ -434,7 +439,6 @@ const Bienes = () => {
     return items;
   };
 
-  // 🔄 CORTAFUEGOS: Pantalla completa de carga inicial si no hay registros aún
   if (loading && bienes.length === 0) {
     return (
       <div className="container py-4">

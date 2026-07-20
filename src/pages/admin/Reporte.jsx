@@ -18,7 +18,8 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 
-const API_URL = "/api/reportes";
+const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_URL = `${API_BASE}/reportes`;
 
 const campos = ["poliza", "cliente", "siniestro", "estatus"];
 const columnas = ["# de Poliza", "Cliente", "# de Siniestro", "Estatus", "Acciones"];
@@ -58,7 +59,8 @@ const FORM_CAMPOS = [
   { label: "Observaciones", name: "observaciones", type: "text" },
 ];
 
-const FORM_VACIO = {
+// Función para obtener el formulario limpio con la hora actual al momento de llamar
+const getFormVacio = () => ({
   id_aseguradora: 1,
   id_poliza: "",
   id_empleado: 1,
@@ -72,7 +74,7 @@ const FORM_VACIO = {
   descripcion: "",
   estado: "nuevo",
   observaciones: ""
-};
+});
 
 const Reportes = () => {
   const navigate = useNavigate();
@@ -89,24 +91,20 @@ const Reportes = () => {
   
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [formData, setFormData] = useState(FORM_VACIO);
+  const [formData, setFormData] = useState(getFormVacio());
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
-  const getHeaders = () => ({
+  const getHeaders = useCallback(() => ({
     "Content-Type": "application/json",
     "Accept": "application/json",
     "Authorization": `Bearer ${localStorage.getItem("token")}`,
-  });
+  }), []);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(API_URL, {
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        }
+        headers: getHeaders()
       });
       if (response.ok) {
         const data = await response.json();
@@ -124,7 +122,7 @@ const Reportes = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getHeaders]);
 
   useEffect(() => {
     fetchData();
@@ -136,7 +134,7 @@ const Reportes = () => {
 
   const handleNuevoReporte = () => {
     setEditingItem(null);
-    setFormData(FORM_VACIO);
+    setFormData(getFormVacio()); // Se genera con la hora actual
     setShowModal(true);
   };
 
@@ -180,6 +178,7 @@ const Reportes = () => {
   };
 
   const handleConfirmarEliminar = async () => {
+    if (!itemToDelete) return;
     try {
       setLoading(true);
       const response = await fetch(`${API_URL}/${itemToDelete.id}`, {
@@ -207,19 +206,18 @@ const Reportes = () => {
     );
   });
 
-  const totalPages = Math.ceil(filteredReportes.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredReportes.length / itemsPerPage) || 1;
   const paginated = filteredReportes.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
 
-  // 🔄 CORTAFUEGOS: Pantalla completa de carga con el spinner verde si no hay registros
   if (loading && reportes.length === 0) {
     return (
       <div className="container py-4">
         <div className="text-center py-5">
           <div className="spinner-border text-success"></div>
-          <p>Cargando reportes...</p>
+          <p className="mt-2">Cargando reportes...</p>
         </div>
       </div>
     );

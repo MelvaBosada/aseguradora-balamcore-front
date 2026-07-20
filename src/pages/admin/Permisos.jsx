@@ -12,7 +12,7 @@ import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import Paginacion         from "../../components/Paginacion";
 import "../../css/Clientes.css";
 
-const API      = "/api";
+const API = import.meta.env.VITE_API_URL || '/api';
 const campos   = ["nombre", "descripcion", "clave"];
 const columnas = ["Nombre", "Descripción", "Clave", "Acciones"];
 
@@ -40,8 +40,10 @@ const Permisos = () => {
     const cargar = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${API}/permisos`);
-        setPermisos(res.data);
+        //(agrega token y valida si los datos vienen paginados)
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`${API}/permisos`, { headers: { Authorization: `Bearer ${token}` } });
+        setPermisos(res.data.data || res.data);
       } catch (err) {
         console.error("Error al cargar permisos:", err);
       } finally {
@@ -53,8 +55,9 @@ const Permisos = () => {
 
   const recargarPermisos = async () => {
     try {
-      const res = await axios.get(`${API}/permisos`);
-      setPermisos(res.data);
+      const token = localStorage.getItem('token');
+      const res = await axios.get(`${API}/permisos`, { headers: { Authorization: `Bearer ${token}` } });
+      setPermisos(res.data.data || res.data);
     } catch (err) {
       console.error("Error al recargar permisos:", err);
     }
@@ -81,11 +84,13 @@ const Permisos = () => {
   const handleGuardar = async () => {
     try {
       setLoading(true);
-      if (editingPermiso) {
-        await axios.put(`${API}/permisos/${editingPermiso.id}`, formData);
-      } else {
-        await axios.post(`${API}/permisos`, formData);
-      }
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+        if (editingPermiso) {
+         await axios.put(`${API}/permisos/${editingPermiso.id}`, formData, { headers });
+        } else {
+          await axios.post(`${API}/permisos`, formData, { headers });
+        }
       await recargarPermisos();
       setShowModal(false);
     } catch (err) {
@@ -100,7 +105,8 @@ const Permisos = () => {
   const handleConfirmarEliminar = async () => {
     try {
       setLoading(true);
-      await axios.delete(`${API}/permisos/${permisoToDelete.id}`);
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API}/permisos/${permisoToDelete.id}`, { headers: { Authorization: `Bearer ${token}` } });
       await recargarPermisos();
       setShowDeleteModal(false);
       setPermisoToDelete(null);
@@ -177,21 +183,14 @@ const Permisos = () => {
         onChange={handleInputChange}
       />
 
-      <ConfirmDeleteModal
-        open={showDeleteModal}
-        onClose={() => { setShowDeleteModal(false); setPermisoToDelete(null); }}
-        onConfirm={handleConfirmarEliminar}
-        title="Eliminar permiso"
-        subtitle="¿Deseas eliminar este permiso del sistema?"
-      >
-        {permisoToDelete && (
-          <div>
-            <p><strong>{permisoToDelete.nombre}</strong></p>
-            <p>ID: {permisoToDelete.id}</p>
-            <p>{permisoToDelete.descripcion}</p>
-          </div>
-        )}
-      </ConfirmDeleteModal>
+
+<ConfirmDeleteModal
+  open={showDeleteModal}
+  onClose={() => { setShowDeleteModal(false); setPermisoToDelete(null); }}
+  onConfirm={handleConfirmarEliminar}
+  title="Eliminar permiso"
+  message={`¿Estás seguro de que deseas eliminar el permiso "${permisoToDelete?.nombre || ''}"?`}
+/>
     </div>
   );
 };

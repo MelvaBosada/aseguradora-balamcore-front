@@ -58,10 +58,10 @@ const Evaluaciones = () => {
   const [modalData, setModalData] = useState(null);
 
   const { printRef, snack, setSnack, handleDescargar } = usePDFExport(
-    modalData ? `Evaluacion_${modalData.nEvaluacion}` : "Evaluacion"
+   modalData ? `Evaluacion_${modalData.nEvaluacion || modalData.id}` : "Evaluacion"
   );
 
-  // ✅ CORRECCIÓN: useCallback con las dependencias correctas
+  // CORRECCIÓN: useCallback con las dependencias correctas
   const cargarEvaluaciones = useCallback(async () => {
     setLoading(true);
     try {
@@ -75,8 +75,8 @@ const Evaluaciones = () => {
         },
         headers: { Authorization: `Bearer ${token}` }
       });
-      setEvaluaciones(response.data.data);
-      setTotalPages(response.data.last_page);
+      setEvaluaciones(response.data.data || response.data || []);
+      setTotalPages(response.data.last_page || 1);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -97,7 +97,7 @@ const Evaluaciones = () => {
     }
   };
 
-  // ✅ CORRECCIÓN: cargarEvaluaciones incluida en el array de dependencias
+  //  CORRECCIÓN: cargarEvaluaciones incluida en el array de dependencias
   useEffect(() => {
     cargarEvaluaciones();
   }, [cargarEvaluaciones]);
@@ -155,7 +155,10 @@ const Evaluaciones = () => {
             className="form-select"
             style={{ width: "180px" }}
             value={estatusFilter}
-            onChange={(e) => setEstatusFilter(e.target.value)}
+            onChange={(e) => {
+             setEstatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             <option value="Todos">Todos</option>
             <option value="aprobada">Aprobada</option>

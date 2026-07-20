@@ -14,6 +14,8 @@ import ModalPlanes  from "../ModalPlanes";
 import usePermisos  from "../../hooks/usePermisos";
 import "./layout.css";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 const Topbar = ({ onToggleSidebar }) => {
   const [showUserMenu,  setShowUserMenu]  = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
@@ -67,7 +69,10 @@ const Topbar = ({ onToggleSidebar }) => {
 
   const handleLogout = async () => {
     try {
-      await axios.post("http://localhost:8000/api/logout");
+      const token = localStorage.getItem("token");
+      await axios.post(`${API_BASE}/logout`, {}, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
     } catch (err) {
       console.error("Error al cerrar sesión:", err);
     } finally {

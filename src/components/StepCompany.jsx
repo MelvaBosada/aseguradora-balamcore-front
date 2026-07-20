@@ -3,6 +3,8 @@ import { Box, TextField, Typography, Snackbar, Alert, CircularProgress, InputAdo
 import axios from "axios";
 import ButtonVerdeForm from "./ButtonVerdeForm";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 const IconUpload = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -111,7 +113,7 @@ function StepCompany({ onFinish, onBack, correo, password }) {
       formData.append("password", password);
       if (logoFile) formData.append("logo", logoFile);
 
-      await axios.post("/api/registro", formData, {
+      await axios.post(`${API_BASE}/registro`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
