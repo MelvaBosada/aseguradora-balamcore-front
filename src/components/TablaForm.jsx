@@ -16,14 +16,28 @@ function TablaForm({ columna, data, campos, acciones }) {
         {data.map((fila, index) => (
           <tr key={fila.id || index}>
 
-            {campos.map((campo, i) => (
-              <td key={i}>{fila[campo]}</td>
-            ))}
+            {campos.map((campo, i) => {
+              const valor = fila[campo];
+              const esImagen = typeof valor === "string" && valor.startsWith("data:image");
+
+              return (
+                <td key={i} className={esImagen ? "tabla-celda-foto" : ""}>
+                  {esImagen ? (
+                    valor ? (
+                      <img src={valor} alt="Foto" className="tabla-foto-thumb" />
+                    ) : (
+                      <div className="tabla-foto-placeholder">Sin foto</div>
+                    )
+                  ) : (
+                    valor
+                  )}
+                </td>
+              );
+            })}
 
             <td style={{ textAlign: "center" }}>
               <div className="tabla-acciones">
                 {acciones && acciones.map((accion, i) => {
-                  // Soporta icono y clase como valor directo O como función (row) => ...
                   const icono    = typeof accion.icono    === "function" ? accion.icono(fila)    : accion.icono;
                   const clase    = typeof accion.clase    === "function" ? accion.clase(fila)    : accion.clase;
                   const disabled = typeof accion.disabled === "function" ? accion.disabled(fila) : !!accion.disabled;
