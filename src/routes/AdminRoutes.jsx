@@ -16,6 +16,7 @@ import Coberturas from "../pages/admin/Coberturas";
 import Bienes from "../pages/admin/Bienes";
 import Reporte from "../pages/admin/Reporte";
 import Empleados from "../pages/admin/Empleados";
+import Evidencias from "../pages/admin/Evidencias";
 import PrivateRoute from "../components/PrivateRoute";
 
 export const AdminRoutes = (
@@ -41,6 +42,7 @@ export const AdminRoutes = (
       <Route path="bienes" element={<Bienes />} />
       <Route path="reportes" element={<Reporte />} />
       <Route path="empleados" element={<Empleados />} />
+      <Route path="evidencias" element={<Evidencias />} />
     </Route>
   </>
 );

@@ -29,6 +29,7 @@ const Sidebar = ({ open, onClose }) => {
     onClose();
   };
 
+
   return (
     <>
       <div className={`sidebar-overlay ${open ? "show" : ""}`} onClick={onClose} />
@@ -49,22 +50,22 @@ const Sidebar = ({ open, onClose }) => {
         )}
 
         {/* OPERACIONES */}
-        {tieneModulo("polizas", "siniestros", "indemnizaciones", "pagos") && (
-          <div className="menu-section">
-            <div className="menu-section-title" onClick={() => toggleMenu("operaciones")}>
-              <span><DescriptionIcon /> Operaciones</span>
-              <ExpandMoreIcon className={openMenu === "operaciones" ? "rotate" : ""}/>
-            </div>
-            <div className={`submenu ${openMenu === "operaciones" ? "open" : ""}`}>
-              {tiene("polizas")         && <NavLink to="/admin/polizas"         className="submenu-item" onClick={onClose}>Pólizas</NavLink>}
-              {tiene("siniestros")      && <NavLink to="/admin/siniestros"      className="submenu-item" onClick={onClose}>Siniestros</NavLink>}
-              {tiene("evaluaciones")    && <NavLink to="/admin/evaluaciones"    className="submenu-item" onClick={onClose}>Evaluaciones</NavLink>}
-              {tiene("indemnizaciones") && <NavLink to="/admin/indemnizaciones" className="submenu-item" onClick={onClose}>Indemnizaciones</NavLink>}
-              {tiene("pagos")           && <NavLink to="/admin/pagos"           className="submenu-item" onClick={onClose}>Pagos</NavLink>}
-
-            </div>
-          </div>
-        )}
+{["polizas", "siniestros", "evaluaciones", "indemnizaciones", "pagos", "evidencias"].some(p => tiene(p)) && (
+  <div className="menu-section">
+    <div className="menu-section-title" onClick={() => toggleMenu("operaciones")}>
+      <span><DescriptionIcon /> Operaciones</span>
+      <ExpandMoreIcon className={openMenu === "operaciones" ? "rotate" : ""}/>
+    </div>
+    <div className={`submenu ${openMenu === "operaciones" ? "open" : ""}`}>
+      {tiene("polizas")         && <NavLink to="/admin/polizas"         className="submenu-item" onClick={onClose}>Pólizas</NavLink>}
+      {tiene("siniestros")      && <NavLink to="/admin/siniestros"      className="submenu-item" onClick={onClose}>Siniestros</NavLink>}
+      {tiene("evidencias")      && <NavLink to="/admin/evidencias"      className="submenu-item" onClick={onClose}>Evidencias</NavLink>}
+      {tiene("evaluaciones")    && <NavLink to="/admin/evaluaciones"    className="submenu-item" onClick={onClose}>Evaluaciones</NavLink>}
+      {tiene("indemnizaciones") && <NavLink to="/admin/indemnizaciones" className="submenu-item" onClick={onClose}>Indemnizaciones</NavLink>}
+      {tiene("pagos")           && <NavLink to="/admin/pagos"           className="submenu-item" onClick={onClose}>Pagos</NavLink>}
+    </div>
+  </div>
+)}
 
         {/* CATALOGOS */}
         {tieneModulo("clientes", "empleados", "bienes", "coberturas", "evaluaciones", "perfiles", "permisos") && (
