@@ -15,9 +15,24 @@ function TablaForm({ columna, data, campos, acciones }) {
       <tbody>
         {data.map((fila, index) => (
           <tr key={fila.id || index}>
-            {campos.map((campo, i) => (
-              <td key={i}>{fila[campo]}</td>
-            ))}
+            {campos.map((campo, i) => {
+              const valor = fila[campo];
+              const esImagen = typeof valor === "string" && valor.startsWith("data:image");
+
+              return (
+                <td key={i} className={esImagen ? "tabla-celda-foto" : ""}>
+                  {esImagen ? (
+                    valor ? (
+                      <img src={valor} alt="Foto" className="tabla-foto-thumb" />
+                    ) : (
+                      <div className="tabla-foto-placeholder">Sin foto</div>
+                    )
+                  ) : (
+                    valor
+                  )}
+                </td>
+              );
+            })}
 
             <td style={{ textAlign: "center" }}>
               <div className="tabla-acciones">
@@ -71,7 +86,7 @@ function TablaForm({ columna, data, campos, acciones }) {
         {data.length === 0 && (
           <tr>
             <td colSpan={columna.length} className="text-center py-3">
-              No se encontraron perfiles
+              No se encontraron registros
             </td>
           </tr>
         )}
