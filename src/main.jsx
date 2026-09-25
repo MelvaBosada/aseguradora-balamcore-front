@@ -4,6 +4,8 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import AppRoutes from './routes/AppRoutes'
 import axios from 'axios'
 
+import { PermisosProvider } from "./context/PermisosContext";
+
 // 1. Configura la URL base
 axios.defaults.baseURL = import.meta.env.VITE_API_URL;
 
@@ -26,6 +28,8 @@ axios.interceptors.request.use(
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <AppRoutes />
+    <PermisosProvider>
+      <AppRoutes />
+    </PermisosProvider>
   </StrictMode>
 )

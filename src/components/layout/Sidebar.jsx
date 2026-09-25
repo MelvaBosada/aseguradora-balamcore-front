@@ -79,7 +79,7 @@ const Sidebar = ({ open, onClose }) => {
               {tiene("bienes")       && <NavLink to="/admin/bienes"        className="submenu-item" onClick={onClose}>Bienes</NavLink>}
               {tiene("coberturas")   && <NavLink to="/admin/coberturas"    className="submenu-item" onClick={onClose}>Coberturas</NavLink>}
               {tiene("perfiles")     && <NavLink to="/admin/perfiles"      className="submenu-item" onClick={onClose}>Perfiles</NavLink>}
-              {tiene("permisos")     && <NavLink to="/admin/permisos"      className="submenu-item" onClick={onClose}>Permisos</NavLink>}
+              {/* {tiene("permisos")     && <NavLink to="/admin/permisos"      className="submenu-item" onClick={onClose}>Permisos</NavLink>}*/}
             </div>
           </div>
         )}
