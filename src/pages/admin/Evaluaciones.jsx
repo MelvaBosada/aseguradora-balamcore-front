@@ -182,12 +182,7 @@ const Evaluaciones = () => {
               icono: <PictureAsPdfIcon fontSize="small" />,
               onClick: handleVerPDF,
             },
-            {
-              titulo: "Descargar PDF",
-              clase: "tabla-btn-edit",
-              icono: <DownloadIcon fontSize="small" />,
-              onClick: handleDescargarPDF,
-            }
+    
           ]}
         />
       </div>
