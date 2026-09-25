@@ -68,7 +68,7 @@ const usePermisos = () => {
 
   const vencida = (diasRestantes() <= 0 && !estatusActivo) || planPagadoVencido;
 
-  const esAdmin = usuario.rol === "Administrador" || usuario.id_rol === 1;
+  const esAdmin = usuario.rol === "Administrador";
 
   // ── Límites del plan ────────────────────────────────
   const limites = {
