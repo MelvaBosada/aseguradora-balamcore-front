@@ -28,38 +28,37 @@ const FORM_CAMPOS = [
   { label: "# de Poliza", name: "id_poliza", type: "number" },
   { label: "Nombre del Reportante", name: "nombre_reportante", type: "text" },
   { label: "Teléfono", name: "telefono_reportante", type: "text" },
-  { 
-    label: "Canal de Reporte", 
-    name: "canal_reporte", 
-    type: "select", 
+  {
+    label: "Canal de Reporte",
+    name: "canal_reporte",
+    type: "select",
     options: [
       { value: "telefono", label: "Teléfono" },
       { value: "email", label: "Email" },
       { value: "presencial", label: "Presencial" },
       { value: "app", label: "App" },
       { value: "whatsapp", label: "WhatsApp" }
-    ] 
+    ]
   },
   { label: "Fecha del Reporte", name: "fecha_reporte", type: "datetime-local" },
   { label: "Fecha de Ocurrencia", name: "fecha_ocurrencia", type: "datetime-local" },
   { label: "Ubicación del Accidente", name: "ubicacion_accidente", type: "text" },
   { label: "Descripción", name: "descripcion", type: "text" },
-  { 
-    label: "Estatus", 
-    name: "estado", 
-    type: "select", 
+  {
+    label: "Estatus",
+    name: "estado",
+    type: "select",
     options: [
       { value: "nuevo", label: "Nuevo" },
       { value: "en_revision", label: "En Revisión" },
       { value: "aprobado", label: "Aprobado" },
       { value: "rechazado", label: "Rechazado" },
       { value: "cerrado", label: "Cerrado" }
-    ] 
+    ]
   },
-  { label: "Observaciones", name: "observaciones", type: "text" },
+  { label: "Observaciones", name: "observaciones", type: "text" }
 ];
 
-// Función para obtener el formulario limpio con la hora actual al momento de llamar
 const getFormVacio = () => ({
   id_aseguradora: 1,
   id_poliza: "",
@@ -84,11 +83,11 @@ const Reportes = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
-  
+
   const [itemToDelete, setItemToDelete] = useState(null);
   const [itemDetalle, setItemDetalle] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(getFormVacio());
@@ -96,25 +95,29 @@ const Reportes = () => {
 
   const getHeaders = useCallback(() => ({
     "Content-Type": "application/json",
-    "Accept": "application/json",
-    "Authorization": `Bearer ${localStorage.getItem("token")}`,
+    Accept: "application/json",
+    Authorization: `Bearer ${localStorage.getItem("token")}`
   }), []);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+
       const response = await fetch(API_URL, {
         headers: getHeaders()
       });
+
       if (response.ok) {
         const data = await response.json();
+
         const mapeados = data.map(r => ({
           ...r,
-          poliza: `POL-${String(r.id_poliza).padStart(4, '0')}`,
-          cliente: r.nombre_reportante || "Sin nombre", 
+          poliza: `POL-${String(r.id_poliza).padStart(4, "0")}`,
+          cliente: r.nombre_reportante || "Sin nombre",
           siniestro: r.id_siniestro ? `SIN-${r.id_siniestro}` : "PENDIENTE",
           estatus: (r.estado || "nuevo").toUpperCase()
         }));
+
         setReportes(mapeados);
       }
     } catch (error) {
@@ -134,31 +137,39 @@ const Reportes = () => {
 
   const handleNuevoReporte = () => {
     setEditingItem(null);
-    setFormData(getFormVacio()); // Se genera con la hora actual
+    setFormData(getFormVacio());
     setShowModal(true);
   };
 
   const handleEditar = (item) => {
     setEditingItem(item);
+
     setFormData({
       ...item,
-      fecha_reporte: item.fecha_reporte ? item.fecha_reporte.substring(0, 16).replace(" ", "T") : "",
-      fecha_ocurrencia: item.fecha_ocurrencia ? item.fecha_ocurrencia.substring(0, 16).replace(" ", "T") : ""
+      fecha_reporte: item.fecha_reporte
+        ? item.fecha_reporte.substring(0, 16).replace(" ", "T")
+        : "",
+      fecha_ocurrencia: item.fecha_ocurrencia
+        ? item.fecha_ocurrencia.substring(0, 16).replace(" ", "T")
+        : ""
     });
+
     setShowModal(true);
   };
 
   const handleGuardar = async (e) => {
     if (e) e.preventDefault();
+
     const isEdit = !!editingItem;
     const url = isEdit ? `${API_URL}/${editingItem.id}` : API_URL;
 
     try {
       setLoading(true);
+
       const response = await fetch(url, {
         method: isEdit ? "PUT" : "POST",
         headers: getHeaders(),
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData)
       });
 
       if (response.ok) {
@@ -179,12 +190,15 @@ const Reportes = () => {
 
   const handleConfirmarEliminar = async () => {
     if (!itemToDelete) return;
+
     try {
       setLoading(true);
+
       const response = await fetch(`${API_URL}/${itemToDelete.id}`, {
         method: "DELETE",
-        headers: getHeaders(),
+        headers: getHeaders()
       });
+
       if (response.ok) {
         setShowDeleteModal(false);
         fetchData();
@@ -198,6 +212,7 @@ const Reportes = () => {
 
   const filteredReportes = reportes.filter((r) => {
     const q = searchTerm.toLowerCase();
+
     return (
       r.poliza.toLowerCase().includes(q) ||
       r.cliente.toLowerCase().includes(q) ||
@@ -207,9 +222,10 @@ const Reportes = () => {
   });
 
   const totalPages = Math.ceil(filteredReportes.length / itemsPerPage) || 1;
+
   const paginated = filteredReportes.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
   if (loading && reportes.length === 0) {
@@ -238,11 +254,19 @@ const Reportes = () => {
               className="search-custom"
               placeholder="Buscar reportes..."
               value={searchTerm}
-              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
             />
           </div>
         </div>
-        <PrimaryButton text="Nuevo reporte" icon={<AddCircleOutlinedIcon />} onClick={handleNuevoReporte} />
+
+        <PrimaryButton
+          text="Nuevo reporte"
+          icon={<AddCircleOutlinedIcon />}
+          onClick={handleNuevoReporte}
+        />
       </div>
 
       <div className="mb-4">
@@ -251,10 +275,40 @@ const Reportes = () => {
           data={paginated}
           campos={campos}
           acciones={[
-            { titulo: "Agregar Siniestro", clase: "tabla-btn-agregar", icono: <AddCircleIcon fontSize="small" />, onClick: (i) => navigate("/admin/siniestros", { state: { reporteId: i.id } }) },
-            { titulo: "Ver", clase: "tabla-btn-ver", icono: <VisibilityIcon fontSize="small" />, onClick: (i) => { setItemDetalle(i); setShowDetalleModal(true); } },
-            { titulo: "Editar", clase: "tabla-btn-edit", icono: <EditIcon fontSize="small" />, onClick: handleEditar },
-            { titulo: "Eliminar", clase: "tabla-btn-del", icono: <DeleteIcon fontSize="small" />, onClick: handleEliminarClick },
+            {
+              titulo: "Agregar Siniestro",
+              clase: "tabla-btn-agregar",
+              icono: <AddCircleIcon fontSize="small" />,
+              onClick: (item) => {
+                navigate("/admin/siniestros", {
+                  state: {
+                    reporteId: item.id,
+                    id_poliza: item.id_poliza
+                  }
+                });
+              }
+            },
+            {
+              titulo: "Ver",
+              clase: "tabla-btn-ver",
+              icono: <VisibilityIcon fontSize="small" />,
+              onClick: (item) => {
+                setItemDetalle(item);
+                setShowDetalleModal(true);
+              }
+            },
+            {
+              titulo: "Editar",
+              clase: "tabla-btn-edit",
+              icono: <EditIcon fontSize="small" />,
+              onClick: handleEditar
+            },
+            {
+              titulo: "Eliminar",
+              clase: "tabla-btn-del",
+              icono: <DeleteIcon fontSize="small" />,
+              onClick: handleEliminarClick
+            }
           ]}
         />
       </div>
@@ -299,17 +353,24 @@ const Reportes = () => {
         titulo={itemDetalle ? `Reporte ${itemDetalle.siniestro}` : ""}
         subtitulo={itemDetalle ? `Folio #${itemDetalle.id}` : ""}
         avatar={itemDetalle ? itemDetalle.poliza.charAt(4) : "R"}
-        items={itemDetalle ? Object.entries(itemDetalle)
-          .filter(([key]) => {
-            const lowerKey = key.toLowerCase();
-            return !lowerKey.startsWith("id") && 
-                   !lowerKey.includes("_id") && 
-                   !["poliza", "cliente", "siniestro", "estatus"].includes(lowerKey);
-          })
-          .map(([key, value]) => ({
-            label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            value: value || "N/A"
-          })) : []}
+        items={
+          itemDetalle
+            ? Object.entries(itemDetalle)
+                .filter(([key]) => {
+                  const lowerKey = key.toLowerCase();
+
+                  return (
+                    !lowerKey.startsWith("id") &&
+                    !lowerKey.includes("_id") &&
+                    !["poliza", "cliente", "siniestro", "estatus"].includes(lowerKey)
+                  );
+                })
+                .map(([key, value]) => ({
+                  label: key.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+                  value: value || "N/A"
+                }))
+            : []
+        }
       />
     </div>
   );
