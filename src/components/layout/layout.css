@@ -237,6 +237,94 @@ body {
   background: rgba(255, 255, 255, 0.25);
 }
 
+.tour-help-button {
+  display: inline-flex;
+}
+
+.driver-overlay {
+  background: rgba(5, 9, 12, 0.62) !important;
+}
+
+.driver-popover.modern-tour-popover {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbfa 100%);
+  color: #0f172a;
+  border-radius: 20px;
+  border: 1px solid rgba(15, 76, 58, 0.12);
+  box-shadow: 0 26px 70px rgba(15, 23, 42, 0.18);
+  padding: 18px 18px 14px;
+  max-width: 360px;
+}
+
+.driver-popover.modern-tour-popover .driver-popover-title {
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 1.08rem;
+  margin-bottom: 8px;
+}
+
+.driver-popover.modern-tour-popover .driver-popover-description {
+  color: #334155;
+  line-height: 1.55;
+  font-size: 0.95rem;
+}
+
+.driver-popover.modern-tour-popover .driver-popover-progress-text {
+  color: #475569;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+.driver-popover.modern-tour-popover .driver-popover-next-btn,
+.driver-popover.modern-tour-popover .driver-popover-prev-btn,
+.driver-popover.modern-tour-popover .driver-popover-close-btn {
+  font-size: 0.85rem;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.driver-popover.modern-tour-popover .driver-popover-next-btn,
+.driver-popover.modern-tour-popover .driver-popover-prev-btn {
+  background: linear-gradient(135deg, #0F4C3A 0%, #13624b 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 12px 25px rgba(15, 76, 58, 0.22);
+}
+
+.driver-popover.modern-tour-popover .driver-popover-close-btn {
+  background: rgba(15, 76, 58, 0.08);
+  color: #0f172a;
+  border: none;
+}
+
+.driver-popover.modern-tour-popover .driver-popover-next-btn:hover,
+.driver-popover.modern-tour-popover .driver-popover-prev-btn:hover,
+.driver-popover.modern-tour-popover .driver-popover-close-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+.driver-popover.modern-tour-popover .driver-popover-arrow {
+  border-color: #ffffff transparent transparent transparent;
+}
+
+.driver-highlighted-element {
+  position: relative;
+  z-index: 9999;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.38), 0 0 0 10px rgba(16, 185, 129, 0.12) !important;
+  border-radius: 14px;
+  filter: none !important;
+  opacity: 1 !important;
+}
+
+.driver-active-element {
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 /* ================= DROPDOWN ================= */
 .dropdown-container {
   position: relative;

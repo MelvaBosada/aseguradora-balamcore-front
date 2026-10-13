@@ -6,12 +6,14 @@ function PrimaryButton({
   onClick,
   color = "#295E4E",
   hover = "#357564",
+  dataTour,
 }) {
   return (
     <Button
       variant="contained"
       startIcon={icon}
       onClick={onClick}
+      data-tour={dataTour}
       sx={{
         backgroundColor: color,
         textTransform: "none",

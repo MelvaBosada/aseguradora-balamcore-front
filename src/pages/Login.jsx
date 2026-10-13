@@ -50,6 +50,7 @@ function Login({ onGoToRegister }) {
         },
         {
           withCredentials: true,
+          skipLoader: false,
         }
       );
 
