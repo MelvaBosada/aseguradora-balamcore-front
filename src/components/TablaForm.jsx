@@ -1,4 +1,4 @@
-import Table from 'react-bootstrap/Table';
+import Table from "react-bootstrap/Table";
 import "../css/TablaForm.css";
 
 function TablaForm({ columna, data, campos, acciones }) {
@@ -15,25 +15,68 @@ function TablaForm({ columna, data, campos, acciones }) {
       <tbody>
         {data.map((fila, index) => (
           <tr key={fila.id || index}>
+            {campos.map((campo, i) => {
+              const valor = fila[campo];
+              const esImagen = typeof valor === "string" && valor.startsWith("data:image");
 
-            {campos.map((campo, i) => (
-              <td key={i}>{fila[campo]}</td>
-            ))}
+              return (
+                <td key={i} className={esImagen ? "tabla-celda-foto" : ""}>
+                  {esImagen ? (
+                    valor ? (
+                      <img src={valor} alt="Foto" className="tabla-foto-thumb" />
+                    ) : (
+                      <div className="tabla-foto-placeholder">Sin foto</div>
+                    )
+                  ) : (
+                    valor
+                  )}
+                </td>
+              );
+            })}
 
             <td style={{ textAlign: "center" }}>
               <div className="tabla-acciones">
-                {acciones && acciones.map((accion, i) => {
-                  // Soporta icono y clase como valor directo O como función (row) => ...
-                  const icono    = typeof accion.icono    === "function" ? accion.icono(fila)    : accion.icono;
-                  const clase    = typeof accion.clase    === "function" ? accion.clase(fila)    : accion.clase;
-                  const disabled = typeof accion.disabled === "function" ? accion.disabled(fila) : !!accion.disabled;
+                {acciones?.map((accion, i) => {
+                  const oculto =
+                    typeof accion.oculto === "function"
+                      ? accion.oculto(fila)
+                      : Boolean(accion.oculto);
+
+                  if (oculto) {
+                    return null;
+                  }
+
+                  const icono =
+                    typeof accion.icono === "function"
+                      ? accion.icono(fila)
+                      : accion.icono;
+
+                  const clase =
+                    typeof accion.clase === "function"
+                      ? accion.clase(fila)
+                      : accion.clase;
+
+                  const disabled =
+                    typeof accion.disabled === "function"
+                      ? accion.disabled(fila)
+                      : Boolean(accion.disabled);
 
                   return (
                     <button
                       key={i}
+                      type="button"
                       className={`tabla-btn ${clase}`}
                       title={accion.titulo}
-                      onClick={() => !disabled && accion.onClick(fila)}
+                      data-tour={
+                        accion.titulo
+                          ? `tabla-accion-${accion.titulo.toLowerCase().replace(/\s+/g, "-")}`
+                          : "tabla-accion"
+                      }
+                      onClick={() => {
+                        if (!disabled) {
+                          accion.onClick(fila);
+                        }
+                      }}
                       disabled={disabled}
                     >
                       {icono}
@@ -42,14 +85,13 @@ function TablaForm({ columna, data, campos, acciones }) {
                 })}
               </div>
             </td>
-
           </tr>
         ))}
 
         {data.length === 0 && (
           <tr>
             <td colSpan={columna.length} className="text-center py-3">
-              No se encontró a nadie
+              No se encontraron registros
             </td>
           </tr>
         )}

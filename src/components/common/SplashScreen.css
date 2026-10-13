@@ -1,0 +1,135 @@
+.splash {
+  --s: 0.65;              /* escala de las letras */
+  --color-balam: #ffffff; /* color de "Balam" */
+  --color-core: #ffffff;  /* color de "Core" */
+
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 24, 19, 0.96);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  overflow: hidden;
+  transition: opacity 0.6s ease;
+}
+
+.splash.exit {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* CONTENIDO */
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: splashIn 0.7s ease both;
+}
+
+/* LETRAS (PNG usados como máscara para poder colorearlos) */
+.splash-letters {
+  display: flex;
+  align-items: flex-end;
+  gap: calc(3px * var(--s));
+}
+
+.letter {
+  display: block;
+  width: calc(var(--w) * 1px * var(--s));
+  height: calc(80px * var(--s));
+  background-color: var(--color-balam);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+}
+
+.letter.core {
+  background-color: var(--color-core);
+}
+
+.letter.gap {
+  margin-left: calc(18px * var(--s));
+}
+
+/* LÍNEA DE CARGA */
+.splash-progress {
+  position: relative;
+  width: 340px;
+  max-width: 80vw;
+  margin-top: 60px; /* espacio para que quepa el jaguar encima */
+}
+
+.progress-track {
+  width: 100%;
+  height: 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: linear-gradient(90deg, #ff9d00, #ffd36b);
+  box-shadow: 0 0 10px rgba(255, 157, 0, 0.7);
+  transition: width 0.2s linear;
+}
+
+/* JAGUAR ENCIMA DE LA LÍNEA (6 cuadros de 480x210 escalados a 150x65.6) */
+.jaguar-wrap {
+  position: absolute;
+  bottom: 100%;
+  margin-bottom: 1px;
+  width: 110px;
+  height: 48.125px;
+  transform: translateX(-70%); /* la cabeza queda en la punta de la barra */
+  transition: left 0.2s linear;
+  will-change: left;
+}
+
+.jaguar-walk {
+  width: 110px;
+  height: 48.125px;
+  background-image: url("../../assets/jaguar-sprite.png");
+  background-repeat: no-repeat;
+  background-size: 660px 48.125px;   /* antes: 900px 65.625px */
+  animation: jaguarWalk 0.7s steps(6) infinite;
+  filter: drop-shadow(0 0 2px rgba(255, 190, 80, 0.9))
+          drop-shadow(0 0 12px rgba(255, 140, 0, 0.35));
+}
+
+/* CARGANDO */
+.splash-cargando {
+  width: 80px;
+  max-width: 45vw;
+  margin-top: 5px;
+  animation: cargandoPulse 1.4s ease-in-out infinite;
+}
+
+/* ANIMACIONES */
+@keyframes splashIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes cargandoPulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+@keyframes jaguarWalk {
+  from { background-position: 0 0; }
+  to   { background-position: -660px 0; }
+}
+
+/* CELULAR */
+@media (max-width: 480px) {
+  .splash { --s: 0.4; }
+}

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar        from "./Sidebar";
 import Topbar         from "./Topbar";
 import ModalPlanes    from "../ModalPlanes";
 import ModalBienvenida from "../ModalBienvenida";
 import usePermisos    from "../../hooks/usePermisos";
+import useTour        from "../../hooks/useTour";
 import "./layout.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
@@ -14,8 +15,15 @@ const DashboardLayout = () => {
   const [showPlanes,       setShowPlanes]       = useState(false);
   const [showBienvenida,   setShowBienvenida]   = useState(false);
   const { esPrueba, vencida } = usePermisos();
+  const navigate = useNavigate();
 
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
+  const { startTour } = useTour({
+    role: usuario.rol,
+    usuario,
+    autoStart: window.location.pathname === "/admin",
+    navigate,
+  });
 
   useEffect(() => {
     // Modal bienvenida — solo primera vez
@@ -65,7 +73,10 @@ const DashboardLayout = () => {
       />
 
       <div className="main">
-        <Topbar onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+        <Topbar
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          onStartTour={startTour}
+        />
         <div className="content">
           <Outlet />
         </div>

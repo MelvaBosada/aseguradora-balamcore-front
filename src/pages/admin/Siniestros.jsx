@@ -1,11 +1,12 @@
-// pages/admin/Siniestros.jsx
+
+ // pages/admin/Siniestros.jsx
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useLocation } from "react-router-dom"; 
-import axios from 'axios';
+import { useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 import "../../css/Clientes.css";
 
 // Iconos
-import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
+import AddCircleOutlinedIcon from "@mui/icons-material/AddCircleOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -26,21 +27,87 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 const campos = ["nSiniestro", "tipo", "cliente", "estatus", "prioridad"];
-const columnas = ["N° Siniestro", "Tipo", "Cliente", "Estatus", "Prioridad", "Acciones"];
+const columnas = [
+  "N° Siniestro",
+  "Tipo",
+  "Cliente",
+  "Estatus",
+  "Prioridad",
+  "Acciones"
+];
 
 const FORM_CAMPOS_SINIESTRO = [
-  { label: "RFC del Cliente", name: "rfc_buscar", type: "text", seccion: "Buscar Cliente", fullWidth: true },
-  { label: "ID Cliente", name: "id_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
-  { label: "Nombre del cliente", name: "nombre_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
-  { label: "Selecciona Póliza", name: "id_poliza", type: "select", options: [], seccion: "Información del Cliente", required: true },
-  { label: "Selecciona Reporte", name: "id_reporte", type: "select", options: [], seccion: "Información del Cliente", required: true },
-  { label: "Tipo de Siniestro", name: "tipo", type: "select", options: ["robo", "accidente", "incendio", "inundacion", "responsabilidad_civil", "fallecimiento", "invalidez", "otro"], seccion: "Datos del Siniestro", required: true },
-  { label: "Prioridad", name: "prioridad", type: "select", options: ["baja", "media", "alta", "urgente"], seccion: "Datos del Siniestro", required: true },
-  { label: "Monto Reclamado", name: "monto_reclamado", type: "number", seccion: "Datos del Siniestro", required: true },
-  { label: "Deducible Aplicado", name: "deducible_aplicado", type: "number", seccion: "Datos del Siniestro" }
+  {
+    label: "RFC del Cliente",
+    name: "rfc_buscar",
+    type: "text",
+    seccion: "Buscar Cliente",
+    fullWidth: true
+  },
+  {
+    label: "Nombre del cliente",
+    name: "nombre_cliente",
+    type: "text",
+    seccion: "Información del Cliente",
+    readOnly: true
+  },
+  {
+    label: "Selecciona Póliza",
+    name: "id_poliza",
+    type: "select",
+    options: [],
+    seccion: "Información del Cliente",
+    required: true
+  },
+  {
+    label: "Selecciona Reporte",
+    name: "id_reporte",
+    type: "select",
+    options: [],
+    seccion: "Información del Cliente",
+    required: true
+  },
+  {
+    label: "Tipo de Siniestro",
+    name: "tipo",
+    type: "select",
+    options: [
+      "robo",
+      "accidente",
+      "incendio",
+      "inundacion",
+      "responsabilidad_civil",
+      "fallecimiento",
+      "invalidez",
+      "otro"
+    ],
+    seccion: "Datos del Siniestro",
+    required: true
+  },
+  {
+    label: "Prioridad",
+    name: "prioridad",
+    type: "select",
+    options: ["baja", "media", "alta", "urgente"],
+    seccion: "Datos del Siniestro",
+    required: true
+  },
+  {
+    label: "Monto Reclamado",
+    name: "monto_reclamado",
+    type: "number",
+    seccion: "Datos del Siniestro",
+    required: true
+  },
+  {
+    label: "Deducible Aplicado",
+    name: "deducible_aplicado",
+    type: "number",
+    seccion: "Datos del Siniestro"
+  }
 ];
 
 const FORM_VACIO_SINIESTRO = {
@@ -56,46 +123,62 @@ const FORM_VACIO_SINIESTRO = {
 };
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  return { headers: { Authorization: `Bearer ${token}` } };
+  const token = localStorage.getItem("token");
+
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  };
 };
 
 const Siniestros = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [siniestros, setSiniestros] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
-  
+
   const [siniestroToDelete, setSiniestroToDelete] = useState(null);
   const [siniestroDetalle, setSiniestroDetalle] = useState(null);
   const [editingSiniestro, setEditingSiniestro] = useState(null);
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO_SINIESTRO);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [estatusFilter, setEstatusFilter] = useState("Todos");
   const [totalPages, setTotalPages] = useState(1);
-  
+
   const [polizasOptions, setPolizasOptions] = useState([]);
   const [reportesOptions, setReportesOptions] = useState([]);
 
   const timerRfcRef = useRef(null);
 
+  // =========================================================
+  // CARGAR SINIESTROS
+  // =========================================================
   const cargarSiniestros = useCallback(async () => {
     setLoading(true);
+
     try {
       const response = await axios.get(`${API_URL}/siniestros`, {
-        params: { page: currentPage, search: searchTerm, estatus: estatusFilter, per_page: itemsPerPage },
+        params: {
+          page: currentPage,
+          search: searchTerm,
+          estatus: estatusFilter,
+          per_page: itemsPerPage
+        },
         ...getAuthHeaders()
       });
+
       setSiniestros(response.data.data || []);
       setTotalPages(response.data.last_page || 1);
     } catch (error) {
-      console.error('Error cargando siniestros:', error);
+      console.error("Error cargando siniestros:", error);
     } finally {
       setLoading(false);
     }
@@ -105,198 +188,447 @@ const Siniestros = () => {
     cargarSiniestros();
   }, [cargarSiniestros]);
 
-  const cargarDatosPorReporteId = useCallback(async (reporteId) => {
-    try {
-      const response = await axios.get(`${API_URL}/siniestros/reportes/por-id/${reporteId}`, getAuthHeaders());
-      const data = response.data;
+  // =========================================================
+  // NUEVO: CARGAR DATOS DEL REPORTE SELECCIONADO
+  // =========================================================
+  const cargarDatosPorReporteId = useCallback(
+    async (reporteId, idPolizaDesdeReporte) => {
+      try {
+        const response = await axios.get(
+          `${API_URL}/siniestros/reportes/por-id/${reporteId}`,
+          getAuthHeaders()
+        );
 
-      const reportesOpts = (data.reportes || []).map(r => ({
-        value: r.id,
-        label: `${r.numero_reporte || r.id} - Póliza: ${r.numero_poliza || ''} - ${r.fecha_reporte || ''}`,
-        id_poliza: r.id_poliza
-      }));
-      setReportesOptions(reportesOpts);
+        const data = response.data || {};
 
-      const polizasOpts = (data.polizas || []).map(p => ({
-        value: p.id,
-        label: `${p.numero_poliza || p.id} - ${p.tipo || ''}`
-      }));
-      setPolizasOptions(polizasOpts);
+        const cliente = data.cliente || {};
 
-      setFormData({
-        ...FORM_VACIO_SINIESTRO,
-        rfc_buscar: data.cliente?.rfc || "",
-        id_cliente: data.cliente?.id || "",
-        nombre_cliente: `${data.cliente?.nombre || ""} ${data.cliente?.apellido || ""}`.trim(),
-        id_poliza: data.reporte_actual?.id_poliza || "", 
-        id_reporte: reporteId 
+        // Identificar el reporte que originó la navegación.
+        const reporteActual =
+          data.reporte_actual ||
+          (data.reportes || []).find(
+            (r) => String(r.id) === String(reporteId)
+          ) ||
+          {};
+
+        // Recuperar la póliza asociada al reporte.
+        const idPoliza = String(
+          reporteActual.id_poliza ??
+          idPolizaDesdeReporte ??
+          ""
+        );
+
+        // Cargar las pólizas disponibles.
+        const polizas = (data.polizas || []).map((p) => ({
+          value: String(p.id),
+          label: `${p.numero_poliza || p.id} - ${p.tipo || ""}`
+        }));
+
+        // Asegurar que la póliza del reporte aparezca en el select.
+        if (
+          idPoliza &&
+          !polizas.some((p) => p.value === idPoliza)
+        ) {
+          polizas.push({
+            value: idPoliza,
+            label:
+              reporteActual.numero_poliza ||
+              `Póliza ${idPoliza}`
+          });
+        }
+
+        // Cargar los reportes disponibles.
+        const reportes = (data.reportes || []).map((r) => ({
+          value: String(r.id),
+          label: `${
+            r.numero_reporte || r.id
+          } - Póliza: ${
+            r.numero_poliza || r.id_poliza || ""
+          } - ${
+            r.fecha_reporte || ""
+          }`,
+          id_poliza: r.id_poliza
+        }));
+
+        // Asegurar que el reporte seleccionado esté disponible.
+        if (
+          !reportes.some(
+            (r) => r.value === String(reporteId)
+          )
+        ) {
+          reportes.push({
+            value: String(reporteId),
+            label: `Reporte ${reporteId}`,
+            id_poliza: idPoliza
+          });
+        }
+
+        setPolizasOptions(polizas);
+        setReportesOptions(reportes);
+
+        // Precargar el formulario con los datos del reporte.
+        setFormData({
+          ...FORM_VACIO_SINIESTRO,
+          rfc_buscar:
+            cliente.rfc ||
+            data.cliente_rfc ||
+            "",
+          id_cliente:
+            cliente.id ??
+            data.id_cliente ??
+            "",
+          nombre_cliente: [
+            cliente.nombre || data.nombre_cliente || "",
+            cliente.apellido || data.apellido_cliente || ""
+          ]
+            .filter(Boolean)
+            .join(" "),
+          id_poliza: idPoliza,
+          id_reporte: String(reporteId)
+        });
+
+        setEditingSiniestro(null);
+        setShowModal(true);
+      } catch (error) {
+        console.error(
+          "Error al cargar los datos del reporte:",
+          error.response?.data || error
+        );
+
+        alert(
+          "No se pudieron cargar los datos del reporte. Verifica la conexión con el servidor."
+        );
+      }
+    },
+    []
+  );
+
+  // =========================================================
+  // NUEVO: RECIBIR EL REPORTE DESDE EL MÓDULO DE REPORTES
+  // =========================================================
+  useEffect(() => {
+    const state = location.state;
+
+    if (state?.reporteId) {
+      const reporteId = state.reporteId;
+      const idPoliza = state.id_poliza;
+
+      // Limpiar el estado para evitar abrir el modal otra vez
+      // cuando se regrese a esta pantalla.
+      navigate(location.pathname, {
+        replace: true,
+        state: null
       });
 
-      setShowModal(true);
-    } catch (error) {
-      console.error('Error al cargar datos del reporte redireccionado:', error);
-      handleNuevoSiniestro(); 
+      cargarDatosPorReporteId(reporteId, idPoliza);
     }
-  }, []);
+  }, [
+    location.state,
+    location.pathname,
+    navigate,
+    cargarDatosPorReporteId
+  ]);
 
-  useEffect(() => {
-    if (location.state && location.state.reporteId) {
-      const reporteIdDesdeEstado = location.state.reporteId;
-      window.history.replaceState({}, document.title); 
-      cargarDatosPorReporteId(reporteIdDesdeEstado);
-    }
-  }, [location, cargarDatosPorReporteId]);
-
+  // =========================================================
+  // CARGAR REPORTES Y PÓLIZAS POR RFC
+  // =========================================================
   const cargarReportesPorRfc = async (rfc) => {
     if (!rfc || rfc.length < 8) return;
 
     try {
-      const response = await axios.get(`${API_URL}/siniestros/reportes/por-rfc`, {
-        params: { rfc },
-        ...getAuthHeaders()
-      });
+      const response = await axios.get(
+        `${API_URL}/siniestros/reportes/por-rfc`,
+        {
+          params: { rfc },
+          ...getAuthHeaders()
+        }
+      );
 
-      const data = response.data;
+      const data = response.data || {};
 
       if (data.reportes && data.reportes.length > 0) {
-        setReportesOptions(data.reportes.map(r => ({
-          value: r.id,
-          label: `${r.numero_reporte || r.id} - Póliza: ${r.numero_poliza || ''}`,
-          id_poliza: r.id_poliza
-        })));
+        setReportesOptions(
+          data.reportes.map((r) => ({
+            value: String(r.id),
+            label: `${
+              r.numero_reporte || r.id
+            } - Póliza: ${
+              r.numero_poliza || ""
+            }`,
+            id_poliza: r.id_poliza
+          }))
+        );
 
-        setPolizasOptions((data.polizas || []).map(p => ({
-          value: p.id,
-          label: `${p.numero_poliza || p.id} - ${p.tipo || ''}`
-        })));
+        setPolizasOptions(
+          (data.polizas || []).map((p) => ({
+            value: String(p.id),
+            label: `${
+              p.numero_poliza || p.id
+            } - ${p.tipo || ""}`
+          }))
+        );
       } else {
         setReportesOptions([]);
         setPolizasOptions([]);
       }
 
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         id_cliente: data.cliente?.id || "",
-        nombre_cliente: data.cliente ? `${data.cliente.nombre} ${data.cliente.apellido}` : "Cliente no encontrado",
+        nombre_cliente: data.cliente
+          ? `${data.cliente.nombre || ""} ${
+              data.cliente.apellido || ""
+            }`.trim()
+          : "Cliente no encontrado",
         id_poliza: "",
         id_reporte: ""
       }));
-
     } catch (error) {
-      console.error('Error al cargar reportes por RFC:', error);
+      console.error(
+        "Error al cargar reportes por RFC:",
+        error
+      );
+
       setReportesOptions([]);
       setPolizasOptions([]);
     }
   };
 
+  // =========================================================
+  // CARGAR REPORTES POR PÓLIZA
+  // =========================================================
   const cargarReportesPorPoliza = async (polizaId) => {
     if (!polizaId) return;
 
     try {
-      const response = await axios.get(`${API_URL}/siniestros/reportes/por-poliza/${polizaId}`, getAuthHeaders());
+      const response = await axios.get(
+        `${API_URL}/siniestros/reportes/por-poliza/${polizaId}`,
+        getAuthHeaders()
+      );
 
-      if (response.data && response.data.length > 0) {
-        setReportesOptions(response.data.map(r => ({
-          value: r.id,
-          label: `${r.numero_reporte || r.id} - ${r.fecha_reporte || ''} - ${r.estado || ''}`
-        })));
+      if (
+        response.data &&
+        response.data.length > 0
+      ) {
+        setReportesOptions(
+          response.data.map((r) => ({
+            value: String(r.id),
+            label: `${
+              r.numero_reporte || r.id
+            } - ${
+              r.fecha_reporte || ""
+            } - ${
+              r.estado || ""
+            }`,
+            id_poliza: r.id_poliza || polizaId
+          }))
+        );
       } else {
         setReportesOptions([]);
       }
-
     } catch (error) {
-      console.error('Error al cargar reportes:', error);
+      console.error(
+        "Error al cargar reportes:",
+        error
+      );
+
       setReportesOptions([]);
     }
   };
 
+  // =========================================================
+  // CAMBIO DEL RFC
+  // =========================================================
   const handleRfcChange = (e) => {
     const rfc = e.target.value;
-    setFormData(prev => ({ ...prev, rfc_buscar: rfc }));
 
-    if (timerRfcRef.current) clearTimeout(timerRfcRef.current);
+    setFormData((prev) => ({
+      ...prev,
+      rfc_buscar: rfc
+    }));
+
+    if (timerRfcRef.current) {
+      clearTimeout(timerRfcRef.current);
+    }
+
     timerRfcRef.current = setTimeout(() => {
-      if (rfc.length >= 8) cargarReportesPorRfc(rfc);
+      if (rfc.length >= 8) {
+        cargarReportesPorRfc(rfc);
+      }
     }, 500);
   };
 
+  // =========================================================
+  // CAMBIO DE CAMPOS DEL FORMULARIO
+  // =========================================================
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
 
-    if (name === 'id_poliza') {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }));
+
+    if (name === "id_poliza") {
+      // Al cambiar la póliza, cargar sus reportes.
+      setFormData((prev) => ({
+        ...prev,
+        id_reporte: ""
+      }));
+
       cargarReportesPorPoliza(value);
+    }
+
+    if (name === "id_reporte") {
+      // Si se cambia el reporte, seleccionar su póliza asociada.
+      const reporteSeleccionado = reportesOptions.find(
+        (r) => String(r.value) === String(value)
+      );
+
+      if (reporteSeleccionado?.id_poliza) {
+        setFormData((prev) => ({
+          ...prev,
+          id_poliza: String(reporteSeleccionado.id_poliza)
+        }));
+      }
     }
   };
 
+  // =========================================================
+  // CERRAR MODAL
+  // =========================================================
   const cerrarModal = () => {
     setShowModal(false);
     setEditingSiniestro(null);
-    setFormData(FORM_VACIO_SINIESTRO);
+    setFormData({ ...FORM_VACIO_SINIESTRO });
     setPolizasOptions([]);
     setReportesOptions([]);
+
+    if (timerRfcRef.current) {
+      clearTimeout(timerRfcRef.current);
+    }
   };
 
+  // =========================================================
+  // NUEVO SINIESTRO
+  // =========================================================
   const handleNuevoSiniestro = () => {
     cerrarModal();
     setShowModal(true);
   };
 
-  // EDITAR CORREGIDO
+  // =========================================================
+  // EDITAR SINIESTRO
+  // =========================================================
   const handleEditar = async (siniestro) => {
     const id = siniestro.id || siniestro.id_siniestro;
+
     if (!id) {
-      console.error("No se pudo identificar el ID del siniestro:", siniestro);
+      console.error(
+        "No se pudo identificar el ID del siniestro:",
+        siniestro
+      );
       return;
     }
 
     try {
-      const res = await axios.get(`${API_URL}/siniestros/${id}`, getAuthHeaders());
-      const data = res.data;
+      const res = await axios.get(
+        `${API_URL}/siniestros/${id}`,
+        getAuthHeaders()
+      );
 
-      // Cargar opciones si vienen en la respuesta del backend
+      const data = res.data || {};
+
       if (data.reportes) {
-        setReportesOptions(data.reportes.map(r => ({
-          value: r.id,
-          label: `${r.numero_reporte || r.id} - Póliza: ${r.numero_poliza || ''}`
-        })));
-      }
-      if (data.polizas) {
-        setPolizasOptions(data.polizas.map(p => ({
-          value: p.id,
-          label: `${p.numero_poliza || p.id} - ${p.tipo || ''}`
-        })));
+        setReportesOptions(
+          data.reportes.map((r) => ({
+            value: String(r.id),
+            label: `${
+              r.numero_reporte || r.id
+            } - Póliza: ${
+              r.numero_poliza || ""
+            }`,
+            id_poliza: r.id_poliza
+          }))
+        );
       }
 
-      // Si no vienen opciones agrupadas pero sí el ID de póliza, cargamos sus reportes
-      const polizaIdVal = data.id_poliza || data.poliza_id;
-      if (polizaIdVal && (!data.reportes || data.reportes.length === 0)) {
+      if (data.polizas) {
+        setPolizasOptions(
+          data.polizas.map((p) => ({
+            value: String(p.id),
+            label: `${
+              p.numero_poliza || p.id
+            } - ${p.tipo || ""}`
+          }))
+        );
+      }
+
+      const polizaIdVal =
+        data.id_poliza ||
+        data.poliza_id ||
+        "";
+
+      if (
+        polizaIdVal &&
+        (!data.reportes || data.reportes.length === 0)
+      ) {
         await cargarReportesPorPoliza(polizaIdVal);
       }
 
       setFormData({
-        rfc_buscar: data.cliente_rfc || data.rfc || "",
-        id_cliente: data.id_cliente || data.cliente_id || "",
-        nombre_cliente: data.cliente || data.nombre_cliente || "",
-        id_poliza: polizaIdVal || "",
-        id_reporte: data.id_reporte || data.reporte_id || "",
+        rfc_buscar:
+          data.cliente_rfc ||
+          data.rfc ||
+          "",
+        id_cliente:
+          data.id_cliente ||
+          data.cliente_id ||
+          "",
+        nombre_cliente:
+          data.cliente ||
+          data.nombre_cliente ||
+          "",
+        id_poliza: String(polizaIdVal),
+        id_reporte: String(
+          data.id_reporte ||
+          data.reporte_id ||
+          ""
+        ),
         tipo: (data.tipo || "").toLowerCase(),
         prioridad: (data.prioridad || "").toLowerCase(),
-        monto_reclamado: data.monto_reclamado || "",
-        deducible_aplicado: data.deducible_aplicado || ""
+        monto_reclamado: data.monto_reclamado ?? "",
+        deducible_aplicado: data.deducible_aplicado ?? ""
       });
 
       setEditingSiniestro(siniestro);
       setShowModal(true);
     } catch (error) {
-      console.error('Error al obtener siniestro para editar:', error);
-      alert('Error al obtener datos del siniestro para editar');
+      console.error(
+        "Error al obtener siniestro para editar:",
+        error
+      );
+
+      alert(
+        "Error al obtener datos del siniestro para editar"
+      );
     }
   };
 
+  // =========================================================
+  // GUARDAR SINIESTRO
+  // =========================================================
   const handleGuardar = async () => {
     if (!formData.id_reporte) {
-      alert('Debes seleccionar un reporte');
+      alert("Debes seleccionar un reporte");
+      return;
+    }
+
+    if (
+      formData.monto_reclamado === "" ||
+      formData.monto_reclamado === null
+    ) {
+      alert("Debes ingresar el monto reclamado");
       return;
     }
 
@@ -305,84 +637,196 @@ const Siniestros = () => {
         id_reporte: parseInt(formData.id_reporte, 10),
         tipo: formData.tipo,
         prioridad: formData.prioridad,
-        monto_reclamado: parseFloat(formData.monto_reclamado),
-        deducible_aplicado: formData.deducible_aplicado ? parseFloat(formData.deducible_aplicado) : null
+        monto_reclamado: parseFloat(
+          formData.monto_reclamado
+        ),
+        deducible_aplicado:
+          formData.deducible_aplicado !== "" &&
+          formData.deducible_aplicado !== null
+            ? parseFloat(formData.deducible_aplicado)
+            : null
       };
 
-      const idToEdit = editingSiniestro?.id || editingSiniestro?.id_siniestro;
+      const idToEdit =
+        editingSiniestro?.id ||
+        editingSiniestro?.id_siniestro;
 
       if (editingSiniestro && idToEdit) {
-        await axios.put(`${API_URL}/siniestros/${idToEdit}`, dataToSend, getAuthHeaders());
+        await axios.put(
+          `${API_URL}/siniestros/${idToEdit}`,
+          dataToSend,
+          getAuthHeaders()
+        );
       } else {
-        await axios.post(`${API_URL}/siniestros`, dataToSend, getAuthHeaders());
+        await axios.post(
+          `${API_URL}/siniestros`,
+          dataToSend,
+          getAuthHeaders()
+        );
       }
 
       cerrarModal();
-      cargarSiniestros();
+      await cargarSiniestros();
     } catch (error) {
-      console.error('Error al guardar el siniestro:', error);
-      alert('Error al guardar: ' + (error.response?.data?.message || error.message));
+      console.error(
+        "Error al guardar el siniestro:",
+        error
+      );
+
+      alert(
+        "Error al guardar: " +
+          (error.response?.data?.message || error.message)
+      );
     }
   };
 
-  // VER DETALLE CORREGIDO (con fallback por si falla la llamada individual)
+  // =========================================================
+  // VER DETALLE DEL SINIESTRO
+  // =========================================================
   const handleVerDetalle = async (siniestro) => {
     const id = siniestro.id || siniestro.id_siniestro;
 
     let data = siniestro;
+
     try {
       if (id) {
-        const res = await axios.get(`${API_URL}/siniestros/${id}`, getAuthHeaders());
+        const res = await axios.get(
+          `${API_URL}/siniestros/${id}`,
+          getAuthHeaders()
+        );
+
         data = res.data;
       }
     } catch (error) {
-      console.warn('No se pudieron obtener detalles extendidos de la API, usando datos locales:', error);
+      console.warn(
+        "No se pudieron obtener detalles extendidos de la API. Se usarán los datos locales:",
+        error
+      );
     }
 
     const items = [
-      { icon: <AssignmentIcon />, label: "N° Siniestro", value: data.numero_siniestro || data.nSiniestro || "—" },
-      { icon: <ReportIcon />, label: "Tipo", value: data.tipo || "—" },
-      { icon: <InfoIcon />, label: "Estatus", value: data.estatus || "—" },
-      { icon: <PriorityHighIcon />, label: "Prioridad", value: data.prioridad || "—" },
-      { icon: <AttachMoneyIcon />, label: "Monto Reclamado", value: data.monto_reclamado ? `$${Number(data.monto_reclamado).toLocaleString()}` : "—" },
-      { icon: <AttachMoneyIcon />, label: "Deducible Aplicado", value: data.deducible_aplicado ? `$${Number(data.deducible_aplicado).toLocaleString()}` : "—" },
-      { icon: <DateRangeIcon />, label: "Fecha de Creación", value: data.fecha_creacion || "—" },
-      { icon: <DateRangeIcon />, label: "Fecha de Cierre", value: data.fecha_cierre || "—" },
-      { icon: <AssignmentIcon />, label: "Motivo de Cierre", value: data.motivo_cierre || "—" },
-      { icon: <PersonIcon />, label: "Cliente", value: data.cliente || "—" },
-      { icon: <AssignmentIcon />, label: "Póliza", value: data.poliza || "—" }
+      {
+        icon: <AssignmentIcon />,
+        label: "N° Siniestro",
+        value:
+          data.numero_siniestro ||
+          data.nSiniestro ||
+          "—"
+      },
+      {
+        icon: <ReportIcon />,
+        label: "Tipo",
+        value: data.tipo || "—"
+      },
+      {
+        icon: <InfoIcon />,
+        label: "Estatus",
+        value: data.estatus || "—"
+      },
+      {
+        icon: <PriorityHighIcon />,
+        label: "Prioridad",
+        value: data.prioridad || "—"
+      },
+      {
+        icon: <AttachMoneyIcon />,
+        label: "Monto Reclamado",
+        value: data.monto_reclamado
+          ? `$${Number(
+              data.monto_reclamado
+            ).toLocaleString()}`
+          : "—"
+      },
+      {
+        icon: <AttachMoneyIcon />,
+        label: "Deducible Aplicado",
+        value: data.deducible_aplicado
+          ? `$${Number(
+              data.deducible_aplicado
+            ).toLocaleString()}`
+          : "—"
+      },
+      {
+        icon: <DateRangeIcon />,
+        label: "Fecha de Creación",
+        value: data.fecha_creacion || "—"
+      },
+      {
+        icon: <DateRangeIcon />,
+        label: "Fecha de Cierre",
+        value: data.fecha_cierre || "—"
+      },
+      {
+        icon: <AssignmentIcon />,
+        label: "Motivo de Cierre",
+        value: data.motivo_cierre || "—"
+      },
+      {
+        icon: <PersonIcon />,
+        label: "Cliente",
+        value: data.cliente || "—"
+      },
+      {
+        icon: <AssignmentIcon />,
+        label: "Póliza",
+        value: data.poliza || "—"
+      }
     ];
 
-    setSiniestroDetalle({ ...data, items });
+    setSiniestroDetalle({
+      ...data,
+      items
+    });
+
     setShowDetalleModal(true);
   };
 
-  // ELIMINAR CORREGIDO
-  const handleEliminarClick = (s) => {
-    setSiniestroToDelete(s);
+  // =========================================================
+  // ELIMINAR SINIESTRO
+  // =========================================================
+  const handleEliminarClick = (siniestro) => {
+    setSiniestroToDelete(siniestro);
     setShowDeleteModal(true);
   };
 
   const handleConfirmarEliminar = async () => {
     if (!siniestroToDelete) return;
 
-    const id = siniestroToDelete.id || siniestroToDelete.id_siniestro;
+    const id =
+      siniestroToDelete.id ||
+      siniestroToDelete.id_siniestro;
+
     if (!id) {
       alert("No se encontró el ID del registro a eliminar");
       return;
     }
 
     try {
-      await axios.delete(`${API_URL}/siniestros/${id}`, getAuthHeaders());
+      await axios.delete(
+        `${API_URL}/siniestros/${id}`,
+        getAuthHeaders()
+      );
+
       setShowDeleteModal(false);
       setSiniestroToDelete(null);
-      cargarSiniestros();
+
+      await cargarSiniestros();
     } catch (error) {
-      console.error('Error al eliminar siniestro:', error);
-      alert('Error al eliminar el siniestro: ' + (error.response?.data?.message || error.message));
+      console.error(
+        "Error al eliminar siniestro:",
+        error
+      );
+
+      alert(
+        "Error al eliminar el siniestro: " +
+          (error.response?.data?.message || error.message)
+      );
     }
   };
 
+  // =========================================================
+  // BÚSQUEDA Y PAGINACIÓN
+  // =========================================================
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
@@ -393,12 +837,30 @@ const Siniestros = () => {
     setCurrentPage(1);
   };
 
-  const camposConOpciones = FORM_CAMPOS_SINIESTRO.map(campo => {
-    if (campo.name === 'id_poliza') return { ...campo, options: polizasOptions };
-    if (campo.name === 'id_reporte') return { ...campo, options: reportesOptions };
-    return campo;
-  });
+  // Preparar las opciones de los selects del formulario.
+  const camposConOpciones = FORM_CAMPOS_SINIESTRO.map(
+    (campo) => {
+      if (campo.name === "id_poliza") {
+        return {
+          ...campo,
+          options: polizasOptions
+        };
+      }
 
+      if (campo.name === "id_reporte") {
+        return {
+          ...campo,
+          options: reportesOptions
+        };
+      }
+
+      return campo;
+    }
+  );
+
+  // =========================================================
+  // PANTALLA DE CARGA
+  // =========================================================
   if (loading && siniestros.length === 0) {
     return (
       <div className="container py-4">
@@ -410,6 +872,9 @@ const Siniestros = () => {
     );
   }
 
+  // =========================================================
+  // VISTA PRINCIPAL
+  // =========================================================
   return (
     <div className="container py-4">
       <h1 className="h2 fw-bold mb-3">Siniestros</h1>
@@ -418,8 +883,10 @@ const Siniestros = () => {
       <div className="d-flex align-items-end justify-content-between mb-4 gap-3 flex-wrap">
         <div>
           <div className="fw-bold mb-2">Búsqueda</div>
+
           <div className="search-input-wrapper">
             <SearchIcon className="search-icon" />
+
             <input
               type="text"
               className="search-custom"
@@ -432,11 +899,15 @@ const Siniestros = () => {
 
         <div>
           <div className="fw-bold mb-2">Estatus</div>
+
           <select
             className="form-select"
             style={{ width: "180px" }}
             value={estatusFilter}
-            onChange={(e) => setEstatusFilter(e.target.value)}
+            onChange={(e) => {
+              setEstatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             <option value="Todos">Todos</option>
             <option value="abierto">Abierto</option>
@@ -491,42 +962,93 @@ const Siniestros = () => {
         onItemsPerPageChange={handleItemsPerPageChange}
       />
 
+      {/* FORMULARIO DE SINIESTROS */}
       <EditModal
         open={showModal}
         onClose={cerrarModal}
         onSave={handleGuardar}
         editando={!!editingSiniestro}
-        titulo={editingSiniestro ? "Editar siniestro" : "Agregar nuevo siniestro"}
-        subtitulo={editingSiniestro ? "Modifica los datos del siniestro" : "Ingresa el RFC del cliente y los datos del siniestro"}
-        btnTexto={editingSiniestro ? "Guardar cambios" : "Agregar siniestro"}
+        titulo={
+          editingSiniestro
+            ? "Editar siniestro"
+            : "Agregar nuevo siniestro"
+        }
+        subtitulo={
+          editingSiniestro
+            ? "Modifica los datos del siniestro"
+            : "Ingresa el RFC del cliente y los datos del siniestro"
+        }
+        btnTexto={
+          editingSiniestro
+            ? "Guardar cambios"
+            : "Agregar siniestro"
+        }
         campos={camposConOpciones}
         formData={formData}
         onChange={handleInputChange}
-        customHandlers={{ onRfcChange: handleRfcChange }}
+        customHandlers={{
+          onRfcChange: handleRfcChange
+        }}
       />
 
+      {/* CONFIRMACIÓN DE ELIMINACIÓN */}
       <ConfirmDeleteModal
         open={showDeleteModal}
-        onClose={() => { setShowDeleteModal(false); setSiniestroToDelete(null); }}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSiniestroToDelete(null);
+        }}
         onConfirm={handleConfirmarEliminar}
         title="Eliminar siniestro"
         subtitle="¿Deseas eliminar este siniestro del sistema?"
       >
         {siniestroToDelete && (
           <div>
-            <p><strong>Siniestro #{siniestroToDelete.nSiniestro || siniestroToDelete.numero_siniestro || siniestroToDelete.id}</strong></p>
-            <p>Cliente: {siniestroToDelete.cliente || "—"}</p>
-            <p>Tipo: {siniestroToDelete.tipo || "—"}</p>
-            <p>Estatus: {siniestroToDelete.estatus || "—"}</p>
+            <p>
+              <strong>
+                Siniestro #
+                {siniestroToDelete.nSiniestro ||
+                  siniestroToDelete.numero_siniestro ||
+                  siniestroToDelete.id}
+              </strong>
+            </p>
+
+            <p>
+              Cliente: {siniestroToDelete.cliente || "—"}
+            </p>
+
+            <p>
+              Tipo: {siniestroToDelete.tipo || "—"}
+            </p>
+
+            <p>
+              Estatus: {siniestroToDelete.estatus || "—"}
+            </p>
           </div>
         )}
       </ConfirmDeleteModal>
 
+      {/* DETALLE DEL SINIESTRO */}
       <ClienteDetalleModal
         open={showDetalleModal}
-        onClose={() => { setShowDetalleModal(false); setSiniestroDetalle(null); }}
-        titulo={siniestroDetalle ? `Siniestro #${siniestroDetalle.numero_siniestro || siniestroDetalle.nSiniestro || siniestroDetalle.id}` : ""}
-        subtitulo={siniestroDetalle ? (siniestroDetalle.cliente || "") : ""}
+        onClose={() => {
+          setShowDetalleModal(false);
+          setSiniestroDetalle(null);
+        }}
+        titulo={
+          siniestroDetalle
+            ? `Siniestro #${
+                siniestroDetalle.numero_siniestro ||
+                siniestroDetalle.nSiniestro ||
+                siniestroDetalle.id
+              }`
+            : ""
+        }
+        subtitulo={
+          siniestroDetalle
+            ? siniestroDetalle.cliente || ""
+            : ""
+        }
         avatar="S"
         items={siniestroDetalle?.items || []}
       />

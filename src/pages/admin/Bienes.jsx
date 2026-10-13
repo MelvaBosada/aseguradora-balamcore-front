@@ -27,6 +27,7 @@ const API_URL = import.meta.env.VITE_API_URL
   : "/api/bienes";
 
 const columnas = [
+  "Foto",
   "Tipo",
   "Descripción",
   "Modelo",
@@ -38,6 +39,7 @@ const columnas = [
 ];
 
 const campos = [
+  "foto_url",
   "tipo",
   "descripcion",
   "modelo",
@@ -197,6 +199,7 @@ const FORM_VACIO = {
   nivel_riesgo: "bajo",
   numero_factura: "",
   proveedor: "",
+  foto: null,
 };
 
 const Bienes = () => {
@@ -216,7 +219,6 @@ const Bienes = () => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const getHeaders = () => ({
-    "Content-Type": "application/json",
     Accept: "application/json",
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   });
@@ -244,8 +246,16 @@ const Bienes = () => {
     fetchData();
   }, [fetchData]);
 
-  const handleInputChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleInputChange = (e) => {
+    const { name, value, files } = e.target;
+
+    if (name === "foto") {
+      setFormData((prev) => ({ ...prev, foto: files?.[0] || null }));
+      return;
+    }
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleNuevoBien = () => {
     setEditingBien(null);
@@ -255,7 +265,9 @@ const Bienes = () => {
 
   const handleEditar = (item) => {
     setEditingBien(item);
-    setFormData({ ...item });
+    // 'foto' se resetea a null: si el usuario no sube una nueva,
+    // no se reenvía el string base64 (foto_url) como si fuera un archivo
+    setFormData({ ...item, foto: null });
     setShowModal(true);
   };
 
@@ -263,19 +275,30 @@ const Bienes = () => {
     if (e && e.preventDefault) e.preventDefault();
     setLoading(true);
 
-    const dataAEnviar = {
-      ...formData,
-      valor: formData.valor ? parseFloat(formData.valor) : 0,
-    };
-
     const isEdit = !!editingBien;
     const url = isEdit ? `${API_URL}/${editingBien.id}` : API_URL;
 
     try {
+      const fd = new FormData();
+
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key === "foto") {
+          if (value instanceof File) fd.append("foto", value);
+          return; // si no hay archivo nuevo, no se manda nada
+        }
+        if (key === "foto_url") return; // nunca se reenvía, es solo lectura
+        if (value !== null && value !== undefined) {
+          fd.append(key, key === "valor" ? parseFloat(value) || 0 : value);
+        }
+      });
+
+      // Laravel necesita este spoof para procesar archivos en un "PUT"
+      if (isEdit) fd.append("_method", "PUT");
+
       const response = await fetch(url, {
-        method: isEdit ? "PUT" : "POST",
-        headers: getHeaders(),
-        body: JSON.stringify(dataAEnviar),
+        method: "POST",
+        headers: getHeaders(), // sin Content-Type: el navegador arma el boundary solo
+        body: fd,
       });
 
       if (response.ok) {
@@ -380,6 +403,8 @@ const Bienes = () => {
       ],
     },
     ...(CAMPOS_ESPECIFICOS[formData.tipo] || []),
+    // 👇 Imagen al final del formulario, fuera de los campos por tipo
+    { label: "Fotografía del bien", name: "foto", type: "file", fullWidth: true },
   ];
 
   const getDetalleItems = () => {

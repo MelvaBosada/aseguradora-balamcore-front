@@ -115,6 +115,7 @@ function StepCompany({ onFinish, onBack, correo, password }) {
 
       await axios.post(`${API_BASE}/registro`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        skipLoader: false,
       });
 
       setSnack({ open: true, msg: "¡Cuenta creada correctamente!", type: "success" });

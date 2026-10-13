@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -60,6 +60,7 @@ const FiltroBtn = ({ valor, actual, onChange }) => (
 
 const Dashboard = () => {
     const { verificarPagoStripe, vencida } = usePermisos();
+    const pagoVerificado = useRef(false);
 
     const [openPlanes, setOpenPlanes]               = useState(false);
     const [kpis, setKpis]                           = useState(null);
@@ -80,16 +81,6 @@ const Dashboard = () => {
         if (vencida) setOpenPlanes(true);
     }, [vencida]);
 
-    // Verificar pago de Stripe al retornar a la pantalla
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        if (params.get("pago") === "exitoso") {
-            verificarPagoStripe().then((res) => {
-                if (res) window.location.reload();
-            });
-        }
-    }, [verificarPagoStripe]);
-
     // Carga inicial de datos estáticos
     useEffect(() => {
         const controller = new AbortController();
@@ -97,9 +88,9 @@ const Dashboard = () => {
         const fetchInicial = async () => {
             try {
                 const [kpisRes, polizasRes, siniestrosRes] = await Promise.all([
-                    axios.get(`${API}/dashboard/kpis`, { signal: controller.signal }),
-                    axios.get(`${API}/dashboard/polizas-por-tipo`, { signal: controller.signal }),
-                    axios.get(`${API}/dashboard/ultimos-siniestros`, { signal: controller.signal })
+                    axios.get(`${API}/dashboard/kpis`, { signal: controller.signal, skipLoader: true }),
+                    axios.get(`${API}/dashboard/polizas-por-tipo`, { signal: controller.signal, skipLoader: true }),
+                    axios.get(`${API}/dashboard/ultimos-siniestros`, { signal: controller.signal, skipLoader: true })
                 ]);
 
                 setKpis(kpisRes.data ?? null);
@@ -122,7 +113,7 @@ const Dashboard = () => {
         const controller = new AbortController();
         setLoadingIngresos(true);
 
-        axios.get(`${API}/dashboard/ingresos?filtro=${filtroIngresos}`, { signal: controller.signal })
+        axios.get(`${API}/dashboard/ingresos?filtro=${filtroIngresos}`, { signal: controller.signal, skipLoader: true })
             .then(res => setIngresos(toArray(res.data)))
             .catch(err => {
                 if (!axios.isCancel(err) && err.response?.status === 403) setOpenPlanes(true);
@@ -137,7 +128,7 @@ const Dashboard = () => {
         const controller = new AbortController();
         setLoadingTendencia(true);
 
-        axios.get(`${API}/dashboard/tendencia-siniestros?filtro=${filtroTendencia}`, { signal: controller.signal })
+        axios.get(`${API}/dashboard/tendencia-siniestros?filtro=${filtroTendencia}`, { signal: controller.signal, skipLoader: true })
             .then(res => setTendencia(toArray(res.data)))
             .catch(err => {
                 if (!axios.isCancel(err) && err.response?.status === 403) setOpenPlanes(true);
@@ -188,6 +179,17 @@ const Dashboard = () => {
         window.location.href = "/";
     };
 
+    // Verificar pago de Stripe al retornar a la pantalla
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get("pago") !== "exitoso" || pagoVerificado.current) return;
+
+        pagoVerificado.current = true;
+        verificarPagoStripe().then((res) => {
+            if (res) window.location.reload();
+        });
+    }, [verificarPagoStripe]);
+
     return (
         <div className="dash-wrapper">
             <ModalPlanes
@@ -197,7 +199,7 @@ const Dashboard = () => {
             />
 
             {/* KPIs */}
-            <div className="dash-grid">
+            <div className="dash-grid" data-tour="dashboard-kpis">
                 {loadingKpis
                     ? Array(3).fill(0).map((_, i) => (
                         <div key={`skeleton-${i}`} className="kpi-card kpi-skeleton" />
@@ -218,7 +220,7 @@ const Dashboard = () => {
             </div>
 
             {/* GRÁFICAS */}
-            <div className="dash-charts">
+            <div className="dash-charts" data-tour="dashboard-graficas">
                 <div className="chart-card">
                     <div className="chart-header">
                         <h3>Ingresos vs Siniestros</h3>
