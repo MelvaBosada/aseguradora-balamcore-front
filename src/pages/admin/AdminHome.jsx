@@ -4,7 +4,7 @@ const AdminHome = () => {
   const usuario = JSON.parse(localStorage.getItem("usuario") || "{}");
 
   return (
-    <div className="container py-4" style={{ position: "relative", overflow: "hidden", minHeight: "80vh" }}>
+    <div className="container py-4" data-tour="main-panel" style={{ position: "relative", overflow: "hidden", minHeight: "80vh" }}>
 
       {/* LOGO DE FONDO CON TRANSPARENCIA — centrado */}
       <img

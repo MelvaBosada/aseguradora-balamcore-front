@@ -8,6 +8,8 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import ExpandMoreIcon    from "@mui/icons-material/ExpandMore";
 import DiamondIcon       from "@mui/icons-material/Diamond";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
+import HelpIcon from '@mui/icons-material/Help';
+import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 
 import IconButton   from "../IconButton";
 import ModalPlanes  from "../ModalPlanes";
@@ -16,7 +18,7 @@ import "./layout.css";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-const Topbar = ({ onToggleSidebar }) => {
+const Topbar = ({ onToggleSidebar, onStartTour }) => {
   const [showUserMenu,  setShowUserMenu]  = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [showPlanes,    setShowPlanes]    = useState(false);
@@ -95,7 +97,7 @@ const Topbar = ({ onToggleSidebar }) => {
 
   return (
     <>
-      <div className="topbar">
+      <div className="topbar" data-tour="topbar">
 
         {/* LEFT */}
         <div className="topbar-left">
@@ -111,9 +113,20 @@ const Topbar = ({ onToggleSidebar }) => {
         {/* RIGHT */}
         <div className="topbar-right">
 
+          <div data-tour="tour-help">
+            <IconButton
+              icon={<HelpIcon style={{ color: "white" }} />}
+              onClick={onStartTour}
+              title="Abrir recorrido guiado"
+              color="#0F4C3A"
+              hover="#13624b"
+            />
+          </div>
+
           {/* PLAN — solo admin */}
           {esAdmin && (
             <button
+              data-tour="plan-status"
               onClick={() => setShowPlanes(true)}
               style={{
                 background: btnColor.bg,
@@ -148,6 +161,10 @@ const Topbar = ({ onToggleSidebar }) => {
             <IconButton
               icon={<NotificationsIcon style={{ color: "white" }} />}
               onClick={toggleNotifMenu}
+              title="Notificaciones"
+              color="#0F4C3A"
+              hover="#13624b"
+              data-tour="notificaciones-boton"
             />
             {showNotifMenu && (
               <div className="topbar-dropdown">
@@ -158,7 +175,7 @@ const Topbar = ({ onToggleSidebar }) => {
 
           {/* USUARIO */}
           <div className="dropdown-container" ref={userRef}>
-            <button className="user-button" onClick={toggleUserMenu}>
+            <button className="user-button" data-tour="perfil-usuario" onClick={toggleUserMenu}>
               <AccountCircleIcon style={{ marginRight: 6 }} />
               <ExpandMoreIcon
                 style={{

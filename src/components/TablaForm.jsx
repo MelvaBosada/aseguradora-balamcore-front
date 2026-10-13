@@ -67,6 +67,11 @@ function TablaForm({ columna, data, campos, acciones }) {
                       type="button"
                       className={`tabla-btn ${clase}`}
                       title={accion.titulo}
+                      data-tour={
+                        accion.titulo
+                          ? `tabla-accion-${accion.titulo.toLowerCase().replace(/\s+/g, "-")}`
+                          : "tabla-accion"
+                      }
                       onClick={() => {
                         if (!disabled) {
                           accion.onClick(fila);

@@ -125,7 +125,11 @@ function Register({ onBackToLogin, onStepChange }) {
 
     setLoading(true);
     try {
-      await axios.post("/enviar-otp", { correo: creds.correo });
+      await axios.post(
+        "/enviar-otp",
+        { correo: creds.correo },
+        { skipLoader: false }
+      );
       go(1);
     } catch (error) {
       toast(error.response?.data?.message || "Error al enviar el código");

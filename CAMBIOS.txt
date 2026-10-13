@@ -1,0 +1,174 @@
+RESUMEN DE CAMBIOS Y FUNCIONALIDADES NUEVAS
+============================================
+
+Fecha del resumen: 13 de octubre de 2026
+
+Este archivo resume los cambios actualmente presentes en el working tree del
+frontend de Aseguradora BalamCore.
+
+
+1. RECORRIDO GUIADO DEL SISTEMA
+-------------------------------
+
+- Se agregó la dependencia driver.js para mostrar recorridos guiados.
+- Se creó el hook src/hooks/useTour.js.
+- El recorrido explica:
+  - Barra superior.
+  - Notificaciones.
+  - Perfil del usuario.
+  - Ayuda.
+  - Estado del plan.
+  - Menú lateral.
+  - Dashboard, KPIs y gráficas.
+  - Operaciones, catálogos y reportes.
+  - Clientes, empleados, bienes y coberturas.
+  - Pólizas, siniestros, pagos, evaluaciones e indemnizaciones.
+  - Perfiles, permisos, reportes, pólizas por vencer y renovaciones.
+  - Acciones de agregar, editar y eliminar en tablas.
+- El recorrido puede navegar entre rutas para mostrar cada sección.
+- Se agregaron identificadores data-tour en distintos componentes para que
+  driver.js encuentre los elementos correctos.
+- El recorrido se guarda por usuario en localStorage para no iniciarlo
+  repetidamente.
+- Se agregó la posibilidad de iniciar nuevamente el recorrido desde la barra
+  superior.
+
+
+2. LOADER Y SPLASH GLOBAL
+--------------------------
+
+- Se creó src/context/LoaderContext.jsx.
+- Se creó el componente src/components/common/SplashScreen.jsx.
+- Se creó el estilo asociado:
+  src/components/common/SplashScreen.css.
+- Se agregaron recursos gráficos del loader en src/assets/loader/.
+- Se agregaron los recursos visuales del jaguar:
+  - src/assets/garras.png
+  - src/assets/jaguar-sprite.png
+- El LoaderProvider registra interceptores globales de Axios.
+- Axios queda configurado con skipLoader: true por defecto desde src/main.jsx.
+- Las peticiones normales del sistema ya no muestran el loader global.
+- Esto aplica a consultas y acciones de módulos como clientes, pólizas,
+  siniestros, empleados, pagos, reportes, configuración y SuperAdmin.
+- Una petición solo muestra el loader global si declara explícitamente:
+
+  { skipLoader: false }
+
+- El loader conserva su retraso aproximado de 500 ms para evitar mostrarlo en
+  peticiones muy rápidas.
+- El loader se detiene cuando la petición termina correctamente o falla.
+- Se agregó un límite de seguridad de 30 segundos para evitar que el loader se
+  quede visible indefinidamente.
+- Las peticiones que no deben mostrar loader pueden usar:
+
+  { skipLoader: true }
+
+- Se agregó un splash inicial controlado desde src/main.jsx.
+- El splash inicial se guarda en sessionStorage y se muestra una sola vez por
+  pestaña, en lugar de mostrarse en cada navegación interna.
+- El loader visual usa la animación del jaguar y la barra de progreso.
+- El splash inicial es independiente del loader de Axios y aparece al cargar o
+  recargar la aplicación.
+
+
+3. CORRECCIONES DEL DASHBOARD
+-----------------------------
+
+- Se corrigió el flujo de regreso desde Stripe.
+- Se eliminó la duplicidad de efectos que verificaban el pago.
+- Se agregó un useRef para evitar que la verificación del pago se ejecute dos
+  veces durante renders repetidos en desarrollo.
+- Se corrigió el uso del loader manual que referenciaba showLoader y hideLoader
+  sin tenerlos definidos.
+- Las peticiones propias del dashboard usan skipLoader: true y conservan sus
+  skeletons internos.
+- Se corrigió el envío de configuración a Axios. Antes se pasaban opciones en
+  un tercer argumento que Axios ignoraba.
+- Se agregaron identificadores data-tour para:
+  - KPIs.
+  - Gráficas.
+
+
+4. MODAL DE PLANES Y PAGOS
+--------------------------
+
+- El botón para contratar un plan activa el loader antes de enviar al usuario
+  a Stripe.
+- El flujo de Stripe conserva el loader manual mediante useLoader.
+- Si el inicio del pago falla, el loader se oculta, se restablece el estado del
+  botón y se muestra un mensaje de error.
+- Si la navegación hacia Stripe es correcta, el loader permanece visible
+  mientras el navegador abandona la aplicación.
+
+
+5. CAMBIOS EN EL LAYOUT Y NAVEGACIÓN
+------------------------------------
+
+- DashboardLayout ahora integra el hook del recorrido guiado.
+- Topbar recibe la acción para iniciar el tour.
+- Sidebar incorpora identificadores data-tour para sus secciones.
+- Se actualizaron los estilos del layout para soportar los cambios visuales y
+  de navegación.
+- AdminHome incorpora un identificador data-tour para el panel principal.
+- Se actualizaron elementos de navegación, menú y barra superior para
+  integrarse con el recorrido guiado.
+
+
+6. CAMBIOS EN COMPONENTES REUTILIZABLES
+---------------------------------------
+
+- PrimaryButton ahora acepta la propiedad dataTour.
+- TablaForm genera automáticamente identificadores data-tour para las acciones
+  de las filas, como agregar, editar y eliminar.
+- ModalPlanes integra el contexto global del loader.
+
+
+7. CONFIGURACIÓN Y DEPENDENCIAS
+-------------------------------
+
+- Se agregó driver.js versión 1.8.0 en package.json.
+- Se actualizó package-lock.json con la dependencia y su integridad.
+- Se mantienen los scripts existentes:
+  - npm run dev
+  - npm run build
+  - npm run lint
+  - npm run preview
+- Se configuró Axios en src/main.jsx para omitir el loader por defecto.
+- Se dejaron explícitamente con skipLoader: false los flujos de:
+  - Login.
+  - Envío y verificación de OTP.
+  - Reenvío de OTP.
+  - Registro final de empresa.
+  - Stripe, mediante su control manual.
+
+
+8. VALIDACIONES REALIZADAS
+--------------------------
+
+- npm run build: correcto.
+- npx eslint src/pages/admin/Dashboard.jsx: correcto después de los ajustes
+  del dashboard.
+- El build todavía muestra advertencias generales de tamaño del bundle y de
+  importación dinámica de Axios; no impiden compilar.
+- El lint completo conserva errores preexistentes en:
+  - src/components/ModalPlanes.jsx por una regla de hooks condicionales.
+  - src/components/common/SplashScreen.jsx por una regla de actualización de
+    estado dentro de un efecto.
+  - src/main.jsx por la regla de Fast Refresh relacionada con el componente
+    Root declarado en el archivo de entrada.
+
+
+9. COMPORTAMIENTO ACTUAL DEL LOADER
+------------------------------------
+
+- El splash inicial aparece al abrir la aplicación por primera vez en una
+  pestaña.
+- Una navegación interna no debería mostrar nuevamente el splash inicial.
+- Las peticiones Axios normales no muestran el loader global.
+- Una petición solo muestra el loader global si usa skipLoader: false.
+- Login y registro sí muestran el loader mientras esperan al backend.
+- El flujo de Stripe sí muestra el loader antes de redirigir al checkout.
+- El resto de los módulos usa carga local, skeletons o estados propios.
+- Abrir un modal sin hacer peticiones no muestra el loader.
+- El regreso de Stripe usa una sola verificación y evita la duplicación causada
+  por renders repetidos.
