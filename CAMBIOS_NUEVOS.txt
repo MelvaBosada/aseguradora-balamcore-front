@@ -1,0 +1,14 @@
+CAMBIOS NUEVOS
+==============
+
+- Se agregó el hook useAccionAsync para controlar acciones asíncronas.
+- Los botones ahora evitan doble clic y se deshabilitan mientras procesan.
+- Se agregaron spinners y estados de "Procesando..." en guardar, editar,
+  eliminar y asignar permisos.
+- Se integró el loader de letras para acciones que tardan más de 2 segundos.
+- El loader de Axios y el loader manual ahora funcionan por separado.
+- Se actualizaron los botones principales, botones con icono, tablas,
+  modales y formularios de SuperAdmin.
+- Se actualizaron los modales de edición, eliminación y asignación de
+  permisos para mostrar su estado de carga.
+- Se validó la compilación del proyecto correctamente.

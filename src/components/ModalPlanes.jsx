@@ -8,7 +8,6 @@ import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import axios from "axios";
 import logo from "../assets/LogoA.png";
-import { useLoader } from "../context/LoaderContext";
 
 const API = import.meta.env.VITE_API_URL || '/api';
 
@@ -73,16 +72,11 @@ const ModalPlanes = ({ open, onClose, onLogout }) => {
     else onClose();
   };
 
-  const { showLoader, hideLoader } = useLoader();
-
 const handleContratar = async (plan) => {
   setPagando(plan.id);
-  showLoader();
   try {
     await iniciarPago(plan.id, anual ? "anual" : "mensual");
-    // no lo quitamos: la página se va a Stripe
   } catch {
-    hideLoader();
     setPagando(null);
     alert("Error al procesar el pago. Intenta de nuevo.");
   }
