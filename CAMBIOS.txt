@@ -172,3 +172,23 @@ frontend de Aseguradora BalamCore.
 - Abrir un modal sin hacer peticiones no muestra el loader.
 - El regreso de Stripe usa una sola verificación y evita la duplicación causada
   por renders repetidos.
+
+
+10. ESTADOS DE ACCIÓN EN BOTONES
+--------------------------------
+
+- Se integró src/hooks/useAccionAsync.js para centralizar acciones asíncronas.
+- Los botones reutilizables muestran estado visual mientras esperan:
+  - CircularProgress o spinner dentro del botón.
+  - Texto "Procesando..." cuando corresponde.
+  - Botón deshabilitado para evitar doble clic.
+- Las acciones de tabla ya muestran spinner en acciones como editar y eliminar.
+- Los botones de guardar de EditModal y AsignarPermisosModal muestran
+  "Procesando..." mientras termina la petición.
+- Los botones de confirmación de eliminación también bloquean duplicados.
+- Los formularios de SuperAdmin muestran estado de guardado y activan el loader
+  de letras mientras la operación está en curso.
+- Si una acción asíncrona dura más de dos segundos, se muestra el overlay de
+  letras; las operaciones rápidas solo muestran el estado del botón.
+- El loader automático de Axios y el loader manual de acciones mantienen
+  contadores independientes para no apagar o duplicar el loader equivocado.

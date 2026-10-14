@@ -1,7 +1,9 @@
 import { Button, Card, Badge } from 'react-bootstrap'
 import { Modal } from 'react-bootstrap'
+import useAccionAsync from "../hooks/useAccionAsync";
 
 function ModalForm({visible,ocultar, guardar, title, children}) {
+    const [handleSave, saving] = useAccionAsync(guardar);
     
     return (
 
@@ -16,8 +18,8 @@ function ModalForm({visible,ocultar, guardar, title, children}) {
           <Button variant="secondary" onClick={ocultar}>
             Cerrar
           </Button>
-          <Button variant="primary" onClick={guardar}>
-            Guardar
+          <Button variant="primary" onClick={handleSave} disabled={saving}>
+            {saving ? "Procesando..." : "Guardar"}
             </Button>
         </Modal.Footer>
         </Modal >

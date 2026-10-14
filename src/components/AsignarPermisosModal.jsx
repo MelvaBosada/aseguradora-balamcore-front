@@ -1,6 +1,7 @@
 import { useState } from "react";
 import logo from "../assets/Logo.png";
 import "../css/BalamCoreModal.css";
+import useAccionAsync from "../hooks/useAccionAsync";
 
 const AsignarPermisosModal = ({
   open,
@@ -11,6 +12,7 @@ const AsignarPermisosModal = ({
   permisosActuales    = [],  // [id, id, id]
 }) => {
   const [seleccionados, setSeleccionados] = useState(permisosActuales);
+  const [handleSave, saving] = useAccionAsync(() => onSave(seleccionados));
 
   if (!open) return null;
 
@@ -99,7 +101,9 @@ const AsignarPermisosModal = ({
 
         <div className="balam-footer">
           <button className="balam-btn cancel" onClick={onClose}>Cancelar</button>
-          <button className="balam-btn save" onClick={() => onSave(seleccionados)}>Asignar permisos</button>
+          <button className="balam-btn save" onClick={handleSave} disabled={saving}>
+            {saving ? "Procesando..." : "Asignar permisos"}
+          </button>
         </div>
 
       </div>

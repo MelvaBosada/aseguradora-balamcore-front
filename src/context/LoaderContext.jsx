@@ -1,30 +1,37 @@
 import {
-  createContext, useCallback, useContext,
-  useEffect, useLayoutEffect, useRef, useState,
+  createContext, useCallback, useContext, useEffect,
+  useLayoutEffect, useMemo, useRef, useState,
 } from "react";
 import axios from "axios";
 import SplashScreen from "../components/common/SplashScreen";
+import LetrasLoader from "../components/common/LetrasLoader";
 
-const LoaderContext = createContext({ showLoader: () => {}, hideLoader: () => {} });
+const LoaderContext = createContext({
+  showLoader: () => {},
+  hideLoader: () => {},
+  beginAccion: () => {},
+  endAccion: () => {},
+});
 export const useLoader = () => useContext(LoaderContext);
 
-const DELAY = 500; // ms que debe tardar una petición para que salga el loader
+const DELAY = 500; // ms que debe tardar una petición para que salga el jaguar
 
 export const LoaderProvider = ({ disabled = false, children }) => {
-  const [loading, setLoading] = useState(false);   // hay algo cargando
-  const [mounted, setMounted] = useState(false);   // el overlay está en pantalla
+  /* ────────────── JAGUAR (automático con axios) ────────────── */
+  const [loading, setLoading] = useState(false);   // hay peticiones en curso
+  const [mounted, setMounted] = useState(false);   // el jaguar está en pantalla
   const [overlayKey, setOverlayKey] = useState(0);
 
   const pending = useRef(0);
   const timer = useRef(null);
+  const acciones = useRef(0); // botones esperando: mientras haya, el jaguar no sale
 
-  const start = useCallback((immediate = false) => {
+  const start = useCallback(() => {
     pending.current += 1;
-    if (immediate) {
-      clearTimeout(timer.current);
-      setLoading(true);
-    } else if (pending.current === 1) {
-      timer.current = setTimeout(() => setLoading(true), DELAY);
+    if (pending.current === 1) {
+      timer.current = setTimeout(() => {
+        if (acciones.current === 0) setLoading(true);
+      }, DELAY);
     }
   }, []);
 
@@ -35,9 +42,6 @@ export const LoaderProvider = ({ disabled = false, children }) => {
       setLoading(false);
     }
   }, []);
-
-  const showLoader = useCallback(() => start(true), [start]);
-  const hideLoader = useCallback(() => stop(), [stop]);
 
   // Interceptores de axios (useLayoutEffect para registrarlos antes de que
   // los hijos hagan sus primeras peticiones)
@@ -67,7 +71,7 @@ export const LoaderProvider = ({ disabled = false, children }) => {
     };
   }, [start, stop]);
 
-  // Monta el overlay (de nuevo) cuando empieza a cargar
+  // Monta el jaguar (de nuevo) cuando empieza a cargar
   useEffect(() => {
     if (loading && !mounted && !disabled) {
       setOverlayKey((k) => k + 1);
@@ -85,9 +89,35 @@ export const LoaderProvider = ({ disabled = false, children }) => {
     return () => clearTimeout(t);
   }, [loading]);
 
+  /* ────────────── LETRAS (manual: botones y Stripe) ────────────── */
+  const [letras, setLetras] = useState(0);
+
+  const showLoader = useCallback(() => setLetras((c) => c + 1), []);
+  const hideLoader = useCallback(() => setLetras((c) => Math.max(0, c - 1)), []);
+
+  // Seguro: si algo se queda colgado, se quita solo a los 30 s
+  useEffect(() => {
+    if (letras === 0) return;
+    const t = setTimeout(() => setLetras(0), 30000);
+    return () => clearTimeout(t);
+  }, [letras]);
+
+  /* ────────────── Aviso de botones (lo usa useAccionAsync) ────────────── */
+  const beginAccion = useCallback(() => { acciones.current += 1; }, []);
+  const endAccion = useCallback(() => {
+    acciones.current = Math.max(0, acciones.current - 1);
+  }, []);
+
+  const value = useMemo(
+    () => ({ showLoader, hideLoader, beginAccion, endAccion }),
+    [showLoader, hideLoader, beginAccion, endAccion]
+  );
+
   return (
-    <LoaderContext.Provider value={{ showLoader, hideLoader }}>
+    <LoaderContext.Provider value={value}>
       {children}
+
+      {/* Jaguar */}
       {mounted && (
         <SplashScreen
           key={overlayKey}
@@ -97,6 +127,9 @@ export const LoaderProvider = ({ disabled = false, children }) => {
           onFinish={() => setMounted(false)}
         />
       )}
+
+      {/* Letras */}
+      <LetrasLoader visible={letras > 0} />
     </LoaderContext.Provider>
   );
 };

@@ -1,5 +1,31 @@
 import Table from "react-bootstrap/Table";
 import "../css/TablaForm.css";
+import useAccionAsync from "../hooks/useAccionAsync";
+
+function BotonAccion({ accion, fila, icono, clase, disabled }) {
+  const [handleClick, busy] = useAccionAsync(() => accion.onClick(fila));
+
+  return (
+    <button
+      type="button"
+      className={`tabla-btn ${clase}${busy ? " tabla-btn-busy" : ""}`}
+      title={accion.titulo}
+      data-tour={
+        accion.titulo
+          ? `tabla-accion-${accion.titulo.toLowerCase().replace(/\s+/g, "-")}`
+          : "tabla-accion"
+      }
+      onClick={() => {
+        if (!disabled) {
+          handleClick();
+        }
+      }}
+      disabled={disabled}
+    >
+      {busy ? <span className="tabla-spinner" /> : icono}
+    </button>
+  );
+}
 
 function TablaForm({ columna, data, campos, acciones }) {
   return (
@@ -62,25 +88,14 @@ function TablaForm({ columna, data, campos, acciones }) {
                       : Boolean(accion.disabled);
 
                   return (
-                    <button
+                    <BotonAccion
                       key={i}
-                      type="button"
-                      className={`tabla-btn ${clase}`}
-                      title={accion.titulo}
-                      data-tour={
-                        accion.titulo
-                          ? `tabla-accion-${accion.titulo.toLowerCase().replace(/\s+/g, "-")}`
-                          : "tabla-accion"
-                      }
-                      onClick={() => {
-                        if (!disabled) {
-                          accion.onClick(fila);
-                        }
-                      }}
+                      accion={accion}
+                      fila={fila}
+                      icono={icono}
+                      clase={clase}
                       disabled={disabled}
-                    >
-                      {icono}
-                    </button>
+                    />
                   );
                 })}
               </div>
