@@ -23,6 +23,28 @@
   transform: translateY(-2px);
 }
 
+.tabla-btn:disabled,
+.tabla-btn.tabla-btn-busy {
+  cursor: wait;
+  opacity: 0.65;
+  transform: none;
+}
+
+.tabla-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: tabla-spin 0.7s linear infinite;
+}
+
+@keyframes tabla-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* VER — verde sólido → hover blanco con borde */
 .tabla-btn-ver {
    background: #ffffff;
@@ -118,4 +140,3 @@ background: #C0392B;
   color: #999;
   margin: 0 auto;
 }
-

@@ -16,11 +16,12 @@ function BotonAccion({ accion, fila, icono, clase, disabled }) {
           : "tabla-accion"
       }
       onClick={() => {
-        if (!disabled) {
+        if (!disabled && !busy) {
           handleClick();
         }
       }}
-      disabled={disabled}
+      disabled={disabled || busy}
+      aria-busy={busy}
     >
       {busy ? <span className="tabla-spinner" /> : icono}
     </button>
