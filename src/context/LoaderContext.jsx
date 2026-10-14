@@ -15,6 +15,15 @@ const LoaderContext = createContext({
 export const useLoader = () => useContext(LoaderContext);
 
 const DELAY = 500; // ms que debe tardar una petición para que salga el jaguar
+const JAGUAR_URLS = [
+  "/login",
+  "/enviar-otp",
+  "/verificar-otp",
+  "/registro",
+  "/suscripcion/checkout",
+  "/suscripcion/verificar-pago",
+  "/suscripcion/actual",
+];
 
 export const LoaderProvider = ({ disabled = false, children }) => {
   /* ────────────── JAGUAR (automático con axios) ────────────── */
@@ -24,13 +33,14 @@ export const LoaderProvider = ({ disabled = false, children }) => {
 
   const pending = useRef(0);
   const timer = useRef(null);
-  const acciones = useRef(0); // botones esperando: mientras haya, el jaguar no sale
+  const loadingRef = useRef(false);
 
   const start = useCallback(() => {
     pending.current += 1;
     if (pending.current === 1) {
       timer.current = setTimeout(() => {
-        if (acciones.current === 0) setLoading(true);
+        loadingRef.current = true;
+        setLoading(true);
       }, DELAY);
     }
   }, []);
@@ -39,6 +49,7 @@ export const LoaderProvider = ({ disabled = false, children }) => {
     pending.current = Math.max(0, pending.current - 1);
     if (pending.current === 0) {
       clearTimeout(timer.current);
+      loadingRef.current = false;
       setLoading(false);
     }
   }, []);
@@ -47,7 +58,12 @@ export const LoaderProvider = ({ disabled = false, children }) => {
   // los hijos hagan sus primeras peticiones)
   useLayoutEffect(() => {
     const req = axios.interceptors.request.use((config) => {
-      if (!config.skipLoader) {
+      const url = config.url || "";
+      const isJaguarRequest =
+        config.skipLoader === false ||
+        JAGUAR_URLS.some((path) => url.includes(path));
+
+      if (isJaguarRequest) {
         config.__loader = true;
         start();
       }
@@ -84,15 +100,18 @@ export const LoaderProvider = ({ disabled = false, children }) => {
     if (!loading) return;
     const t = setTimeout(() => {
       pending.current = 0;
+      loadingRef.current = false;
       setLoading(false);
     }, 30000);
     return () => clearTimeout(t);
   }, [loading]);
 
-  /* ────────────── LETRAS (manual: botones y Stripe) ────────────── */
+  /* ────────────── LETRAS (manual: acciones normales) ────────────── */
   const [letras, setLetras] = useState(0);
 
-  const showLoader = useCallback(() => setLetras((c) => c + 1), []);
+  const showLoader = useCallback(() => {
+    if (!loadingRef.current) setLetras((c) => c + 1);
+  }, []);
   const hideLoader = useCallback(() => setLetras((c) => Math.max(0, c - 1)), []);
 
   // Seguro: si algo se queda colgado, se quita solo a los 30 s
@@ -102,11 +121,9 @@ export const LoaderProvider = ({ disabled = false, children }) => {
     return () => clearTimeout(t);
   }, [letras]);
 
-  /* ────────────── Aviso de botones (lo usa useAccionAsync) ────────────── */
-  const beginAccion = useCallback(() => { acciones.current += 1; }, []);
-  const endAccion = useCallback(() => {
-    acciones.current = Math.max(0, acciones.current - 1);
-  }, []);
+  /* ────────────── Aviso de botones (compatibilidad del contexto) ────────────── */
+  const beginAccion = useCallback(() => {}, []);
+  const endAccion = useCallback(() => {}, []);
 
   const value = useMemo(
     () => ({ showLoader, hideLoader, beginAccion, endAccion }),

@@ -21,7 +21,7 @@ export default function useAccionAsync(handler) {
     async (...args) => {
       if (busyRef.current) return; // evita doble clic
 
-      // Avisa al jaguar que hay un botón esperando, para que no se empalmen
+      // Conserva el estado de acción sin bloquear el loader de Axios.
       beginAccion();
 
       let result;
