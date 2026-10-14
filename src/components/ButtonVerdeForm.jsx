@@ -1,6 +1,16 @@
-import { Button } from "@mui/material";
+import { Button, CircularProgress } from "@mui/material";
+import useAccionAsync from "../hooks/useAccionAsync";
 
-function ButtonVerdeForm({ children, colorType = "green", ...props }) {
+function ButtonVerdeForm({
+  children,
+  colorType = "green",
+  onClick,
+  loading = false, // opcional: para forzar el estado de carga desde afuera
+  ...props
+}) {
+  const [handleClick, busyInterno] = useAccionAsync(onClick);
+  const busy = loading || busyInterno;
+
   const styles = {
     green: {
       backgroundColor: "#114C3A",
@@ -17,6 +27,7 @@ function ButtonVerdeForm({ children, colorType = "green", ...props }) {
     <Button
       variant="contained"
       sx={{
+        position: "relative",
         fontFamily: "'Abhaya Libre', serif",
         fontWeight: 500,
         borderRadius: "20px",
@@ -26,11 +37,20 @@ function ButtonVerdeForm({ children, colorType = "green", ...props }) {
         fontSize: "1rem",   
         width: "auto",      // Deja que el padding defina el ancho
         minWidth: "130px",  // Un poco menos de lo que tenías
+        cursor: busy ? "progress" : "pointer",
         ...styles[colorType]
       }}
       {...props}
+      onClick={handleClick}
     >
-      {children}
+      <span style={{ visibility: busy ? "hidden" : "visible" }}>{children}</span>
+      {busy && (
+        <CircularProgress
+          size={20}
+          thickness={5}
+          sx={{ color: "#fff", position: "absolute" }}
+        />
+      )}
     </Button>
   );
 }
