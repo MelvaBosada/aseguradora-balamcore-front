@@ -50,7 +50,12 @@ function CambiarPlanModal({ aseguradora, planes, onSubmit, onCancel, errorMsg, l
         <SAButton variant="outline" type="button" onClick={onCancel} disabled={loading}>
           Cancelar
         </SAButton>
-        <SAButton variant="accent" type="submit" disabled={loading || !idPlanSeleccionado}>
+        <SAButton
+          variant="accent"
+          type="submit"
+          loading={loading}
+          disabled={loading || !idPlanSeleccionado}
+        >
           {loading ? "Procesando..." : "Activar plan"}
         </SAButton>
       </div>

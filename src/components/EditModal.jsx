@@ -1,8 +1,11 @@
 // components/EditModal.jsx
 import "../css/BalamCoreModal.css";
 import logo from "../assets/Logo.png";
+import useAccionAsync from "../hooks/useAccionAsync";
 
 function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos, formData, onChange, errores = {}, customHandlers = {}, dropdowns = {}, children }) {
+  const [handleSave, saving] = useAccionAsync(onSave);
+
   if (!open) return null;
 
   const secciones = campos?.reduce((acc, campo) => {
@@ -188,7 +191,9 @@ function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos,
         {/* FOOTER */}
         <div className="balam-footer">
           <button className="balam-btn cancel" onClick={onClose}>Cancelar</button>
-          <button className="balam-btn save" onClick={onSave}>{btnTexto}</button>
+          <button className="balam-btn save" onClick={handleSave} disabled={saving}>
+            {saving ? "Procesando..." : btnTexto}
+          </button>
         </div>
 
       </div>

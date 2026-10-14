@@ -83,7 +83,7 @@ function PlanModulosModal({ modulosDisponibles, modulosAsignados, onSubmit, onCa
         <SAButton variant="outline" type="button" onClick={onCancel} disabled={loading}>
           Cancelar
         </SAButton>
-        <SAButton variant="accent" type="submit" disabled={loading}>
+        <SAButton variant="accent" type="submit" loading={loading} disabled={loading}>
           {loading ? "Guardando..." : "Guardar módulos"}
         </SAButton>
       </div>

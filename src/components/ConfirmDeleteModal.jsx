@@ -1,8 +1,11 @@
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 
 import "../css/BalamCoreModal.css";
+import useAccionAsync from "../hooks/useAccionAsync";
 
 function ConfirmDeleteModal({ open, onClose, onConfirm, title, subtitle, children }) {
+  const [handleConfirm, deleting] = useAccionAsync(onConfirm);
+
   if (!open) return null;
 
   return (
@@ -29,8 +32,8 @@ function ConfirmDeleteModal({ open, onClose, onConfirm, title, subtitle, childre
             <button className="balam-btn balam-btn-cancel" onClick={onClose}>
               Cancelar
             </button>
-            <button className="balam-btn balam-btn-danger" onClick={onConfirm}>
-              Sí, eliminar
+            <button className="balam-btn balam-btn-danger" onClick={handleConfirm} disabled={deleting}>
+              {deleting ? "Procesando..." : "Sí, eliminar"}
             </button>
           </div>
 

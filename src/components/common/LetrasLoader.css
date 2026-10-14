@@ -1,0 +1,83 @@
+.ll-overlay {
+  --s: 0.6;               /* escala de las letras */
+  --color: #ffffff;       /* color de las letras */
+
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 33, 26, 0.863);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.ll-overlay.show {
+  opacity: 1;
+}
+
+.ll-overlay:not(.show) {
+  pointer-events: none;
+}
+
+/* LETRAS (PNG usados como máscara) */
+.ll-letras {
+  display: flex;
+  align-items: flex-end;
+  gap: calc(3px * var(--s));
+  padding-top: 40px; /* espacio para el salto */
+}
+
+.ll-letra {
+  display: block;
+  width: calc(var(--w) * 1px * var(--s));
+  height: calc(80px * var(--s));
+  background-color: var(--color);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  transform-origin: bottom center;
+  animation: llSalto 0.5s alternate infinite;
+  animation-delay: calc(var(--i) * 0.06s);
+}
+
+.ll-letra.ll-gap {
+  margin-left: calc(18px * var(--s));
+}
+
+/* CARGANDO */
+.ll-cargando {
+  width: 110px;
+  max-width: 45vw;
+  margin-top: 22px;
+  animation: llPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes llSalto {
+  from {
+    transform: translateY(0) scaleX(1.12) scaleY(0.92);
+  }
+  to {
+    transform: translateY(-22px) scaleX(1) scaleY(1);
+  }
+}
+
+@keyframes llPulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+
+@media (max-width: 480px) {
+  .ll-overlay { --s: 0.45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ll-letra, .ll-cargando { animation: none; }
+}

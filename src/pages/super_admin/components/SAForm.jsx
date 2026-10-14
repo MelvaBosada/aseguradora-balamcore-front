@@ -233,7 +233,7 @@ function SAForm({
         <SAButton variant="outline" type="button" onClick={onCancel} disabled={loading}>
           Cancelar
         </SAButton>
-        <SAButton variant="accent" type="submit" disabled={loading}>
+        <SAButton variant="accent" type="submit" loading={loading} disabled={loading}>
           {loading ? "Guardando..." : isEdit ? submitLabelEdit : submitLabel}
         </SAButton>
       </div>
