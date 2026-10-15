@@ -8,6 +8,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import SearchIcon from "@mui/icons-material/Search";
+import DownloadIcon from "@mui/icons-material/Download";
 
 // Componentes
 import PrimaryButton from "../../components/PrimaryButton";
@@ -16,10 +17,10 @@ import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
+import DescargarModal from "../../components/DescargarModal";
 
-const API_URL = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/clientes`
-  : "/api/clientes";
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const API_URL = `${API_BASE}/clientes`;
 
 // Helper de headers para peticiones autenticadas
 const getAuthConfig = () => ({
@@ -102,6 +103,7 @@ const Clientes = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
+  const [showDescarga, setShowDescarga] = useState(false);
 
   const [clienteToDelete, setClienteToDelete] = useState(null);
   const [clienteDetalle, setClienteDetalle] = useState(null);
@@ -315,11 +317,18 @@ const Clientes = () => {
           </select>
         </div>
 
-        <PrimaryButton
-          text="Nuevo cliente"
-          icon={<AddCircleOutlinedIcon />}
-          onClick={handleNuevoCliente}
-        />
+        <div className="d-flex gap-2 flex-wrap">
+          <PrimaryButton
+            text="Descargar"
+            icon={<DownloadIcon />}
+            onClick={() => setShowDescarga(true)}
+          />
+          <PrimaryButton
+            text="Nuevo cliente"
+            icon={<AddCircleOutlinedIcon />}
+            onClick={handleNuevoCliente}
+          />
+        </div>
       </div>
 
       <div className="mb-4">
@@ -406,6 +415,20 @@ const Clientes = () => {
           setClienteDetalle(null);
         }}
         cliente={clienteDetalle}
+      />
+
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${API_BASE}/exportar/clientes`}
+        params={{ search: searchTerm, estatus: estatusFilter }}
+        nombreArchivo="clientes"
+        titulo="Descargar listado de clientes"
+        nota={
+          searchTerm || estatusFilter !== "Todos"
+            ? `Se exportarán los clientes con los filtros actuales${searchTerm ? ` (búsqueda: "${searchTerm}")` : ""}${estatusFilter !== "Todos" ? ` (estatus: ${estatusFilter})` : ""}.`
+            : "Se exportarán todos los clientes."
+        }
       />
     </div>
   );

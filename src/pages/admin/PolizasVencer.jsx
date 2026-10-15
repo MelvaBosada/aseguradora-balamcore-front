@@ -4,6 +4,7 @@ import SearchIcon         from "@mui/icons-material/Search";
 import NotificationsIcon  from "@mui/icons-material/Notifications";
 import AutorenewIcon      from "@mui/icons-material/Autorenew";
 import VisibilityIcon     from "@mui/icons-material/Visibility";
+import DownloadIcon       from "@mui/icons-material/Download";
 import PolicyIcon         from "@mui/icons-material/Policy";
 import BadgeIcon          from "@mui/icons-material/Badge";
 import AccessTimeIcon     from "@mui/icons-material/AccessTime";
@@ -19,14 +20,18 @@ import CheckCircleIcon    from "@mui/icons-material/CheckCircle";
 import Snackbar           from "@mui/material/Snackbar";
 import Alert              from "@mui/material/Alert";
 
+import PrimaryButton       from "../../components/PrimaryButton";
 import TablaForm           from "../../components/TablaForm";
 import Paginacion          from "../../components/Paginacion";
 import AvisarModal         from "../../components/AvisarModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import RenovarPolizaModal  from "../../components/RenovarPolizaModal";
+import DescargarModal      from "../../components/DescargarModal";
 
 import { PolizasVencerData } from "../../components/PolizasVencerData";
 import "../../css/PolizasVencer.css";
+
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 const ESTATUS_DIAS = {
   Todos:        30,
@@ -70,10 +75,11 @@ const PolizasVencer = () => {
   const [currentPage,  setCurrentPage]  = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
 
-  const [avisarOpen,  setAvisarOpen]  = useState(false);
-  const [detalleOpen, setDetalleOpen] = useState(false);
-  const [renovarOpen, setRenovarOpen] = useState(false);
-  const [selected,    setSelected]    = useState(null);
+  const [avisarOpen,   setAvisarOpen]   = useState(false);
+  const [detalleOpen,  setDetalleOpen]  = useState(false);
+  const [renovarOpen,  setRenovarOpen]  = useState(false);
+  const [showDescarga, setShowDescarga] = useState(false);
+  const [selected,     setSelected]     = useState(null);
 
   const [snackOpen,     setSnackOpen]     = useState(false);
   const [snackMsg,      setSnackMsg]      = useState("");
@@ -160,7 +166,6 @@ const PolizasVencer = () => {
     { icon: <NotesIcon />,         label: "Observaciones",        value: selected.observaciones   || "—"  },
   ] : [];
 
-  // 🔄 CORTAFUEGOS: Pantalla completa de carga con el spinner verde si no hay registros cargados
   if (loading && polizas.length === 0) {
     return (
       <div className="container py-4">
@@ -191,11 +196,20 @@ const PolizasVencer = () => {
             />
           </div>
         </div>
+
         <div>
           <div className="fw-bold mb-2">Estatus</div>
           <select className="form-select" style={{ width: "180px" }} value={estatus} onChange={handleEstatus}>
             {ESTATUS_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
           </select>
+        </div>
+
+        <div className="d-flex gap-2 flex-wrap">
+          <PrimaryButton
+            text="Descargar"
+            icon={<DownloadIcon />}
+            onClick={() => setShowDescarga(true)}
+          />
         </div>
       </div>
 
@@ -256,6 +270,21 @@ const PolizasVencer = () => {
         onRenovar={handleConfirmRenovar}
         poliza={selected}
         camposNuevos={CAMPOS_RENOVAR}
+      />
+
+      {/* MODAL DE DESCARGA DEL LISTADO (PDF / Excel / CSV) */}
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${API_URL}/exportar/polizas-vencer`}
+        params={{ search, estatus, dias: ESTATUS_DIAS[estatus] ?? 30 }}
+        nombreArchivo="polizas_por_vencer"
+        titulo="Descargar listado de pólizas por vencer"
+        nota={
+          search || estatus !== "Todos"
+            ? `Se exportarán las pólizas por vencer con los filtros actuales${search ? ` (búsqueda: "${search}")` : ""}${estatus !== "Todos" ? ` (estatus: ${estatus})` : ""}.`
+            : "Se exportarán todas las pólizas por vencer."
+        }
       />
 
       <Snackbar

@@ -1,5 +1,4 @@
-
- // pages/admin/Siniestros.jsx
+// pages/admin/Siniestros.jsx
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -11,6 +10,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import SearchIcon from "@mui/icons-material/Search";
+import DownloadIcon from "@mui/icons-material/Download";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import PersonIcon from "@mui/icons-material/Person";
 import DateRangeIcon from "@mui/icons-material/DateRange";
@@ -26,6 +26,7 @@ import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
+import DescargarModal from "../../components/DescargarModal";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -141,6 +142,7 @@ const Siniestros = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
+  const [showDescarga, setShowDescarga] = useState(false);
 
   const [siniestroToDelete, setSiniestroToDelete] = useState(null);
   const [siniestroDetalle, setSiniestroDetalle] = useState(null);
@@ -919,11 +921,18 @@ const Siniestros = () => {
           </select>
         </div>
 
-        <PrimaryButton
-          text="Nuevo siniestro"
-          icon={<AddCircleOutlinedIcon />}
-          onClick={handleNuevoSiniestro}
-        />
+        <div className="d-flex gap-2 flex-wrap">
+          <PrimaryButton
+            text="Descargar"
+            icon={<DownloadIcon />}
+            onClick={() => setShowDescarga(true)}
+          />
+          <PrimaryButton
+            text="Nuevo siniestro"
+            icon={<AddCircleOutlinedIcon />}
+            onClick={handleNuevoSiniestro}
+          />
+        </div>
       </div>
 
       <div className="mb-4">
@@ -1051,6 +1060,21 @@ const Siniestros = () => {
         }
         avatar="S"
         items={siniestroDetalle?.items || []}
+      />
+
+      {/* MODAL DE DESCARGA DEL LISTADO (PDF / Excel / CSV) */}
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${API_URL}/exportar/siniestros`}
+        params={{ search: searchTerm, estatus: estatusFilter }}
+        nombreArchivo="siniestros"
+        titulo="Descargar listado de siniestros"
+        nota={
+          searchTerm || estatusFilter !== "Todos"
+            ? `Se exportarán los siniestros con los filtros actuales${searchTerm ? ` (búsqueda: "${searchTerm}")` : ""}${estatusFilter !== "Todos" ? ` (estatus: ${estatusFilter})` : ""}.`
+            : "Se exportarán todos los siniestros."
+        }
       />
     </div>
   );
