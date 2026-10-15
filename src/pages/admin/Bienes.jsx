@@ -13,6 +13,7 @@ import CategoryIcon from "@mui/icons-material/Category";
 import BrandingWatermarkIcon from "@mui/icons-material/BrandingWatermark";
 import DescriptionIcon from "@mui/icons-material/Description";
 import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import DownloadIcon from "@mui/icons-material/Download";
 
 // Componentes
 import PrimaryButton from "../../components/PrimaryButton";
@@ -21,10 +22,20 @@ import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
+import DescargarModal from "../../components/DescargarModal";
+
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
 const API_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/bienes`
   : "/api/bienes";
+
+const TIPOS_BIEN = [
+  { value: "vehiculo", label: "Vehículo" },
+  { value: "inmueble", label: "Inmueble" },
+  { value: "electronico", label: "Electrónico" },
+  { value: "maquinaria", label: "Maquinaria" },
+];
 
 const columnas = [
   "Foto",
@@ -212,8 +223,10 @@ const Bienes = () => {
   const [bienToDelete, setBienToDelete] = useState(null);
   const [bienDetalle, setBienDetalle] = useState(null);
   const [editingBien, setEditingBien] = useState(null);
+  const [showDescarga, setShowDescarga] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [tipoFilter, setTipoFilter] = useState("Todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -346,14 +359,19 @@ const Bienes = () => {
     setShowDetalleModal(true);
   };
 
+  // Búsqueda + filtro por tipo (se filtra en memoria, igual que antes)
   const filteredBienes = bienes.filter((b) => {
     const q = searchTerm.toLowerCase();
-    return (
+
+    const coincideBusqueda =
       b.tipo?.toLowerCase().includes(q) ||
       b.modelo?.toLowerCase().includes(q) ||
       b.descripcion?.toLowerCase().includes(q) ||
-      b.marca?.toLowerCase().includes(q)
-    );
+      b.marca?.toLowerCase().includes(q);
+
+    const coincideTipo = tipoFilter === "Todos" || b.tipo === tipoFilter;
+
+    return coincideBusqueda && coincideTipo;
   });
 
   const paginated = filteredBienes
@@ -368,12 +386,7 @@ const Bienes = () => {
       label: "Tipo de Bien",
       name: "tipo",
       type: "select",
-      options: [
-        { value: "vehiculo", label: "Vehículo" },
-        { value: "inmueble", label: "Inmueble" },
-        { value: "electronico", label: "Electrónico" },
-        { value: "maquinaria", label: "Maquinaria" },
-      ],
+      options: TIPOS_BIEN,
     },
     { label: "Descripción", name: "descripcion", type: "text" },
     { label: "Marca", name: "marca", type: "text" },
@@ -403,7 +416,7 @@ const Bienes = () => {
       ],
     },
     ...(CAMPOS_ESPECIFICOS[formData.tipo] || []),
-    // 👇 Imagen al final del formulario, fuera de los campos por tipo
+    // Imagen al final del formulario, fuera de los campos por tipo
     { label: "Fotografía del bien", name: "foto", type: "file", fullWidth: true },
   ];
 
@@ -497,11 +510,39 @@ const Bienes = () => {
             />
           </div>
         </div>
-        <PrimaryButton
-          text="Nuevo bien"
-          icon={<AddCircleOutlinedIcon />}
-          onClick={handleNuevoBien}
-        />
+
+        <div>
+          <div className="fw-bold mb-2">Tipo</div>
+          <select
+            className="form-select"
+            style={{ width: "180px" }}
+            value={tipoFilter}
+            onChange={(e) => {
+              setTipoFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="Todos">Todos</option>
+            {TIPOS_BIEN.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="d-flex gap-2 flex-wrap">
+          <PrimaryButton
+            text="Descargar"
+            icon={<DownloadIcon />}
+            onClick={() => setShowDescarga(true)}
+          />
+          <PrimaryButton
+            text="Nuevo bien"
+            icon={<AddCircleOutlinedIcon />}
+            onClick={handleNuevoBien}
+          />
+        </div>
       </div>
 
       <div className="mb-4 position-relative">
@@ -574,6 +615,20 @@ const Bienes = () => {
         subtitulo={bienDetalle ? `Folio #${bienDetalle.id}` : ""}
         avatar={bienDetalle ? bienDetalle.tipo.charAt(0).toUpperCase() : "B"}
         items={getDetalleItems()}
+      />
+
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${API_BASE}/exportar/bienes`}
+        params={{ search: searchTerm, tipo: tipoFilter }}
+        nombreArchivo="bienes"
+        titulo="Descargar listado de bienes"
+        nota={
+          searchTerm || tipoFilter !== "Todos"
+            ? `Se exportarán los bienes con los filtros actuales${searchTerm ? ` (búsqueda: "${searchTerm}")` : ""}${tipoFilter !== "Todos" ? ` (tipo: ${tipoFilter})` : ""}.`
+            : "Se exportarán todos los bienes."
+        }
       />
     </div>
   );

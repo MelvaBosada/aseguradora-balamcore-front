@@ -8,6 +8,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import SearchIcon from "@mui/icons-material/Search";
+import DownloadIcon from "@mui/icons-material/Download";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import PersonIcon from "@mui/icons-material/Person";
 import DateRangeIcon from "@mui/icons-material/DateRange";
@@ -29,6 +30,7 @@ import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import Paginacion from "../../components/Paginacion";
 import PolizaDetalleModal from "../../components/PolizaDetalleModal";
+import DescargarModal from "../../components/DescargarModal";
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -70,6 +72,7 @@ const Polizas = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
+  const [showDescarga, setShowDescarga] = useState(false);
   const [polizaToDelete, setPolizaToDelete] = useState(null);
   const [polizaDetalle, setPolizaDetalle] = useState(null);
   const [editingPoliza, setEditingPoliza] = useState(null);
@@ -102,7 +105,6 @@ const Polizas = () => {
     }
   };
 
-  // ✅ CORRECCIÓN 3: useCallback con las mismas deps que el useEffect original
   const cargarPolizas = useCallback(async () => {
     setLoading(true);
     try {
@@ -120,12 +122,10 @@ const Polizas = () => {
     }
   }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
 
-  // ✅ CORRECCIÓN 3: cargarPolizas incluida en el array de dependencias
   useEffect(() => {
     cargarPolizas();
   }, [cargarPolizas]);
 
-  // ✅ CORRECCIÓN 2: eliminado el parámetro polizaTipo que no se usaba
   const obtenerCoberturaParaBien = (bienTipo) => {
     const mapeoCoberturas = {
       'vehiculo': ['Daños Materiales', 'Robo Total', 'Robo Parcial', 'Responsabilidad Civil', 'Gastos Médicos Ocupantes'],
@@ -140,24 +140,24 @@ const Polizas = () => {
 
   const validarValorBien = (valor, cobertura) => {
     if (!cobertura) return { valido: true, mensaje: '' };
-    
+
     const montoMinimo = cobertura.monto_minimo;
     const montoMaximo = cobertura.monto_maximo;
-    
+
     if (montoMinimo !== null && valor < montoMinimo) {
-      return { 
-        valido: false, 
+      return {
+        valido: false,
         mensaje: `El valor ($${valor.toLocaleString()}) es menor al mínimo permitido ($${montoMinimo.toLocaleString()}) para la cobertura ${cobertura.nombre}`
       };
     }
-    
+
     if (montoMaximo !== null && valor > montoMaximo) {
-      return { 
-        valido: false, 
+      return {
+        valido: false,
         mensaje: `El valor ($${valor.toLocaleString()}) excede el máximo permitido ($${montoMaximo.toLocaleString()}) para la cobertura ${cobertura.nombre}`
       };
     }
-    
+
     return { valido: true, mensaje: '' };
   };
 
@@ -179,18 +179,16 @@ const Polizas = () => {
     setFormData(prev => ({ ...prev, prima_total: total.toFixed(2) }));
   };
 
-  // ✅ CORRECCIÓN 2: llamada actualizada sin el segundo argumento polizaTipo
   const validarBienesSeleccionados = async (bienesIds, polizaTipo, preciosBienes) => {
     const nuevosErrores = {};
     let todoValido = true;
-    
+
     for (const bienId of bienesIds) {
       const bien = bienesCliente.find(b => b.id === bienId);
       if (bien) {
         const precio = parseFloat(preciosBienes?.[bienId]) || parseFloat(bien.valor) || 0;
-        // ✅ CORRECCIÓN 2: solo se pasa bienTipo
         const coberturasDisponibles = obtenerCoberturaParaBien(bien.tipo);
-        
+
         if (coberturasDisponibles.length === 0) {
           nuevosErrores[bienId] = `No hay coberturas disponibles para el tipo de bien: ${bien.tipo}`;
           todoValido = false;
@@ -203,21 +201,21 @@ const Polizas = () => {
         }
       }
     }
-    
+
     setErroresBienes(nuevosErrores);
     return todoValido;
   };
 
   const cargarBienesPorClienteId = async (clienteId) => {
     if (!clienteId) return;
-    
+
     setCargandoBienes(true);
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/bienes/cliente/${clienteId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setBienesCliente(response.data);
       return response.data;
     } catch (error) {
@@ -231,27 +229,27 @@ const Polizas = () => {
 
   const buscarClientePorRfc = async (rfc) => {
     if (!rfc || rfc.length < 8) return;
-    
+
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/polizas/buscar-ultima-por-rfc`, { 
-        params: { rfc }, 
-        headers: { Authorization: `Bearer ${token}` } 
+      const response = await axios.get(`${API_URL}/polizas/buscar-ultima-por-rfc`, {
+        params: { rfc },
+        headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       const data = response.data;
       const cliente = data.cliente;
-      
+
       const bienes = await cargarBienesPorClienteId(cliente.id);
-      
+
       const preciosIniciales = {};
       bienes.forEach(bien => {
         preciosIniciales[bien.id] = bien.valor || 0;
       });
-      
+
       if (data.tienePoliza) {
         const ultimaPoliza = data.ultimaPoliza;
-        
+
         setFormData(prev => ({
           ...prev,
           id_cliente: cliente.id,
@@ -310,16 +308,16 @@ const Polizas = () => {
     const seleccionados = [...formData.bienes_seleccionados];
     const index = seleccionados.indexOf(bienId);
     let nuevosSeleccionados;
-    
+
     if (index === -1) {
       nuevosSeleccionados = [...seleccionados, bienId];
     } else {
       nuevosSeleccionados = seleccionados.filter(id => id !== bienId);
     }
-    
+
     setFormData(prev => ({ ...prev, bienes_seleccionados: nuevosSeleccionados }));
     actualizarPrimaTotal(formData.precios_bienes, nuevosSeleccionados);
-    
+
     if (formData.tipo) {
       await validarBienesSeleccionados(nuevosSeleccionados, formData.tipo, formData.precios_bienes);
     }
@@ -330,10 +328,10 @@ const Polizas = () => {
       ...formData.precios_bienes,
       [bienId]: parseFloat(nuevoPrecio) || 0
     };
-    
+
     setFormData(prev => ({ ...prev, precios_bienes: nuevosPrecios }));
     actualizarPrimaTotal(nuevosPrecios, formData.bienes_seleccionados);
-    
+
     if (formData.bienes_seleccionados.includes(bienId) && formData.tipo) {
       validarBienesSeleccionados(formData.bienes_seleccionados, formData.tipo, nuevosPrecios);
     }
@@ -357,11 +355,11 @@ const Polizas = () => {
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    
+
     if (['prima_neta', 'derecho_poliza', 'iva'].includes(name)) {
       setTimeout(calcularPrimaTotal, 0);
     }
-    
+
     if (name === 'tipo' && formData.bienes_seleccionados.length > 0) {
       await validarBienesSeleccionados(formData.bienes_seleccionados, value, formData.precios_bienes);
     }
@@ -381,20 +379,20 @@ const Polizas = () => {
       const token = localStorage.getItem('token');
       const res = await axios.get(`${API_URL}/polizas/${poliza.id}`, { headers: { Authorization: `Bearer ${token}` } });
       const data = res.data;
-      
+
       const bienesResponse = await axios.get(`${API_URL}/bienes/cliente/${data.id_cliente}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       const bienesAsociados = bienesResponse.data
         .filter(b => b.id_poliza === poliza.id)
         .map(b => b.id);
-      
+
       const preciosIniciales = {};
       bienesResponse.data.forEach(bien => {
         preciosIniciales[bien.id] = bien.valor || 0;
       });
-      
+
       setFormData({
         rfc_buscar: data.cliente_rfc || "",
         id_cliente: data.id_cliente || "",
@@ -417,7 +415,7 @@ const Polizas = () => {
         bienes_seleccionados: bienesAsociados,
         precios_bienes: preciosIniciales
       });
-      
+
       setBienesCliente(bienesResponse.data);
       setErroresBienes({});
     } catch (error) {
@@ -430,7 +428,7 @@ const Polizas = () => {
     try {
       const token = localStorage.getItem('token');
       if (!formData.id_cliente) { alert('Primero busca un cliente por RFC'); return; }
-      
+
       if (formData.bienes_seleccionados.length > 0) {
         const esValido = await validarBienesSeleccionados(formData.bienes_seleccionados, formData.tipo, formData.precios_bienes);
         if (!esValido) {
@@ -438,7 +436,7 @@ const Polizas = () => {
           return;
         }
       }
-      
+
       const dataToSend = {
         numero_poliza: formData.numero_poliza,
         id_cliente: formData.id_cliente,
@@ -455,7 +453,7 @@ const Polizas = () => {
         bienes_ids: formData.bienes_seleccionados,
         precios_bienes: formData.precios_bienes
       };
-      
+
       let polizaId;
       if (editingPoliza) {
         await axios.put(`${API_URL}/polizas/${editingPoliza.id}`, dataToSend, { headers: { Authorization: `Bearer ${token}` } });
@@ -466,12 +464,12 @@ const Polizas = () => {
         polizaId = response.data.poliza.id;
         alert('Póliza creada');
       }
-      
+
       await axios.post(`${API_URL}/polizas/${polizaId}/asignar-bienes`, {
         bienes_ids: formData.bienes_seleccionados,
         precios_bienes: formData.precios_bienes
       }, { headers: { Authorization: `Bearer ${token}` } });
-      
+
       setShowModal(false);
       cargarPolizas();
     } catch (error) {
@@ -490,7 +488,6 @@ const Polizas = () => {
     }
   };
 
-  // ✅ CORRECCIÓN 2: llamada actualizada sin polizaTipo
   const getCoberturaInfo = (bien) => {
     const precio = formData.precios_bienes?.[bien.id] || bien.valor || 0;
     const coberturasDisponibles = obtenerCoberturaParaBien(bien.tipo);
@@ -506,17 +503,17 @@ const Polizas = () => {
     try {
       const token = localStorage.getItem('token');
       const polizaId = polizaOrId?.id || polizaOrId;
-      
+
       if (!polizaId) {
         console.error('No se pudo obtener el ID de la póliza', polizaOrId);
         alert('Error: No se pudo identificar la póliza');
         return;
       }
-      
-      const res = await axios.get(`${API_URL}/polizas/${polizaId}`, { 
-        headers: { Authorization: `Bearer ${token}` } 
+
+      const res = await axios.get(`${API_URL}/polizas/${polizaId}`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       const data = res.data;
       const items = [
         { icon: <AssignmentIcon />, label: "N° Póliza", value: data.nPoliza },
@@ -532,7 +529,7 @@ const Polizas = () => {
         { icon: <MonetizationOnIcon />, label: "Prima total", value: `$${Number(data.prima_total).toLocaleString()}` },
         { icon: <NotesIcon />, label: "Observaciones", value: data.observaciones || "—" }
       ];
-      
+
       setPolizaDetalle({ ...data, items });
       setShowDetalleModal(true);
     } catch (error) {
@@ -541,17 +538,17 @@ const Polizas = () => {
     }
   };
 
-  const handleEliminarClick = (p) => { 
-    setPolizaToDelete(p); 
-    setShowDeleteModal(true); 
+  const handleEliminarClick = (p) => {
+    setPolizaToDelete(p);
+    setShowDeleteModal(true);
   };
-  
+
   const handleConfirmarEliminar = async () => {
     if (polizaToDelete) {
       try {
         const token = localStorage.getItem('token');
-        await axios.delete(`${API_URL}/polizas/${polizaToDelete.id}`, { 
-          headers: { Authorization: `Bearer ${token}` } 
+        await axios.delete(`${API_URL}/polizas/${polizaToDelete.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
         });
         setShowDeleteModal(false);
         cargarPolizas();
@@ -561,15 +558,15 @@ const Polizas = () => {
       }
     }
   };
-  
-  const handleSearch = (e) => { 
-    setSearchTerm(e.target.value); 
-    setCurrentPage(1); 
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1);
   };
-  
-  const handleItemsPerPageChange = (newItems) => { 
-    setItemsPerPage(newItems); 
-    setCurrentPage(1); 
+
+  const handleItemsPerPageChange = (newItems) => {
+    setItemsPerPage(newItems);
+    setCurrentPage(1);
   };
 
   if (loading && polizas.length === 0) {
@@ -585,22 +582,25 @@ const Polizas = () => {
           <div className="fw-bold mb-2">Búsqueda</div>
           <div className="search-input-wrapper">
             <SearchIcon className="search-icon" />
-            <input 
-              type="text" 
-              className="search-custom" 
-              placeholder="Buscar número de póliza..." 
-              value={searchTerm} 
-              onChange={handleSearch} 
+            <input
+              type="text"
+              className="search-custom"
+              placeholder="Buscar número de póliza..."
+              value={searchTerm}
+              onChange={handleSearch}
             />
           </div>
         </div>
         <div>
           <div className="fw-bold mb-2">Estatus</div>
-          <select 
-            className="form-select" 
-            style={{ width: "180px" }} 
-            value={estatusFilter} 
-            onChange={(e) => setEstatusFilter(e.target.value)}
+          <select
+            className="form-select"
+            style={{ width: "180px" }}
+            value={estatusFilter}
+            onChange={(e) => {
+              setEstatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
           >
             <option value="Todos">Todos</option>
             <option value="activa">Activa</option>
@@ -610,66 +610,73 @@ const Polizas = () => {
             <option value="en_renovacion">En renovación</option>
           </select>
         </div>
-        <PrimaryButton text="Nueva póliza" icon={<AddCircleRoundedIcon />} onClick={handleNuevaPoliza} />
+        <div className="d-flex gap-2 flex-wrap">
+          <PrimaryButton
+            text="Descargar"
+            icon={<DownloadIcon />}
+            onClick={() => setShowDescarga(true)}
+          />
+          <PrimaryButton text="Nueva póliza" icon={<AddCircleRoundedIcon />} onClick={handleNuevaPoliza} />
+        </div>
       </div>
       <div className="mb-4">
-        <TablaForm 
-          columna={columnas} 
-          data={polizas} 
-          campos={campos} 
+        <TablaForm
+          columna={columnas}
+          data={polizas}
+          campos={campos}
           acciones={[
-            { 
-              titulo: "Ver detalle", 
-              clase: "tabla-btn-ver", 
-              icono: <VisibilityIcon fontSize="small" />, 
-              onClick: (item) => handleVerDetalle(item) 
+            {
+              titulo: "Ver detalle",
+              clase: "tabla-btn-ver",
+              icono: <VisibilityIcon fontSize="small" />,
+              onClick: (item) => handleVerDetalle(item)
             },
-            { 
-              titulo: "Editar", 
-              clase: "tabla-btn-edit", 
-              icono: <EditIcon fontSize="small" />, 
-              onClick: handleEditar 
+            {
+              titulo: "Editar",
+              clase: "tabla-btn-edit",
+              icono: <EditIcon fontSize="small" />,
+              onClick: handleEditar
             },
-            { 
-              titulo: "Eliminar", 
-              clase: "tabla-btn-del", 
-              icono: <DeleteIcon fontSize="small" />, 
-              onClick: handleEliminarClick 
+            {
+              titulo: "Eliminar",
+              clase: "tabla-btn-del",
+              icono: <DeleteIcon fontSize="small" />,
+              onClick: handleEliminarClick
             },
-          ]} 
+          ]}
         />
       </div>
-      <Paginacion 
-        currentPage={currentPage} 
-        totalPages={totalPages} 
-        onPageChange={setCurrentPage} 
-        itemsPerPage={itemsPerPage} 
-        onItemsPerPageChange={handleItemsPerPageChange} 
+      <Paginacion
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={handleItemsPerPageChange}
       />
-      
-      <EditModal 
-        open={showModal} 
+
+      <EditModal
+        open={showModal}
         onClose={() => {
           setShowModal(false);
           setBienesCliente([]);
           setErroresBienes({});
-        }} 
-        onSave={handleGuardar} 
+        }}
+        onSave={handleGuardar}
         editando={!!editingPoliza}
         titulo={editingPoliza ? "Editar póliza" : "Agregar nueva póliza"}
         subtitulo={editingPoliza ? "Modifica los datos de la póliza" : "Ingresa el RFC del cliente y los datos de la póliza"}
-        btnTexto={editingPoliza ? "Guardar cambios" : "Agregar póliza"} 
-        campos={FORM_CAMPOS} 
+        btnTexto={editingPoliza ? "Guardar cambios" : "Agregar póliza"}
+        campos={FORM_CAMPOS}
         formData={formData}
-        onChange={handleInputChange} 
+        onChange={handleInputChange}
         customHandlers={{ onRfcChange: handleRfcChange }}
       >
         {/* Sección de Bienes del Cliente */}
         {formData.id_cliente && (
           <div style={{ marginTop: '20px', padding: '15px', borderTop: '1px solid #E5E7EB' }}>
-            <div style={{ 
-              fontSize: '16px', 
-              fontWeight: 'bold', 
+            <div style={{
+              fontSize: '16px',
+              fontWeight: 'bold',
               marginBottom: '15px',
               display: 'flex',
               alignItems: 'center',
@@ -678,17 +685,17 @@ const Polizas = () => {
               <HomeIcon fontSize="small" />
               BIENES DEL CLIENTE A ASEGURAR
             </div>
-            
+
             {cargandoBienes ? (
               <div style={{ textAlign: 'center', padding: '20px' }}>
                 <div className="spinner-border text-success spinner-border-sm"></div>
                 <p style={{ marginTop: '10px', fontSize: '14px', color: '#6B7280' }}>Cargando bienes...</p>
               </div>
             ) : bienesCliente.length === 0 ? (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '20px', 
-                backgroundColor: '#F9FAFB', 
+              <div style={{
+                textAlign: 'center',
+                padding: '20px',
+                backgroundColor: '#F9FAFB',
                 borderRadius: '8px',
                 color: '#6B7280',
                 fontSize: '14px'
@@ -696,11 +703,11 @@ const Polizas = () => {
                 No hay bienes registrados para este cliente
               </div>
             ) : (
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '10px', 
-                maxHeight: '450px', 
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                maxHeight: '450px',
                 overflowY: 'auto',
                 border: '1px solid #E5E7EB',
                 borderRadius: '8px',
@@ -713,17 +720,17 @@ const Polizas = () => {
                   const esValido = coberturaInfo?.validacion.valido;
                   const estaSeleccionado = formData.bienes_seleccionados.includes(bien.id);
                   const precioActual = formData.precios_bienes?.[bien.id] || bien.valor || 0;
-                  
+
                   return (
-                    <div 
-                      key={bien.id} 
+                    <div
+                      key={bien.id}
                       style={{
                         padding: '12px',
-                        backgroundColor: estaSeleccionado 
+                        backgroundColor: estaSeleccionado
                           ? (esValido ? '#E0F2FE' : '#FEE2E2')
                           : '#F9FAFB',
                         borderRadius: '8px',
-                        border: estaSeleccionado 
+                        border: estaSeleccionado
                           ? (esValido ? '1px solid #0284C7' : '1px solid #DC2626')
                           : '1px solid #E5E7EB',
                         transition: 'all 0.2s ease'
@@ -754,9 +761,9 @@ const Polizas = () => {
                             )}
                           </div>
                           <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '4px' }}>
-                            <span style={{ 
-                              backgroundColor: '#E5E7EB', 
-                              padding: '2px 6px', 
+                            <span style={{
+                              backgroundColor: '#E5E7EB',
+                              padding: '2px 6px',
                               borderRadius: '4px',
                               marginRight: '8px'
                             }}>
@@ -765,15 +772,15 @@ const Polizas = () => {
                             {bien.marca && <span style={{ marginRight: '8px' }}>Marca: {bien.marca}</span>}
                             {bien.modelo && <span style={{ marginRight: '8px' }}>Modelo: {bien.modelo}</span>}
                           </div>
-                          
+
                           <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <label style={{ fontSize: '12px', fontWeight: '500', color: '#374151' }}>
                               Precio del bien:
                             </label>
                             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                              <span style={{ 
-                                position: 'absolute', 
-                                left: '8px', 
+                              <span style={{
+                                position: 'absolute',
+                                left: '8px',
                                 fontSize: '14px',
                                 color: '#6B7280'
                               }}>$</span>
@@ -799,7 +806,7 @@ const Polizas = () => {
                               </span>
                             )}
                           </div>
-                          
+
                           {coberturaInfo && coberturaInfo.cobertura && (
                             <div style={{ fontSize: '11px', color: '#4B5563', marginTop: '8px', paddingTop: '6px', borderTop: '1px dashed #E5E7EB' }}>
                               <span>Cobertura sugerida: <strong>{coberturaInfo.cobertura.nombre}</strong></span>
@@ -823,11 +830,11 @@ const Polizas = () => {
                 })}
               </div>
             )}
-            
+
             {bienesCliente.length > 0 && (
-              <div style={{ 
-                marginTop: '12px', 
-                fontSize: '12px', 
+              <div style={{
+                marginTop: '12px',
+                fontSize: '12px',
                 color: '#6B7280',
                 textAlign: 'center',
                 padding: '8px',
@@ -845,12 +852,12 @@ const Polizas = () => {
           </div>
         )}
       </EditModal>
-      
-      <ConfirmDeleteModal 
-        open={showDeleteModal} 
-        onClose={() => setShowDeleteModal(false)} 
+
+      <ConfirmDeleteModal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
         onConfirm={handleConfirmarEliminar}
-        title="Eliminar póliza" 
+        title="Eliminar póliza"
         subtitle="¿Deseas eliminar esta póliza?"
       >
         {polizaToDelete && (
@@ -860,14 +867,29 @@ const Polizas = () => {
           </div>
         )}
       </ConfirmDeleteModal>
-      
-      <PolizaDetalleModal 
-        open={showDetalleModal} 
+
+      <PolizaDetalleModal
+        open={showDetalleModal}
         onClose={() => setShowDetalleModal(false)}
         titulo={polizaDetalle ? `Póliza #${polizaDetalle.nPoliza}` : ""}
         subtitulo={polizaDetalle ? polizaDetalle.cliente : ""}
         avatar="P"
         items={polizaDetalle ? polizaDetalle.items : []}
+      />
+
+      {/* MODAL DE DESCARGA DEL LISTADO (PDF / Excel / CSV) */}
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${API_URL}/exportar/polizas`}
+        params={{ search: searchTerm, estatus: estatusFilter }}
+        nombreArchivo="polizas"
+        titulo="Descargar listado de pólizas"
+        nota={
+          searchTerm || estatusFilter !== "Todos"
+            ? `Se exportarán las pólizas con los filtros actuales${searchTerm ? ` (búsqueda: "${searchTerm}")` : ""}${estatusFilter !== "Todos" ? ` (estatus: ${estatusFilter})` : ""}.`
+            : "Se exportarán todas las pólizas."
+        }
       />
     </div>
   );

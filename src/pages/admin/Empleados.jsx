@@ -3,25 +3,27 @@ import axios from 'axios';
 import '../../css/Clientes.css';
 
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
-import EditIcon       from "@mui/icons-material/Edit";
-import DeleteIcon     from "@mui/icons-material/Delete";
-import SearchIcon     from "@mui/icons-material/Search";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import SearchIcon from "@mui/icons-material/Search";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import PersonIcon     from "@mui/icons-material/Person";
-import PhoneIcon      from "@mui/icons-material/Phone";
-import EmailIcon      from "@mui/icons-material/Email";
-import HomeIcon       from "@mui/icons-material/Home";
-import BadgeIcon      from "@mui/icons-material/Badge";
+import PersonIcon from "@mui/icons-material/Person";
+import PhoneIcon from "@mui/icons-material/Phone";
+import EmailIcon from "@mui/icons-material/Email";
+import HomeIcon from "@mui/icons-material/Home";
+import BadgeIcon from "@mui/icons-material/Badge";
+import DownloadIcon from "@mui/icons-material/Download";
 
-import PrimaryButton       from "../../components/PrimaryButton";
-import TablaForm           from "../../components/TablaForm";
-import ConfirmDeleteModal  from "../../components/ConfirmDeleteModal";
-import EditModal           from "../../components/EditModal";
+import PrimaryButton from "../../components/PrimaryButton";
+import TablaForm from "../../components/TablaForm";
+import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
+import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
-import Paginacion          from "../../components/Paginacion";
+import Paginacion from "../../components/Paginacion";
+import DescargarModal from "../../components/DescargarModal";
 
 const API = import.meta.env.VITE_API_URL || '/api';
-const campos   = ["nombre", "apellidos", "curp", "numero_de_telefono", "correo", "rol"];
+const campos = ["nombre", "apellidos", "curp", "numero_de_telefono", "correo", "rol"];
 const columnas = ["Nombre", "Apellidos", "CURP", "Teléfono", "Correo", "Rol", "Acciones"];
 
 const FORM_VACIO = {
@@ -43,123 +45,142 @@ const FORM_VACIO = {
 
 const generarCampos = (roles) => [
   // ── Datos personales ──────────────────────────────
-  { seccion: "Datos personales", label: "Nombre",              name: "nombre",              type: "text"   },
-  { seccion: "Datos personales", label: "Apellidos",           name: "apellidos",           type: "text"   },
-  { seccion: "Datos personales", label: "Fecha nacimiento",   name: "fecha_nacimiento",    type: "date"   },
-  { seccion: "Datos personales", label: "Género",             name: "genero",              type: "select",
-    options: [{ value: "M", label: "Masculino" }, { value: "F", label: "Femenino" }] },
-  { seccion: "Datos personales", label: "Estado civil",       name: "estado_civil",        type: "select",
+  { seccion: "Datos personales", label: "Nombre", name: "nombre", type: "text" },
+  { seccion: "Datos personales", label: "Apellidos", name: "apellidos", type: "text" },
+  { seccion: "Datos personales", label: "Fecha nacimiento", name: "fecha_nacimiento", type: "date" },
+  {
+    seccion: "Datos personales", label: "Género", name: "genero", type: "select",
+    options: [{ value: "M", label: "Masculino" }, { value: "F", label: "Femenino" }]
+  },
+  {
+    seccion: "Datos personales", label: "Estado civil", name: "estado_civil", type: "select",
     options: [
-      { value: "soltero",    label: "Soltero(a)"    },
-      { value: "casado",     label: "Casado(a)"     },
+      { value: "soltero", label: "Soltero(a)" },
+      { value: "casado", label: "Casado(a)" },
       { value: "divorciado", label: "Divorciado(a)" },
-      { value: "viudo",      label: "Viudo(a)"      },
-    ]},
-  { seccion: "Datos personales", label: "Nacionalidad",       name: "nacionalidad",        type: "text"   },
-  { seccion: "Datos personales", label: "CURP",                name: "curp",                type: "text"   },
-  { seccion: "Datos personales", label: "RFC",                name: "rfc",                 type: "text"   },
-  { seccion: "Datos personales", label: "NSS",                name: "nss",                 type: "text"   },
-  { seccion: "Datos personales", label: "Tipo identificación",name: "tipo_identificacion", type: "select",
+      { value: "viudo", label: "Viudo(a)" },
+    ]
+  },
+  { seccion: "Datos personales", label: "Nacionalidad", name: "nacionalidad", type: "text" },
+  { seccion: "Datos personales", label: "CURP", name: "curp", type: "text" },
+  { seccion: "Datos personales", label: "RFC", name: "rfc", type: "text" },
+  { seccion: "Datos personales", label: "NSS", name: "nss", type: "text" },
+  {
+    seccion: "Datos personales", label: "Tipo identificación", name: "tipo_identificacion", type: "select",
     options: [
-      { value: "INE",       label: "INE"          },
-      { value: "pasaporte", label: "Pasaporte"    },
-      { value: "cedula",    label: "Cédula prof." },
-    ]},
+      { value: "INE", label: "INE" },
+      { value: "pasaporte", label: "Pasaporte" },
+      { value: "cedula", label: "Cédula prof." },
+    ]
+  },
   { seccion: "Datos personales", label: "No. identificación", name: "numero_identificacion", type: "text" },
 
   // ── Contacto ──────────────────────────────────────
-  { seccion: "Contacto", label: "Teléfono",      name: "numero_de_telefono",   type: "text"  },
-  { seccion: "Contacto", label: "Teléfono alt.", name: "telefono_alternativo", type: "text"  },
-  { seccion: "Contacto", label: "Correo",        name: "correo",               type: "email" },
+  { seccion: "Contacto", label: "Teléfono", name: "numero_de_telefono", type: "text" },
+  { seccion: "Contacto", label: "Teléfono alt.", name: "telefono_alternativo", type: "text" },
+  { seccion: "Contacto", label: "Correo", name: "correo", type: "email" },
 
   // ── Domicilio ─────────────────────────────────────
   { seccion: "Domicilio", label: "Código postal", name: "codigo_postal", type: "text" },
-  { seccion: "Domicilio", label: "Domicilio",     name: "domicilio",     type: "text" },
-  { seccion: "Domicilio", label: "Municipio",     name: "municipio",     type: "text" },
-  { seccion: "Domicilio", label: "Estado",        name: "estado",        type: "text" },
+  { seccion: "Domicilio", label: "Domicilio", name: "domicilio", type: "text" },
+  { seccion: "Domicilio", label: "Municipio", name: "municipio", type: "text" },
+  { seccion: "Domicilio", label: "Estado", name: "estado", type: "text" },
 
   // ── Datos laborales ───────────────────────────────
-  { seccion: "Datos laborales", label: "Fecha ingreso",  name: "fecha_ingreso",  type: "date" },
-  { seccion: "Datos laborales", label: "Departamento",   name: "departamento",   type: "select",
+  { seccion: "Datos laborales", label: "Fecha ingreso", name: "fecha_ingreso", type: "date" },
+  {
+    seccion: "Datos laborales", label: "Departamento", name: "departamento", type: "select",
     options: [
-      { value: "siniestros",     label: "Siniestros"     },
-      { value: "ajuste",         label: "Ajuste"         },
-      { value: "peritos",        label: "Peritos"        },
-      { value: "cobranza",       label: "Cobranza"       },
-      { value: "ventas",         label: "Ventas"         },
+      { value: "siniestros", label: "Siniestros" },
+      { value: "ajuste", label: "Ajuste" },
+      { value: "peritos", label: "Peritos" },
+      { value: "cobranza", label: "Cobranza" },
+      { value: "ventas", label: "Ventas" },
       { value: "administracion", label: "Administración" },
-      { value: "sistemas",       label: "Sistemas"       },
-      { value: "juridico",       label: "Jurídico"       },
-    ]},
-  { seccion: "Datos laborales", label: "Tipo empleado",  name: "tipo_empleado",  type: "select",
+      { value: "sistemas", label: "Sistemas" },
+      { value: "juridico", label: "Jurídico" },
+    ]
+  },
+  {
+    seccion: "Datos laborales", label: "Tipo empleado", name: "tipo_empleado", type: "select",
     options: [
-      { value: "ajustador", label: "Ajustador"     },
-      { value: "perito",    label: "Perito"        },
-      { value: "agente",    label: "Agente"        },
-      { value: "promotor",  label: "Promotor"      },
-      { value: "cobrador",  label: "Cobrador"      },
-      { value: "abogado",   label: "Abogado"       },
-      { value: "admin",     label: "Administrativo" },
-    ]},
-  { seccion: "Datos laborales", label: "Puesto",          name: "puesto",         type: "text" },
-  { seccion: "Datos laborales", label: "Horario",        name: "horario",        type: "select",
+      { value: "ajustador", label: "Ajustador" },
+      { value: "perito", label: "Perito" },
+      { value: "agente", label: "Agente" },
+      { value: "promotor", label: "Promotor" },
+      { value: "cobrador", label: "Cobrador" },
+      { value: "abogado", label: "Abogado" },
+      { value: "admin", label: "Administrativo" },
+    ]
+  },
+  { seccion: "Datos laborales", label: "Puesto", name: "puesto", type: "text" },
+  {
+    seccion: "Datos laborales", label: "Horario", name: "horario", type: "select",
     options: [
-      { value: "matutino",   label: "Matutino (7am-3pm)"   },
+      { value: "matutino", label: "Matutino (7am-3pm)" },
       { value: "vespertino", label: "Vespertino (3pm-11pm)" },
-      { value: "nocturno",   label: "Nocturno (11pm-7am)"  },
-      { value: "mixto",      label: "Mixto"                },
-    ]},
-  { seccion: "Datos laborales", label: "Estado laboral", name: "estado_laboral", type: "select",
+      { value: "nocturno", label: "Nocturno (11pm-7am)" },
+      { value: "mixto", label: "Mixto" },
+    ]
+  },
+  {
+    seccion: "Datos laborales", label: "Estado laboral", name: "estado_laboral", type: "select",
     options: [
-      { value: "activo",     label: "Activo"     },
-      { value: "inactivo",   label: "Inactivo"   },
+      { value: "activo", label: "Activo" },
+      { value: "inactivo", label: "Inactivo" },
       { value: "suspendido", label: "Suspendido" },
-      { value: "baja",       label: "Baja"       },
-    ]},
-  { seccion: "Datos laborales", label: "Rol", name: "id_rol", type: "select",
-    options: roles.map(r => ({ value: String(r.id), label: r.nombre })) },
+      { value: "baja", label: "Baja" },
+    ]
+  },
+  {
+    seccion: "Datos laborales", label: "Rol", name: "id_rol", type: "select",
+    options: roles.map(r => ({ value: String(r.id), label: r.nombre }))
+  },
 
   // ── Acceso al sistema ─────────────────────────────
   { seccion: "Acceso al sistema", label: "Contraseña", name: "password", type: "password" },
 
   // ── Nómina ────────────────────────────────────────
-  { seccion: "Nómina", label: "Salario",              name: "salario",             type: "number" },
-  { seccion: "Nómina", label: "Tipo nómina",          name: "tipo_nomina",         type: "select",
+  { seccion: "Nómina", label: "Salario", name: "salario", type: "number" },
+  {
+    seccion: "Nómina", label: "Tipo nómina", name: "tipo_nomina", type: "select",
     options: [
-      { value: "semanal",   label: "Semanal"   },
+      { value: "semanal", label: "Semanal" },
       { value: "quincenal", label: "Quincenal" },
-      { value: "mensual",   label: "Mensual"   },
-    ]},
-  { seccion: "Nómina", label: "Banco",                name: "banco",               type: "text" },
-  { seccion: "Nómina", label: "Cuenta bancaria",      name: "cuenta_bancaria",     type: "text" },
+      { value: "mensual", label: "Mensual" },
+    ]
+  },
+  { seccion: "Nómina", label: "Banco", name: "banco", type: "text" },
+  { seccion: "Nómina", label: "Cuenta bancaria", name: "cuenta_bancaria", type: "text" },
   { seccion: "Nómina", label: "CLABE interbancaria", name: "clabe_interbancaria", type: "text" },
 
   // ── Datos específicos ─────────────────────────────
   { seccion: "Datos específicos", label: "Cédula profesional", name: "cedula_profesional", type: "text" },
-  { seccion: "Datos específicos", label: "Especialidad",       name: "especialidad",       type: "text" },
+  { seccion: "Datos específicos", label: "Especialidad", name: "especialidad", type: "text" },
 
   // ── Contacto de emergencia ────────────────────────
-  { seccion: "Contacto de emergencia", label: "Nombre",     name: "contacto_emergencia_nombre",     type: "text" },
+  { seccion: "Contacto de emergencia", label: "Nombre", name: "contacto_emergencia_nombre", type: "text" },
   { seccion: "Contacto de emergencia", label: "Parentesco", name: "contacto_emergencia_parentesco", type: "text" },
-  { seccion: "Contacto de emergencia", label: "Teléfono",   name: "contacto_emergencia_telefono",   type: "text" },
+  { seccion: "Contacto de emergencia", label: "Teléfono", name: "contacto_emergencia_telefono", type: "text" },
 ];
 
 const Empleados = () => {
-  const [usuario]           = useState(() => JSON.parse(localStorage.getItem("usuario") || "{}"));
-  const [empleados,        setEmpleados]        = useState([]);
-  const [roles,            setRoles]            = useState([]);
-  const [loading,          setLoading]          = useState(true);
-  const [showModal,        setShowModal]        = useState(false);
-  const [showDeleteModal,  setShowDeleteModal]  = useState(false);
+  const [usuario] = useState(() => JSON.parse(localStorage.getItem("usuario") || "{}"));
+  const [empleados, setEmpleados] = useState([]);
+  const [roles, setRoles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
-  const [empToDelete,      setEmpToDelete]      = useState(null);
-  const [empDetalle,       setEmpDetalle]       = useState(null);
-  const [editingEmp,       setEditingEmp]       = useState(null);
-  const [searchTerm,       setSearchTerm]       = useState("");
-  const [currentPage,      setCurrentPage]      = useState(1);
-  const [formData,         setFormData]         = useState(FORM_VACIO);
-  const [itemsPerPage,     setItemsPerPage]     = useState(10);
-  const [errores,          setErrores]          = useState({});
+  const [empToDelete, setEmpToDelete] = useState(null);
+  const [empDetalle, setEmpDetalle] = useState(null);
+  const [editingEmp, setEditingEmp] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [formData, setFormData] = useState(FORM_VACIO);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [errores, setErrores] = useState({});
+  const [showDescarga, setShowDescarga] = useState(false);
 
   // Helper para generar cabeceras unificadas en todas las peticiones
   const getHeaders = () => {
@@ -236,7 +257,7 @@ const Empleados = () => {
           ...prev,
           codigo_postal: value,
           municipio: lugar["place name"] || prev.municipio,
-          estado:    lugar["state"]      || prev.estado,
+          estado: lugar["state"] || prev.estado,
         }));
       } catch {
         // CP no encontrado
@@ -292,7 +313,7 @@ const Empleados = () => {
     try {
       const payload = { ...formData, id_aseguradora: usuario.id_aseguradora };
       if (!payload.password) delete payload.password;
-      
+
       const headers = getHeaders();
 
       if (editingEmp) {
@@ -325,53 +346,53 @@ const Empleados = () => {
   const filteredEmps = empleados.filter(e => {
     const q = searchTerm.toLowerCase();
     return (
-      e.nombre?.toLowerCase().includes(q)    ||
+      e.nombre?.toLowerCase().includes(q) ||
       e.apellidos?.toLowerCase().includes(q) ||
       e.curp?.toLowerCase().includes(q)
     );
   });
 
-  const totalPages   = Math.ceil(filteredEmps.length / itemsPerPage);
-  const paginated    = filteredEmps.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filteredEmps.length / itemsPerPage);
+  const paginated = filteredEmps.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const handleSearch = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
   const handleVerDetalle = (e) => { setEmpDetalle(e); setShowDetalleModal(true); };
 
   const detalleItems = empDetalle ? [
-    { icon: <PersonIcon />, label: "Nombre",                value: empDetalle.nombre                                          },
-    { icon: <PersonIcon />, label: "Apellidos",             value: empDetalle.apellidos                                       },
-    { icon: <BadgeIcon  />, label: "CURP",                  value: empDetalle.curp                                            },
-    { icon: <BadgeIcon  />, label: "RFC",                   value: empDetalle.rfc                                             },
-    { icon: <BadgeIcon  />, label: "NSS",                   value: empDetalle.nss                                             },
-    { icon: <BadgeIcon  />, label: "Tipo identificación",   value: empDetalle.tipo_identificacion                             },
-    { icon: <BadgeIcon  />, label: "No. identificación",    value: empDetalle.numero_identificacion                           },
-    { icon: <PhoneIcon  />, label: "Teléfono",              value: empDetalle.numero_de_telefono                              },
-    { icon: <PhoneIcon  />, label: "Teléfono alternativo",  value: empDetalle.telefono_alternativo  || "—"                    },
-    { icon: <EmailIcon  />, label: "Correo",                value: empDetalle.correo                                          },
-    { icon: <HomeIcon   />, label: "Domicilio",             value: empDetalle.domicilio                                       },
-    { icon: <HomeIcon   />, label: "Municipio",             value: empDetalle.municipio                                       },
-    { icon: <HomeIcon   />, label: "Estado",                value: empDetalle.estado                                          },
-    { icon: <HomeIcon   />, label: "Código postal",         value: empDetalle.codigo_postal                                   },
-    { icon: <BadgeIcon  />, label: "Fecha nacimiento",      value: empDetalle.fecha_nacimiento                                },
-    { icon: <BadgeIcon  />, label: "Género",                value: empDetalle.genero                                          },
-    { icon: <BadgeIcon  />, label: "Estado civil",          value: empDetalle.estado_civil                                    },
-    { icon: <BadgeIcon  />, label: "Nacionalidad",          value: empDetalle.nacionalidad                                    },
-    { icon: <BadgeIcon  />, label: "Puesto",                value: empDetalle.puesto                                          },
-    { icon: <BadgeIcon  />, label: "Departamento",          value: empDetalle.departamento                                    },
-    { icon: <BadgeIcon  />, label: "Tipo empleado",         value: empDetalle.tipo_empleado                                   },
-    { icon: <BadgeIcon  />, label: "Horario",               value: empDetalle.horario                                         },
-    { icon: <BadgeIcon  />, label: "Estado laboral",        value: empDetalle.estado_laboral                                  },
-    { icon: <BadgeIcon  />, label: "Fecha ingreso",         value: empDetalle.fecha_ingreso                                   },
-    { icon: <BadgeIcon  />, label: "Rol",                   value: empDetalle.rol                                             },
-    { icon: <BadgeIcon  />, label: "Salario",               value: empDetalle.salario ? `$${Number(empDetalle.salario).toLocaleString()}` : "—" },
-    { icon: <BadgeIcon  />, label: "Tipo nómina",           value: empDetalle.tipo_nomina                                     },
-    { icon: <BadgeIcon  />, label: "Banco",                 value: empDetalle.banco                                           },
-    { icon: <BadgeIcon  />, label: "Cuenta bancaria",       value: empDetalle.cuenta_bancaria                                 },
-    { icon: <BadgeIcon  />, label: "CLABE interbancaria",   value: empDetalle.clabe_interbancaria                             },
-    { icon: <BadgeIcon  />, label: "Cédula profesional",    value: empDetalle.cedula_profesional    || "—"                    },
-    { icon: <BadgeIcon  />, label: "Especialidad",          value: empDetalle.especialidad          || "—"                    },
-    { icon: <PersonIcon />, label: "Contacto emergencia",   value: empDetalle.contacto_emergencia_nombre                      },
-    { icon: <BadgeIcon  />, label: "Parentesco",            value: empDetalle.contacto_emergencia_parentesco                  },
-    { icon: <PhoneIcon  />, label: "Tel. emergencia",       value: empDetalle.contacto_emergencia_telefono                    },
+    { icon: <PersonIcon />, label: "Nombre", value: empDetalle.nombre },
+    { icon: <PersonIcon />, label: "Apellidos", value: empDetalle.apellidos },
+    { icon: <BadgeIcon />, label: "CURP", value: empDetalle.curp },
+    { icon: <BadgeIcon />, label: "RFC", value: empDetalle.rfc },
+    { icon: <BadgeIcon />, label: "NSS", value: empDetalle.nss },
+    { icon: <BadgeIcon />, label: "Tipo identificación", value: empDetalle.tipo_identificacion },
+    { icon: <BadgeIcon />, label: "No. identificación", value: empDetalle.numero_identificacion },
+    { icon: <PhoneIcon />, label: "Teléfono", value: empDetalle.numero_de_telefono },
+    { icon: <PhoneIcon />, label: "Teléfono alternativo", value: empDetalle.telefono_alternativo || "—" },
+    { icon: <EmailIcon />, label: "Correo", value: empDetalle.correo },
+    { icon: <HomeIcon />, label: "Domicilio", value: empDetalle.domicilio },
+    { icon: <HomeIcon />, label: "Municipio", value: empDetalle.municipio },
+    { icon: <HomeIcon />, label: "Estado", value: empDetalle.estado },
+    { icon: <HomeIcon />, label: "Código postal", value: empDetalle.codigo_postal },
+    { icon: <BadgeIcon />, label: "Fecha nacimiento", value: empDetalle.fecha_nacimiento },
+    { icon: <BadgeIcon />, label: "Género", value: empDetalle.genero },
+    { icon: <BadgeIcon />, label: "Estado civil", value: empDetalle.estado_civil },
+    { icon: <BadgeIcon />, label: "Nacionalidad", value: empDetalle.nacionalidad },
+    { icon: <BadgeIcon />, label: "Puesto", value: empDetalle.puesto },
+    { icon: <BadgeIcon />, label: "Departamento", value: empDetalle.departamento },
+    { icon: <BadgeIcon />, label: "Tipo empleado", value: empDetalle.tipo_empleado },
+    { icon: <BadgeIcon />, label: "Horario", value: empDetalle.horario },
+    { icon: <BadgeIcon />, label: "Estado laboral", value: empDetalle.estado_laboral },
+    { icon: <BadgeIcon />, label: "Fecha ingreso", value: empDetalle.fecha_ingreso },
+    { icon: <BadgeIcon />, label: "Rol", value: empDetalle.rol },
+    { icon: <BadgeIcon />, label: "Salario", value: empDetalle.salario ? `$${Number(empDetalle.salario).toLocaleString()}` : "—" },
+    { icon: <BadgeIcon />, label: "Tipo nómina", value: empDetalle.tipo_nomina },
+    { icon: <BadgeIcon />, label: "Banco", value: empDetalle.banco },
+    { icon: <BadgeIcon />, label: "Cuenta bancaria", value: empDetalle.cuenta_bancaria },
+    { icon: <BadgeIcon />, label: "CLABE interbancaria", value: empDetalle.clabe_interbancaria },
+    { icon: <BadgeIcon />, label: "Cédula profesional", value: empDetalle.cedula_profesional || "—" },
+    { icon: <BadgeIcon />, label: "Especialidad", value: empDetalle.especialidad || "—" },
+    { icon: <PersonIcon />, label: "Contacto emergencia", value: empDetalle.contacto_emergencia_nombre },
+    { icon: <BadgeIcon />, label: "Parentesco", value: empDetalle.contacto_emergencia_parentesco },
+    { icon: <PhoneIcon />, label: "Tel. emergencia", value: empDetalle.contacto_emergencia_telefono },
   ] : [];
 
   if (loading && empleados.length === 0) {
@@ -399,7 +420,15 @@ const Empleados = () => {
               value={searchTerm} onChange={handleSearch} />
           </div>
         </div>
-        <PrimaryButton text="Nuevo empleado" icon={<AddCircleOutlinedIcon />} onClick={handleNuevo} />
+        <div className="d-flex gap-2 flex-wrap">
+          <PrimaryButton
+            text="Descargar"
+            icon={<DownloadIcon />}
+            onClick={() => setShowDescarga(true)}
+          />
+          <PrimaryButton text="Nuevo empleado" icon={<AddCircleOutlinedIcon />} onClick={handleNuevo} />
+        </div>
+        
       </div>
 
       <div className="mb-4">
@@ -408,9 +437,9 @@ const Empleados = () => {
           data={paginated}
           campos={campos}
           acciones={[
-            { titulo: "Ver",      clase: "tabla-btn-ver",  icono: <VisibilityIcon fontSize="small" />, onClick: handleVerDetalle    },
-            { titulo: "Editar",   clase: "tabla-btn-edit", icono: <EditIcon       fontSize="small" />, onClick: handleEditar       },
-            { titulo: "Eliminar", clase: "tabla-btn-del",  icono: <DeleteIcon     fontSize="small" />, onClick: handleEliminarClick },
+            { titulo: "Ver", clase: "tabla-btn-ver", icono: <VisibilityIcon fontSize="small" />, onClick: handleVerDetalle },
+            { titulo: "Editar", clase: "tabla-btn-edit", icono: <EditIcon fontSize="small" />, onClick: handleEditar },
+            { titulo: "Eliminar", clase: "tabla-btn-del", icono: <DeleteIcon fontSize="small" />, onClick: handleEliminarClick },
           ]}
         />
       </div>
@@ -456,6 +485,15 @@ const Empleados = () => {
         subtitulo={empDetalle ? `ID #${empDetalle.id} · ${empDetalle.puesto}` : ""}
         avatar={empDetalle ? empDetalle.nombre.charAt(0) : ""}
         items={detalleItems}
+      />
+
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${import.meta.env.VITE_API_URL || "/api"}/exportar/empleados`}
+        params={{ search: searchTerm }}
+        nombreArchivo="empleados"
+        titulo="Descargar listado de empleados"
       />
     </div>
   );

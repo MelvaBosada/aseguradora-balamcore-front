@@ -8,7 +8,6 @@ import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import SearchIcon from "@mui/icons-material/Search";
@@ -405,7 +404,7 @@ const Evidencias = () => {
   }
 
   return (
-    <div className="container py-4">
+    <div className="pv-toolbar d-flex align-items-end justify-content-between gap-3 flex-wrap">
       <h1 className="h2 fw-bold mb-3">Evidencias</h1>
       <hr className="mt-2 mb-3" />
 
