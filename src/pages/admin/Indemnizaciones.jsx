@@ -1,22 +1,25 @@
 import { useState, useEffect, useCallback } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import DownloadIcon from "@mui/icons-material/Download";
 import CloseIcon from "@mui/icons-material/Close";
+import DownloadIcon from "@mui/icons-material/Download";
 import Snackbar from "@mui/material/Snackbar";
 import Alert from "@mui/material/Alert";
 
 // Componentes del proyecto
+import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
 import Paginacion from "../../components/Paginacion";
 import IndemnizacionDocumento from "../../components/IndemnizacionDocumento";
 import usePDFExport from "../../components/usePDFExport";
+import DescargarModal from "../../components/DescargarModal";
 
 // Estilos
 import "../../css/PolizasVencer.css";
 import "../../css/IndemnizacionPDF.css";
 
-const API_URL = `${import.meta.env.VITE_API_URL || '/api'}/indemnizaciones`;
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const API_URL = `${API_BASE}/indemnizaciones`;
 const ESTATUS_OPTIONS = ["Todos", "pendiente", "autorizada", "pagada", "rechazada"];
 
 /* ─── CONFIGURACIÓN DE TABLA ───────────────── */
@@ -43,11 +46,15 @@ const columnas = [
   "Acciones",
 ];
 
+// Formatea dinero sin romperse si el valor viene vacío
+const dinero = (v) => `$${parseFloat(v || 0).toLocaleString()}`;
+
 const Indemnizaciones = () => {
   const [dataIndemnizaciones, setDataIndemnizaciones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [estatus, setEstatus] = useState("Todos");
+  const [showDescarga, setShowDescarga] = useState(false);
 
   // ESTADOS DE PAGINACIÓN
   const [currentPage, setCurrentPage] = useState(1);
@@ -55,6 +62,8 @@ const Indemnizaciones = () => {
 
   const [modalData, setModalData] = useState(null);
 
+  // handleDescargar (del hook) genera el PDF de UNA indemnización.
+  // No tiene nada que ver con el modal de descarga del listado (showDescarga).
   const { printRef, snack, setSnack, handleDescargar } = usePDFExport(
     modalData ? `Indemnizacion_${modalData.nSiniestro}` : "Indemnizacion"
   );
@@ -65,24 +74,34 @@ const Indemnizaciones = () => {
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   });
 
-  // ✅ useCallback para evitar el warning de useEffect
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(API_URL, { headers: getHeaders() });
-      if (response.ok) {
-        const data = await response.json();
 
-        const mapeados = data.map((i) => ({
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+        return;
+      }
+
+      if (response.ok) {
+        const json = await response.json();
+        // Acepta tanto un arreglo directo como una respuesta paginada { data: [...] }
+        const lista = Array.isArray(json) ? json : json.data || [];
+
+        const mapeados = lista.map((i) => ({
           ...i,
           nSiniestro: i.numero_siniestro || `SIN-${String(i.id_siniestro).padStart(6, "0")}`,
-          montoAprobado: `$${parseFloat(i.monto_aprobado).toLocaleString()}`,
-          formaPago: i.forma_pago.toUpperCase(),
+          montoAprobado: dinero(i.monto_aprobado),
+          formaPago: (i.forma_pago || "").toUpperCase(),
           titularCuenta: i.titular_cuenta || "N/A",
-          nEvaluacion: `EVA-${String(i.id_evaluaciones).padStart(6, "0")}`,
+          nEvaluacion: i.id_evaluaciones
+            ? `EVA-${String(i.id_evaluaciones).padStart(6, "0")}`
+            : "N/A",
           fechaPago: i.fecha_pago ? i.fecha_pago.split(" ")[0] : "Pendiente",
           numeroCuenta: i.cuenta_bancaria || "N/A",
-          estatus: i.estatus,
+          estatus: i.estatus || "",
 
           // Mapeo para PDF desde Joins
           aseguradora: "Balamcore Seguros S.A. de C.V.",
@@ -106,23 +125,22 @@ const Indemnizaciones = () => {
           fechaAutorizacion: i.fecha_autorizacion,
           fechaPagoPDF: i.fecha_pago,
           referencia: i.id ? `REF-${i.id}` : "N/A",
-          montoReclamado: `$${parseFloat(i.monto_reclamado || 0).toLocaleString()} MXN`,
-          montoAprobadoPDF: `$${parseFloat(i.monto_aprobado).toLocaleString()} MXN`,
-          deducible: `$${parseFloat(i.deducible_aplicado || 0).toLocaleString()} MXN`,
-          montoTotal: `$${parseFloat(i.monto_aprobado).toLocaleString()} MXN`,
-          estatusPDF: i.estatus.toUpperCase(),
+          montoReclamado: `${dinero(i.monto_reclamado)} MXN`,
+          montoAprobadoPDF: `${dinero(i.monto_aprobado)} MXN`,
+          deducible: `${dinero(i.deducible_aplicado)} MXN`,
+          montoTotal: `${dinero(i.monto_aprobado)} MXN`,
+          estatusPDF: (i.estatus || "").toUpperCase(),
         }));
 
         setDataIndemnizaciones(mapeados);
       }
     } catch (error) {
-      console.error("Error cargando:", error);
+      console.error("Error cargando indemnizaciones:", error);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // ✅ fetchData ya no genera warning
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -144,7 +162,7 @@ const Indemnizaciones = () => {
     currentPage * itemsPerPage
   );
 
-  // 🔄 PANTALLA DE CARGA ADAPTADA (Líneas agregadas)
+  // Pantalla de carga
   if (loading && dataIndemnizaciones.length === 0) {
     return (
       <div className="container py-4">
@@ -162,7 +180,7 @@ const Indemnizaciones = () => {
       <hr className="mt-2 mb-3" />
 
       {/* TOOLBAR */}
-      <div className="pv-toolbar">
+    <div className="pv-toolbar d-flex align-items-end justify-content-between gap-3 flex-wrap">
         <div className="pv-field">
           <div className="fw-bold mb-2">Búsqueda</div>
           <div className="pv-search-wrapper">
@@ -179,6 +197,7 @@ const Indemnizaciones = () => {
             />
           </div>
         </div>
+
         <div className="pv-field">
           <div className="fw-bold mb-2">Estatus</div>
           <select
@@ -196,6 +215,14 @@ const Indemnizaciones = () => {
             ))}
           </select>
         </div>
+  <div className="d-flex gap-2 flex-wrap">
+          <PrimaryButton
+            text="Descargar"
+            icon={<DownloadIcon />}
+            onClick={() => setShowDescarga(true)}
+          />
+        </div>
+      
       </div>
 
       {/* TABLA */}
@@ -211,20 +238,12 @@ const Indemnizaciones = () => {
               icono: <PictureAsPdfIcon fontSize="small" />,
               onClick: setModalData,
             },
-            {
-              titulo: "Descargar PDF",
-              clase: "tabla-btn-edit",
-              icono: <DownloadIcon fontSize="small" />,
-              onClick: (fila) => {
-                setModalData(fila);
-                setTimeout(handleDescargar, 300);
-              },
-            },
+            
           ]}
         />
       </div>
 
-      {/* PAGINACIÓN CON SELECTOR DE ITEMS POR PÁGINA */}
+      {/* PAGINACIÓN */}
       <Paginacion
         currentPage={currentPage}
         totalPages={totalPages}
@@ -233,7 +252,7 @@ const Indemnizaciones = () => {
         onItemsPerPageChange={setItemsPerPage}
       />
 
-      {/* MODAL PDF */}
+      {/* MODAL PDF DE UNA INDEMNIZACIÓN */}
       {modalData && (
         <div className="ipdf-modal-overlay" onClick={() => setModalData(null)}>
           <div className="ipdf-modal" onClick={(e) => e.stopPropagation()}>
@@ -251,6 +270,21 @@ const Indemnizaciones = () => {
           </div>
         </div>
       )}
+
+      {/* MODAL DE DESCARGA DEL LISTADO (PDF / Excel / CSV) */}
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${API_BASE}/exportar/indemnizaciones`}
+        params={{ search, estatus }}
+        nombreArchivo="indemnizaciones"
+        titulo="Descargar listado de indemnizaciones"
+        nota={
+          search || estatus !== "Todos"
+            ? `Se exportarán las indemnizaciones con los filtros actuales${search ? ` (búsqueda: "${search}")` : ""}${estatus !== "Todos" ? ` (estatus: ${estatus})` : ""}.`
+            : "Se exportarán todas las indemnizaciones."
+        }
+      />
 
       <Snackbar
         open={snack}

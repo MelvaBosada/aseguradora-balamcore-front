@@ -9,6 +9,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import DownloadIcon from "@mui/icons-material/Download";
 
 // Componentes
 import PrimaryButton from "../../components/PrimaryButton";
@@ -17,9 +18,11 @@ import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
+import DescargarModal from "../../components/DescargarModal";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const API_URL = `${API_BASE}/reportes`;
+const EXPORT_BASE = import.meta.env.VITE_API_URL || "/api";
 
 const campos = ["poliza", "cliente", "siniestro", "estatus"];
 const columnas = ["# de Poliza", "Cliente", "# de Siniestro", "Estatus", "Acciones"];
@@ -83,6 +86,7 @@ const Reportes = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
+  const [showDescarga, setShowDescarga] = useState(false);
 
   const [itemToDelete, setItemToDelete] = useState(null);
   const [itemDetalle, setItemDetalle] = useState(null);
@@ -262,11 +266,18 @@ const Reportes = () => {
           </div>
         </div>
 
-        <PrimaryButton
-          text="Nuevo reporte"
-          icon={<AddCircleOutlinedIcon />}
-          onClick={handleNuevoReporte}
-        />
+        <div className="d-flex gap-2 flex-wrap">
+          <PrimaryButton
+            text="Descargar"
+            icon={<DownloadIcon />}
+            onClick={() => setShowDescarga(true)}
+          />
+          <PrimaryButton
+            text="Nuevo reporte"
+            icon={<AddCircleOutlinedIcon />}
+            onClick={handleNuevoReporte}
+          />
+        </div>
       </div>
 
       <div className="mb-4">
@@ -370,6 +381,21 @@ const Reportes = () => {
                   value: value || "N/A"
                 }))
             : []
+        }
+      />
+
+      {/* MODAL DE DESCARGA DEL LISTADO (PDF / Excel / CSV) */}
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${EXPORT_BASE}/exportar/reportes`}
+        params={{ search: searchTerm }}
+        nombreArchivo="reportes"
+        titulo="Descargar listado de reportes"
+        nota={
+          searchTerm
+            ? `Se exportarán los reportes con los filtros actuales (búsqueda: "${searchTerm}").`
+            : "Se exportarán todos los reportes."
         }
       />
     </div>

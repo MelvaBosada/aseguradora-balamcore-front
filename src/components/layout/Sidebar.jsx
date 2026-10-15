@@ -16,13 +16,17 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 import "./layout.css";
 
+
 const Sidebar = ({ open, onClose }) => {
   const [openMenu, setOpenMenu] = useState(null);
   const { tiene, tieneModulo } = usePermisos();
 
+    console.log("evidencias:", tiene("evidencias"));
+    
   const toggleMenu = (menu) => {
     setOpenMenu(openMenu === menu ? null : menu);
   };
+
 
   const closeAll = () => {
     setOpenMenu(null);
@@ -80,7 +84,7 @@ const Sidebar = ({ open, onClose }) => {
               {tiene("bienes")       && <NavLink to="/admin/bienes"        className="submenu-item" data-tour="menu-bienes" onClick={onClose}>Bienes</NavLink>}
               {tiene("coberturas")   && <NavLink to="/admin/coberturas"    className="submenu-item" data-tour="menu-coberturas" onClick={onClose}>Coberturas</NavLink>}
               {tiene("perfiles")     && <NavLink to="/admin/perfiles"      className="submenu-item" data-tour="menu-perfiles" onClick={onClose}>Perfiles</NavLink>}
-              {/* {tiene("permisos")     && <NavLink to="/admin/permisos"      className="submenu-item" onClick={onClose}>Permisos</NavLink>}*/}
+                {/* {tiene("permisos")     && <NavLink to="/admin/permisos"      className="submenu-item" onClick={onClose}>Permisos</NavLink>} */}
             </div>
           </div>
         )}

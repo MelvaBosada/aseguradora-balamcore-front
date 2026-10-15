@@ -15,6 +15,8 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
 import NumbersIcon from "@mui/icons-material/Numbers";
 import RuleIcon from "@mui/icons-material/Rule";
+import DownloadIcon from "@mui/icons-material/Download";
+
 
 // Componentes
 import PrimaryButton from "../../components/PrimaryButton";
@@ -23,6 +25,7 @@ import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
+import DescargarModal from "../../components/DescargarModal";
 
 const API_URL = import.meta.env.VITE_API_URL
   ? `${import.meta.env.VITE_API_URL}/coberturas`
@@ -123,6 +126,7 @@ const Cobertura = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState({});
   const [itemsPerPage, setItemsPerPage] = useState(5);
+  const [showDescarga, setShowDescarga] = useState(false);
 
   // GET: Obtener coberturas
   const fetchData = useCallback(async () => {
@@ -235,7 +239,7 @@ const Cobertura = () => {
       console.error("Error API:", errorData);
       alert(
         "Error al guardar: " +
-          JSON.stringify(errorData?.errors || errorData?.message || error.message)
+        JSON.stringify(errorData?.errors || errorData?.message || error.message)
       );
     } finally {
       setLoading(false);
@@ -273,73 +277,73 @@ const Cobertura = () => {
 
   const detalleItems = coberturaDetalle
     ? [
-        {
-          icon: <DescriptionIcon />,
-          label: "Descripción",
-          value: coberturaDetalle.descripcion || "Sin descripción",
-        },
-        {
-          icon: <RuleIcon />,
-          label: "Estatus",
-          value: coberturaDetalle.estatus
-            ? coberturaDetalle.estatus.toUpperCase()
-            : "-",
-        },
-        {
-          icon: <NumbersIcon />,
-          label: "ID Aseguradora",
-          value: coberturaDetalle.id_aseguradora,
-        },
-        {
-          icon: <AttachMoneyIcon />,
-          label: "Monto Mínimo",
-          value: coberturaDetalle.monto_minimo || "0",
-        },
-        {
-          icon: <AttachMoneyIcon />,
-          label: "Monto Máximo",
-          value: coberturaDetalle.monto_maximo || "0",
-        },
-        {
-          icon: <AttachMoneyIcon />,
-          label: "Monto Máx Siniestro",
-          value: coberturaDetalle.monto_maximo_siniestro || "0",
-        },
-        {
-          icon: <AttachMoneyIcon />,
-          label: "Deducible (Monto)",
-          value:
-            coberturaDetalle.deducible === null ||
+      {
+        icon: <DescriptionIcon />,
+        label: "Descripción",
+        value: coberturaDetalle.descripcion || "Sin descripción",
+      },
+      {
+        icon: <RuleIcon />,
+        label: "Estatus",
+        value: coberturaDetalle.estatus
+          ? coberturaDetalle.estatus.toUpperCase()
+          : "-",
+      },
+      {
+        icon: <NumbersIcon />,
+        label: "ID Aseguradora",
+        value: coberturaDetalle.id_aseguradora,
+      },
+      {
+        icon: <AttachMoneyIcon />,
+        label: "Monto Mínimo",
+        value: coberturaDetalle.monto_minimo || "0",
+      },
+      {
+        icon: <AttachMoneyIcon />,
+        label: "Monto Máximo",
+        value: coberturaDetalle.monto_maximo || "0",
+      },
+      {
+        icon: <AttachMoneyIcon />,
+        label: "Monto Máx Siniestro",
+        value: coberturaDetalle.monto_maximo_siniestro || "0",
+      },
+      {
+        icon: <AttachMoneyIcon />,
+        label: "Deducible (Monto)",
+        value:
+          coberturaDetalle.deducible === null ||
             coberturaDetalle.deducible === "" ||
             Number(coberturaDetalle.deducible) === 0
-              ? "Sin deducible"
-              : coberturaDetalle.deducible,
-        },
-        {
-          icon: <PercentIcon />,
-          label: "Deducible (%)",
-          value: `${coberturaDetalle.porcentaje_deducible || 0}%`,
-        },
-        {
-          icon: <PercentIcon />,
-          label: "Cobertura (%)",
-          value: `${coberturaDetalle.porcentaje_cobertura || 0}%`,
-        },
-        {
-          icon: <SettingsIcon />,
-          label: "Tipo de Cálculo",
-          value: coberturaDetalle.tipo_calculo
-            ? coberturaDetalle.tipo_calculo.replace("_", " ")
-            : "-",
-        },
-        {
-          icon: <FactCheckIcon />,
-          label: "Aplica Sobre",
-          value: coberturaDetalle.aplica_sobre
-            ? coberturaDetalle.aplica_sobre.replace("_", " ")
-            : "-",
-        },
-      ]
+            ? "Sin deducible"
+            : coberturaDetalle.deducible,
+      },
+      {
+        icon: <PercentIcon />,
+        label: "Deducible (%)",
+        value: `${coberturaDetalle.porcentaje_deducible || 0}%`,
+      },
+      {
+        icon: <PercentIcon />,
+        label: "Cobertura (%)",
+        value: `${coberturaDetalle.porcentaje_cobertura || 0}%`,
+      },
+      {
+        icon: <SettingsIcon />,
+        label: "Tipo de Cálculo",
+        value: coberturaDetalle.tipo_calculo
+          ? coberturaDetalle.tipo_calculo.replace("_", " ")
+          : "-",
+      },
+      {
+        icon: <FactCheckIcon />,
+        label: "Aplica Sobre",
+        value: coberturaDetalle.aplica_sobre
+          ? coberturaDetalle.aplica_sobre.replace("_", " ")
+          : "-",
+      },
+    ]
     : [];
 
   if (loading && coberturas.length === 0) {
@@ -375,11 +379,19 @@ const Cobertura = () => {
             />
           </div>
         </div>
-        <PrimaryButton
-          text="Nueva Cobertura"
-          icon={<AddCircleOutlinedIcon />}
-          onClick={handleNuevo}
-        />
+        <div className="d-flex gap-2 flex-wrap">
+          <PrimaryButton
+            text="Descargar"
+            icon={<DownloadIcon />}
+            onClick={() => setShowDescarga(true)}
+          />
+          <PrimaryButton
+            text="Nueva Cobertura"
+            icon={<AddCircleOutlinedIcon />}
+            onClick={handleNuevo}
+          />
+        </div>
+
       </div>
 
       <div className="mb-4">
@@ -391,8 +403,8 @@ const Cobertura = () => {
             monto_maximo: c.monto_maximo || "0",
             deducible:
               c.deducible === null ||
-              c.deducible === "" ||
-              Number(c.deducible) === 0
+                c.deducible === "" ||
+                Number(c.deducible) === 0
                 ? "Sin deducible"
                 : c.deducible,
           }))}
@@ -465,6 +477,15 @@ const Cobertura = () => {
           coberturaDetalle?.nombre ? coberturaDetalle.nombre.charAt(0) : "C"
         }
         items={detalleItems}
+      />
+
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${import.meta.env.VITE_API_URL || "/api"}/exportar/coberturas`}
+        params={{ search: searchTerm }}
+        nombreArchivo="coberturas"
+        titulo="Descargar listado de coberturas"
       />
     </div>
   );

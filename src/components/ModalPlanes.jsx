@@ -189,7 +189,7 @@ const handleContratar = async (plan) => {
 
         {/* HEADER */}
         <div style={{ textAlign: "center", padding: "32px 28px 20px" }}>
-          <img src={logo} style={{ width: 80, marginBottom: 14, opacity: 0.95 }} alt="BalamCore" />
+         
 
           <h2 style={{
             fontSize: "1.7rem", fontWeight: 900, color: "#fff",

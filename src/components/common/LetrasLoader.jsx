@@ -59,7 +59,6 @@ const LetrasLoader = ({ visible }) => {
         ))}
       </div>
 
-      <img src={Cargando} alt="" className="ll-cargando" aria-hidden="true" />
     </div>
   );
 };
