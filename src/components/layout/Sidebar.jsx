@@ -20,8 +20,6 @@ import "./layout.css";
 const Sidebar = ({ open, onClose }) => {
   const [openMenu, setOpenMenu] = useState(null);
   const { tiene, tieneModulo } = usePermisos();
-
-    console.log("evidencias:", tiene("evidencias"));
     
   const toggleMenu = (menu) => {
     setOpenMenu(openMenu === menu ? null : menu);

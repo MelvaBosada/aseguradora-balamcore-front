@@ -22,7 +22,9 @@ import InfoIcon from "@mui/icons-material/Info";
 import "../css/BalamCoreModal.css";
 import "../css/ClienteDetalleModal.css";
 
-function ClienteDetalleModal({ open, onClose, titulo, subtitulo, avatar, items, cliente }) {
+// ancho: "grande" ensancha el modal (por ejemplo para mostrar vista previa de archivos).
+// En items, fullWidth: true hace que esa tarjeta ocupe toda la fila.
+function ClienteDetalleModal({ open, onClose, titulo, subtitulo, avatar, items, cliente, ancho }) {
   if (!open) return null;
 
   // Si es una póliza (tiene items de póliza)
@@ -72,9 +74,11 @@ function ClienteDetalleModal({ open, onClose, titulo, subtitulo, avatar, items, 
     displayAvatar = displayAvatar || "P";
   }
 
+  const claseModal = `balam-modal detalle-modal${ancho === "grande" ? " detalle-modal-ancho" : ""}`;
+
   return (
     <div className="balam-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="balam-modal detalle-modal">
+      <div className={claseModal}>
 
         {/* HEADER */}
         <div className="detalle-header">
@@ -91,7 +95,7 @@ function ClienteDetalleModal({ open, onClose, titulo, subtitulo, avatar, items, 
         {/* BODY */}
         <div className="detalle-body">
           {displayItems?.map((item, i) => (
-            <div key={i} className="detalle-item">
+            <div key={i} className={`detalle-item${item.fullWidth ? " span-full" : ""}`}>
               <div className="detalle-icon">{item.icon}</div>
               <div className="detalle-item-text">
                 <span className="detalle-label">{item.label}</span>
