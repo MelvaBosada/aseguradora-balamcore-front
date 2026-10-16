@@ -13,6 +13,7 @@ import AvisosPanel from "../../components/Avisospanel";
 import ModalPlanes from "../../components/ModalPlanes";
 import "../../css/Dashboard.css";
 import usePermisos from "../../hooks/usePermisos";
+import DashboardMetabase from "../../components/DashboardMetabase";
 
 const API = import.meta.env.VITE_API_URL || '/api';
 const PIE_COLORS = ["#0F4C3A", "#295E4E", "#4a9477", "#f59e0b", "#94a3b8"];
@@ -375,6 +376,15 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
+                        {/* DASHBOARD METABASE */}
+            <div className="chart-card" style={{ marginTop: "24px" }}>
+                <div className="chart-header">
+                    <h3>Analítica avanzada (Metabase)</h3>
+                </div>
+                <DashboardMetabase />
+            </div>
+
+            <AvisosPanel />
 
             <AvisosPanel />
         </div>

@@ -37,6 +37,7 @@ import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
+import DescargarModal from "../../components/DescargarModal";
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -403,6 +404,7 @@ const Evidencias = () => {
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
+  const [showDescarga, setShowDescarga] = useState(false);
 
   const [evidenciaToDelete, setEvidenciaToDelete] = useState(null);
   const [evidenciaDetalle, setEvidenciaDetalle] = useState(null);
@@ -812,11 +814,18 @@ const Evidencias = () => {
           </select>
         </div>
 
-        <PrimaryButton
-          text="Nueva evidencia"
-          icon={<AddCircleOutlinedIcon />}
-          onClick={handleNuevaEvidencia}
-        />
+        <div className="d-flex gap-2 flex-wrap">
+          <PrimaryButton
+            text="Descargar"
+            icon={<DownloadIcon />}
+            onClick={() => setShowDescarga(true)}
+          />
+          <PrimaryButton
+            text="Nueva evidencia"
+            icon={<AddCircleOutlinedIcon />}
+            onClick={handleNuevaEvidencia}
+          />
+        </div>
       </div>
 
       <div className="mb-4">
@@ -930,7 +939,7 @@ const Evidencias = () => {
         items={evidenciaDetalle?.items || []}
       />
 
-            {/* ---------- Rechazar evidencia ---------- */}
+      {/* ---------- Rechazar evidencia ---------- */}
       {rechazoEvidencia && (
         <div
           className="balam-overlay"
@@ -1008,6 +1017,21 @@ const Evidencias = () => {
           </div>
         )}
       </ConfirmDeleteModal>
+
+      {/* ---------- Descarga del listado (PDF / Excel / CSV) ---------- */}
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${API_URL}/exportar/evidencias`}
+        params={{ search: searchTerm, estatus_validacion: estatusFilter }}
+        nombreArchivo="evidencias"
+        titulo="Descargar listado de evidencias"
+        nota={
+          searchTerm || estatusFilter !== "Todos"
+            ? `Se exportarán las evidencias con los filtros actuales${searchTerm ? ` (búsqueda: "${searchTerm}")` : ""}${estatusFilter !== "Todos" ? ` (estatus: ${estatusFilter})` : ""}.`
+            : "Se exportarán todas las evidencias."
+        }
+      />
 
       {/* ---------- Aviso (éxito / error) ---------- */}
       {aviso && (
