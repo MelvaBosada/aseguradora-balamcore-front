@@ -13,10 +13,15 @@ function IconButton({ icon, onClick, title, color = "#0F4C3A", hover = "#13624b"
           position: "relative",
           backgroundColor: color,
           color: "white",
-          width: 38,
-          height: 38,
-          mr: 1,
+          // Más pequeño en teléfono, normal desde tablet
+          width: { xs: 34, sm: 38 },
+          height: { xs: 34, sm: 38 },
+          mr: { xs: 0, sm: 1 },
+          flexShrink: 0,
           cursor: busy ? "progress" : "pointer",
+          "& svg": {
+            fontSize: { xs: 20, sm: 24 },
+          },
           "&:hover": {
             backgroundColor: hover,
           },

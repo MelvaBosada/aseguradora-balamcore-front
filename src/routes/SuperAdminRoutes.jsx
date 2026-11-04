@@ -6,6 +6,9 @@ import SAPlanes from "../pages/super_admin/pages/planes/SAPlanes";
 import SAModulos from "../pages/super_admin/pages/modulos/SAModulos";
 import SAUsuarios from "../pages/super_admin/pages/usuarios/SAUsuarios";
 import SASuscripciones from "../pages/super_admin/pages/suscripciones/SASuscripciones";
+import SASoporte from "../pages/super_admin/pages/soporte/SASoporte";
+
+<Route path="soporte" element={<SASoporte />} />
 
 
 // Guard: solo pasa si el usuario tiene es_superadmin = 1
@@ -35,6 +38,7 @@ export const SuperAdminRoutes = (
     <Route path="modulos" element={<SAModulos />} />
     <Route path="usuarios" element={<SAUsuarios />} />
     <Route path="suscripciones" element={<SASuscripciones />} />
+    <Route path="soporte" element={<SASoporte />} />
    
   </Route>
 );

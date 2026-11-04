@@ -40,11 +40,10 @@ body {
   width: var(--sidebar-width);
   height: 100vh;
   background: var(--bg-sidebar);
-  padding: 25px 18px;
+  padding: 5px 18px;
   border-right: 1px solid var(--border-soft);
   overflow-y: auto;
   overflow-x: hidden;
-    /* 👇 Reserva espacio fijo para el scroll */
   scrollbar-gutter: stable;
   z-index: 1200;
   box-shadow: 4px 0 25px rgba(0, 0, 0, 0.06);
@@ -55,24 +54,24 @@ body {
 .logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 5px;
   margin-bottom: 30px;
 }
 
 .logo-icon {
-  width: 45px;
+  width: 35px;
   height: auto;
   object-fit: contain;
 }
 
 .logo-text {
-  width: 600px;
+  width: 650px;
   height: auto;
   object-fit: contain;
 }
 
 .logo img {
-  max-width: 230%;
+  max-width: 250%;
   height: auto;
   display: block;
 }
@@ -117,9 +116,11 @@ body {
 .menu-section {
   margin-bottom: 22px;
 }
+
 .menu-item:first-of-type {
   margin-bottom: 22px;
 }
+
 .menu-section-title {
   display: flex;
   justify-content: space-between;
@@ -150,14 +151,15 @@ body {
 }
 
 .submenu.open {
-  max-height: 500px; 
-   padding: 2px 8px 2px 8px;
+  max-height: 500px;
+  padding: 2px 8px 2px 8px;
 }
 
 .submenu-item {
   font-size: 14px;
   margin: 3px 0;
 }
+
 .menu-item svg,
 .submenu-item svg {
   font-size: 18px;
@@ -173,16 +175,29 @@ body {
   height: 100vh;
   overflow: hidden;
   transition: margin-left 0.3s ease;
+  min-width: 0;
+}
+
+/* ================= SIDEBAR RETRAÍBLE (ESCRITORIO) ================= */
+.sidebar-collapsed .sidebar {
+  left: calc(-1 * var(--sidebar-width));
+}
+
+.sidebar-collapsed .main {
+  margin-left: 0;
 }
 
 /* ================= TOPBAR ================= */
 .topbar {
   height: var(--topbar-height);
+  width: 100%;
+  min-width: 0;
   background: linear-gradient(90deg, #041E17, #08251d);
   color: white;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 0 26px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   position: sticky;
@@ -193,7 +208,21 @@ body {
 .topbar-left {
   display: flex;
   align-items: center;
-  gap: 15px;
+  gap: 12px;
+  flex: 1;
+  min-width: 0; /* permite que el saludo se encoja */
+}
+
+.topbar-title {
+  min-width: 0;
+}
+
+.topbar-title h3,
+.topbar-title small {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .topbar-left h3 {
@@ -209,21 +238,40 @@ body {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
+  flex: 0 0 auto; /* la derecha nunca se aprieta ni se sale */
 }
 
-/* BOTONES */
+.topbar-right > * {
+  flex: 0 0 auto;
+}
+
+/* ===== BOTÓN DE PANEL LATERAL (estilo Jira) ===== */
 .menu-toggle {
-  display: none;
-  background: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  background: transparent;
   border: none;
-  border-radius: 10px;
-  padding: 6px;
-  color: white;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
+  transition: background 0.2s, color 0.2s;
 }
 
+.menu-toggle:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+}
+
+/* ===== BOTÓN DE USUARIO ===== */
 .user-button {
+  display: flex;
+  align-items: center;
   background: rgba(255, 255, 255, 0.15);
   border: none;
   padding: 7px 14px;
@@ -237,10 +285,33 @@ body {
   background: rgba(255, 255, 255, 0.25);
 }
 
+/* ===== BOTÓN DEL PLAN (nombre único para no chocar con otras páginas) ===== */
+.topbar-plan-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.topbar-plan-btn:hover {
+  filter: brightness(1.15);
+}
+
 .tour-help-button {
   display: inline-flex;
 }
 
+/* ================= TOUR (driver.js) ================= */
 .driver-overlay {
   background: rgba(5, 9, 12, 0.62) !important;
 }
@@ -362,6 +433,7 @@ body {
   font-size: 20px;
   font-weight: bold;
   color: white;
+  flex-shrink: 0;
 }
 
 .dropdown-user-info h4 {
@@ -437,8 +509,52 @@ body {
   }
 }
 
+/* ================= DROPDOWN ITEMS ================= */
+.dropdown-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s, color 0.2s;
+}
+
+.dropdown-item-plan {
+  color: #D4AF37;
+}
+
+.dropdown-item-plan:hover {
+  background: rgba(212, 175, 55, 0.12);
+  color: #e6c453;
+}
+
+/* ================= SCROLLBAR SIDEBAR ================= */
+.sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(15, 76, 58, 0.35);
+  border-radius: 10px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 76, 58, 0.55);
+}
+
 /* ================= RESPONSIVE — TABLET (≤ 1024px) ================= */
-/* El sidebar se esconde y aparece el botón hamburguesa */
+/* El menú se vuelve drawer y se abre con el botón de panel */
 @media (max-width: 1024px) {
   .sidebar {
     left: calc(-1 * var(--sidebar-width));
@@ -451,44 +567,73 @@ body {
   .main {
     margin-left: 0;
   }
-
-  .menu-toggle {
-    display: block;
-  }
 }
 
 /* ================= RESPONSIVE — MÓVIL (≤ 600px) ================= */
 @media (max-width: 600px) {
-  /* Sidebar empieza debajo del topbar para no tapar la barra */
   .sidebar {
     top: var(--topbar-height);
     height: calc(100vh - var(--topbar-height));
   }
 
-  /* El overlay también respeta el topbar */
   .sidebar-overlay {
     top: var(--topbar-height);
   }
 
   .topbar {
-    padding: 0 14px;
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .topbar-left {
+    gap: 8px;
   }
 
   .topbar-left h3 {
-    font-size: 15px;
+    font-size: 13px;
   }
 
+  /* La fecha estorba en pantallas chicas */
   .topbar-left small {
+    display: none;
+  }
+
+  .topbar-right {
+    gap: 4px;
+  }
+
+  .menu-toggle,
+  .user-button {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .user-button svg {
+    font-size: 20px;
+    margin: 0 !important;
+  }
+
+  /* Sin la flechita del botón de usuario, para ahorrar espacio */
+  .user-button svg:last-child {
+    display: none;
+  }
+
+  .topbar-plan-btn {
+    height: 32px;
+    padding: 0 8px;
     font-size: 11px;
   }
 
-  /* El dropdown se ancla al ancho de pantalla en lugar de flotar */
+  /* El dropdown se ancla al ancho de pantalla */
   .topbar-dropdown {
     position: fixed;
     right: 12px;
     left: 12px;
     top: calc(var(--topbar-height) + 8px);
     width: auto;
+    border-radius: 16px;
   }
 
   .logo-icon {
@@ -498,77 +643,19 @@ body {
   .logo-text {
     width: 130px;
   }
-  
 }
 
 /* ================= RESPONSIVE — MUY PEQUEÑO (≤ 400px) ================= */
 @media (max-width: 400px) {
-  /* Ocultar la fecha para no reventar el topbar */
-  .topbar-left small {
-    display: none;
-  }
-
-  .user-button {
-    padding: 7px 10px;
-    font-size: 13px;
-  }
-}
-
-
-/* ================= TOPBAR RESPONSIVE ================= */
-@media (max-width: 600px) {
-
-  .topbar-left h3 {
-    font-size: 13px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 160px;
-  }
-
-  .topbar-left small {
-    font-size: 10px;
-    opacity: 0.75;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 160px;
-    display: block;
-  }
-
-  .user-button {
-    padding: 6px 10px;
-    font-size: 12px;
-  }
-
-  /* Dropdown ocupa todo el ancho en móvil */
-  .topbar-dropdown {
-    position: fixed;
-    right: 12px;
-    left: 12px;
-    top: calc(var(--topbar-height) + 6px);
-    width: auto;
-    border-radius: 16px;
-  }
-}
-
-@media (max-width: 400px) {
-  .topbar-left h3 {
-    max-width: 120px;
-    font-size: 12px;
-  }
-
-  /* Oculta la fecha en pantallas muy pequeñas */
-  .topbar-left small {
-    display: none;
+  .topbar-plan-btn svg {
+    display: none; /* solo texto: "Pro · 350d" */
   }
 }
 
 /* ================= ULTRA SMALL DEVICES (≤ 360px) ================= */
 @media (max-width: 360px) {
-
   :root {
-    --sidebar-width: 250px; /* ligeramente más angosto */
+    --sidebar-width: 250px;
   }
 
   .sidebar {
@@ -599,22 +686,185 @@ body {
   .submenu {
     padding-left: 4px;
   }
+
+  .topbar-left h3 {
+    font-size: 12px;
+  }
+}
+
+@media (min-width: 1025px) {
+  .layout:not(.sidebar-collapsed) .menu-toggle {
+    position: fixed;
+    /* centrado verticalmente en el topbar */
+    top: calc((var(--topbar-height) - 30px) / 2);
+    left: calc(var(--sidebar-width) - -10px); /* centro del ícono = borde del menú */
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    z-index: 1400;
+    transition: left 0.3s ease, transform 0.2s;
+  }
+
+  .layout:not(.sidebar-collapsed) .menu-toggle:hover {
+    background: transparent;
+    transform: scale(1.1);
+  }
+
+  .layout:not(.sidebar-collapsed) .menu-toggle svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .layout:not(.sidebar-collapsed) .toggle-stop-left {
+    stop-color: var(--balam-green);
+  }
+
+  .layout:not(.sidebar-collapsed) .toggle-stop-right {
+    stop-color: #ffffff;
+  }
+
+  .layout:not(.sidebar-collapsed) .topbar-title {
+    margin-left: 26px;
+  }
 }
 
 
-.sidebar::-webkit-scrollbar {
-  width: 8px;
+/* ================= RESPONSIVE — MÓVIL (≤ 600px) ================= */
+@media (max-width: 600px) {
+  .sidebar {
+    top: var(--topbar-height);
+    height: calc(100vh - var(--topbar-height));
+  }
+
+  .sidebar-overlay {
+    top: var(--topbar-height);
+  }
+
+  .topbar {
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .topbar-left {
+    gap: 8px;
+  }
+
+  .topbar-left h3 {
+    font-size: 13px;
+  }
+
+  /* La fecha estorba en pantallas chicas */
+  .topbar-left small {
+    display: none;
+  }
+
+  .topbar-right {
+    gap: 4px;
+  }
+
+  .menu-toggle,
+  .user-button {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .user-button svg {
+    font-size: 20px;
+    margin: 0 !important;
+  }
+
+  /* Sin la flechita del botón de usuario, para ahorrar espacio */
+  .user-button svg:last-child {
+    display: none;
+  }
+
+  .topbar-plan-btn {
+    height: 32px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  /* El dropdown se ancla al ancho de pantalla */
+  .topbar-dropdown {
+    position: fixed;
+    right: 12px;
+    left: 12px;
+    top: calc(var(--topbar-height) + 8px);
+    width: auto;
+    border-radius: 16px;
+  }
+
+  .logo-icon {
+    width: 55px;
+  }
+
+  .logo-text {
+    width: 130px;
+  }
 }
 
-.sidebar::-webkit-scrollbar-track {
-  background: transparent;
+/* ================= RESPONSIVE — TABLET (≤ 1024px) ================= */
+@media (max-width: 1024px) {
+  .sidebar {
+    left: calc(-1 * var(--sidebar-width));
+    /* Hacemos que empiece debajo del topbar, igual que en móviles */
+    top: var(--topbar-height);
+    height: calc(100vh - var(--topbar-height));
+    z-index: 1200; /* Asegura que quede por debajo del topbar (que tiene 1300) */
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .main {
+    margin-left: 0;
+  }
+
+  /* El fondo oscuro también empieza debajo del topbar */
+  .sidebar-overlay {
+    top: var(--topbar-height);
+  }
 }
 
-.sidebar::-webkit-scrollbar-thumb {
-  background: rgba(15, 76, 58, 0.35);
-  border-radius: 10px;
+/* ------------------------------------------------ */
+  /* ESTILOS CUANDO EL MENÚ SÍ ESTÁ COLAPSADO         */
+  /* ------------------------------------------------ */
+
+  /* 1. Mantenemos el mismo tamaño y la sombra */
+  .layout.sidebar-collapsed .menu-toggle svg {
+    width: 28px;
+    height: 28px;
+
+  }
+
+  /* 2. Cambiamos ambos lados del ícono al color dorado (#C9A24D) */
+  .layout.sidebar-collapsed .toggle-stop-left,
+  .layout.sidebar-collapsed .toggle-stop-right {
+    stop-color: #C9A24D;
+  }
+  /* Tamaño fijo para el ícono dorado en TODOS los dispositivos */
+.menu-toggle svg {
+  width: 24px; 
+  height: 24px;
+  transition: transform 0.2s ease;
 }
 
-.sidebar::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 76, 58, 0.55);
+.dropdown-section-title {
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 4px 12px 2px;
+}
+
+/* Si hay muchas opciones, el menú scrollea en vez de salirse de la pantalla */
+.topbar-dropdown {
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
 }

@@ -1,6 +1,11 @@
-// URL base del backend Laravel. Cámbiala aquí una sola vez si tu backend
-// corre en otro puerto/dominio (producción, staging, etc.)
-export const API_BASE_URL = import.meta.env.VITE_API_URL;
+// URL del backend Laravel. Se toma de VITE_API_URL:
+//   desarrollo → .env.development
+//   producción → .env.production
+// VITE_API_URL termina en /api, así que aquí se separa la raíz del backend.
+const raw = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+
+// Raíz del backend, SIN /api (ej. http://localhost:8000)
+export const API_BASE_URL = raw.replace(/\/api\/?$/, "");
 
 export function logoUrl(path) {
   if (!path) return null;

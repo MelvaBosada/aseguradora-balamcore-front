@@ -1,4 +1,4 @@
-import { Route } from "react-router-dom";
+import { Route, Navigate } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import AdminHome from "../pages/admin/AdminHome";
 import Clientes from "../pages/admin/Clientes";
@@ -18,6 +18,19 @@ import Reporte from "../pages/admin/Reporte";
 import Empleados from "../pages/admin/Empleados";
 import Evidencias from "../pages/admin/Evidencias";
 import PrivateRoute from "../components/PrivateRoute";
+import RutaPermiso from "../components/RutaPermiso";
+import RutaAdmin from "../components/RutaAdmin";
+import MiPlan from "../pages/admin/MiPlan";
+import MetodoPago from "../pages/admin/MetodoPago";
+import HistorialPagos from "../pages/admin/HistorialPagos";
+import Perfil from "../pages/admin/Perfil";
+
+// Atajo: envuelve una página con el guard de su permiso
+const protegida = (permiso, Pagina) => (
+  <RutaPermiso permiso={permiso}>
+    <Pagina />
+  </RutaPermiso>
+);
 
 export const AdminRoutes = (
   <>
@@ -27,22 +40,28 @@ export const AdminRoutes = (
       </PrivateRoute>
     }>
       <Route index element={<AdminHome />} />
-      <Route path="dashboard" element={<Dashboard />} />
-      <Route path="clientes" element={<Clientes />} />
-      <Route path="polizas" element={<Polizas />} />
-      <Route path="polizasV" element={<PolizasVencer />} />
-      <Route path="solicitudesP" element={<SolicitudesRenovacion />} />
-      <Route path="indemnizaciones" element={<Indemnizaciones />} />
-      <Route path="perfiles" element={<Perfiles />} />
-      <Route path="permisos" element={<Permisos />} />
-      <Route path="siniestros" element={<Siniestros />} />
-      <Route path="evaluaciones" element={<Evaluaciones />} />
-      <Route path="pagos" element={<Pagos />} />
-      <Route path="coberturas" element={<Coberturas />} />
-      <Route path="bienes" element={<Bienes />} />
-      <Route path="reportes" element={<Reporte />} />
-      <Route path="empleados" element={<Empleados />} />
-      <Route path="evidencias" element={<Evidencias />} />
+
+      <Route path="perfil"          element={<Perfil />} />
+      <Route path="mi-plan"         element={<MiPlan />} />
+      <Route path="metodo-pago"     element={<RutaAdmin><MetodoPago /></RutaAdmin>} />
+      <Route path="historial-pagos" element={<RutaAdmin><HistorialPagos /></RutaAdmin>} />
+
+      <Route path="dashboard"       element={protegida("dashboard", Dashboard)} />
+      <Route path="clientes"        element={protegida("clientes", Clientes)} />
+      <Route path="polizas"         element={protegida("polizas", Polizas)} />
+      <Route path="polizasV"        element={protegida("polizasV", PolizasVencer)} />
+      <Route path="solicitudesP"    element={protegida("renovaciones", SolicitudesRenovacion)} />
+      <Route path="indemnizaciones" element={protegida("indemnizaciones", Indemnizaciones)} />
+      <Route path="perfiles"        element={protegida("perfiles", Perfiles)} />
+      <Route path="permisos"        element={protegida("permisos", Permisos)} />
+      <Route path="siniestros"      element={protegida("siniestros", Siniestros)} />
+      <Route path="evaluaciones"    element={protegida("evaluaciones", Evaluaciones)} />
+      <Route path="pagos"           element={protegida("pagos", Pagos)} />
+      <Route path="coberturas"      element={protegida("coberturas", Coberturas)} />
+      <Route path="bienes"          element={protegida("bienes", Bienes)} />
+      <Route path="reportes"        element={protegida("reportes", Reporte)} />
+      <Route path="empleados"       element={protegida("empleados", Empleados)} />
+      <Route path="evidencias"      element={protegida("evidencias", Evidencias)} />
     </Route>
   </>
 );

@@ -20,7 +20,7 @@ Chart.register(
   Tooltip, Legend
 );
 
-const API = "/api/superadmin/dashboard";
+const API = `${import.meta.env.VITE_API_URL || "/api"}/superadmin/dashboard`;
 
 const fmt = (n) =>
   new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 }).format(n);

@@ -1,5 +1,5 @@
 // pages/admin/Polizas.jsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import '../../css/Clientes.css';
 
@@ -34,25 +34,39 @@ import DescargarModal from "../../components/DescargarModal";
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
-const campos = ["nPoliza", "cliente", "estatus"];
-const columnas = ["N° Póliza", "Cliente", "Estatus", "Acciones"];
+const MAX_PDF_MB = 2;
+const MAX_PDF_BYTES = MAX_PDF_MB * 1024 * 1024;
+
+// IVA general en México: 16% sobre (prima neta + derecho de póliza)
+const TASA_IVA = 0.16;
+
+// Tipo de póliza que se sugiere según el tipo del primer bien elegido
+const TIPO_POR_BIEN = { vehiculo: 'autos', inmueble: 'hogar' };
+
+// Textos que se muestran mientras el sistema aún no asigna el número (se asigna al guardar)
+const TEXTO_NUMERO_AUTO = "Se asigna automáticamente al guardar";
+const TEXTO_ENDOSO_AUTO = "Se asigna automáticamente (N° de póliza + -E001)";
+
+// El orden de "campos" debe coincidir con el de "columnas"
+const campos = ["nPoliza", "cliente", "estatus", "endoso"];
+const columnas = ["N° Póliza", "Cliente", "Estatus", "Endoso", "Acciones"];
 
 const FORM_CAMPOS = [
   { label: "RFC del Cliente", name: "rfc_buscar", type: "text", seccion: "Buscar Cliente", fullWidth: true },
-  { label: "ID Cliente", name: "id_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
   { label: "Nombre del cliente", name: "nombre_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
   { label: "Correo", name: "correo_cliente", type: "email", seccion: "Información del Cliente", readOnly: true },
   { label: "Teléfono", name: "telefono_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
   { label: "Domicilio", name: "domicilio_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
   { label: "CURP", name: "curp_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
-  { label: "N° PÓLIZA", name: "numero_poliza", type: "text", seccion: "DATOS DE LA PÓLIZA", required: true },
+  // El número de póliza lo asigna el sistema: siempre es de solo lectura
+  { label: "N° PÓLIZA", name: "numero_poliza", type: "text", seccion: "DATOS DE LA PÓLIZA", readOnly: true },
   { label: "TIPO DE PÓLIZA", name: "tipo", type: "select", options: ["vida", "gastos_medicos", "autos", "hogar", "empresarial", "responsabilidad_civil", "otro"], seccion: "DATOS DE LA PÓLIZA", required: true },
   { label: "FECHA DE INICIO", name: "fecha_inicio", type: "date", seccion: "DATOS DE LA PÓLIZA", required: true },
   { label: "FECHA DE FIN", name: "fecha_fin", type: "date", seccion: "DATOS DE LA PÓLIZA", required: true },
   { label: "SUMA ASEGURADA", name: "suma_asegurada", type: "number", seccion: "DATOS DE LA PÓLIZA", required: true },
   { label: "PRIMA NETA", name: "prima_neta", type: "number", seccion: "DATOS DE LA PÓLIZA", required: true },
   { label: "DERECHO DE PÓLIZA", name: "derecho_poliza", type: "number", seccion: "DATOS DE LA PÓLIZA", required: true },
-  { label: "IVA", name: "iva", type: "number", seccion: "DATOS DE LA PÓLIZA", required: true },
+  { label: "IVA (16% sugerido)", name: "iva", type: "number", seccion: "DATOS DE LA PÓLIZA", required: true },
   { label: "PRIMA TOTAL", name: "prima_total", type: "number", seccion: "DATOS DE LA PÓLIZA", required: true, readOnly: true },
   { label: "FORMA DE PAGO", name: "forma_pago", type: "select", options: ["contado", "mensual", "trimestral", "semestral", "anual"], seccion: "DATOS DE LA PÓLIZA", required: true },
   { label: "OBSERVACIONES", name: "observaciones", type: "textarea", seccion: "DATOS DE LA PÓLIZA" },
@@ -63,7 +77,47 @@ const FORM_VACIO = {
   domicilio_cliente: "", curp_cliente: "", numero_poliza: "", tipo: "", fecha_inicio: "", fecha_fin: "",
   suma_asegurada: "", prima_neta: "", derecho_poliza: "", iva: "", prima_total: "", forma_pago: "", observaciones: "",
   bienes_seleccionados: [],
-  precios_bienes: {}
+  precios_bienes: {},
+  tiene_endoso: false,
+  descripcion_endoso: ""
+};
+
+// Mismos estilos que usa EditModal para sus mensajes
+const COLOR_ERROR = "#C0392B";
+const estiloMensaje = { fontSize: 11, marginTop: 3 };
+const estiloAyuda = { ...estiloMensaje, color: "#6B7280" };
+const estiloRequerido = { color: "red", marginLeft: 4 };
+
+const validarPdf = (file) => {
+  if (!file) return "";
+  const esPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+  if (!esPdf) return "El archivo debe ser un PDF.";
+  if (file.size > MAX_PDF_BYTES) {
+    return `El archivo pesa ${(file.size / 1024 / 1024).toFixed(2)} MB y el máximo permitido es ${MAX_PDF_MB} MB.`;
+  }
+  return "";
+};
+
+// ───────────── Helpers de cálculo y fechas ─────────────
+
+const num = (v) => parseFloat(v) || 0;
+const fmt = (n) => (n > 0 ? n.toFixed(2) : "");
+
+const sumaBienes = (precios, seleccionados) =>
+  seleccionados.reduce((total, id) => total + num(precios?.[id]), 0);
+
+// Fecha de hoy en hora local (toISOString usaría UTC y en la noche daría el día siguiente)
+const hoyLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Suma un año a una fecha "YYYY-MM-DD" (el 29 de febrero pasa al 28 del año siguiente)
+const sumarAnio = (fecha) => {
+  if (!fecha) return "";
+  const [y, m, d] = fecha.split('-').map(Number);
+  const ultimoDia = new Date(y + 1, m, 0).getDate();
+  return `${y + 1}-${String(m).padStart(2, '0')}-${String(Math.min(d, ultimoDia)).padStart(2, '0')}`;
 };
 
 const Polizas = () => {
@@ -87,6 +141,17 @@ const Polizas = () => {
   const [cargandoBienes, setCargandoBienes] = useState(false);
   const [coberturas, setCoberturas] = useState([]);
   const [erroresBienes, setErroresBienes] = useState({});
+
+  // Documentos PDF (póliza y endoso)
+  const [docPoliza, setDocPoliza] = useState(null);
+  const [docEndoso, setDocEndoso] = useState(null);
+  const [docActual, setDocActual] = useState(null); // documento ya guardado de la póliza que se edita
+  const [erroresDocs, setErroresDocs] = useState({});
+  const [fileKey, setFileKey] = useState(0);        // sirve para limpiar los <input type="file">
+  const [siguienteEndoso, setSiguienteEndoso] = useState(""); // N° que recibirá el próximo endoso (al editar)
+
+  // Indica qué campos el usuario ya escribió a mano: esos dejan de llenarse solos.
+  const manual = useRef({ fin: false, iva: false, suma: false });
 
   // Cargar coberturas al iniciar
   useEffect(() => {
@@ -126,6 +191,30 @@ const Polizas = () => {
     cargarPolizas();
   }, [cargarPolizas]);
 
+  // ───────────── Campos que se llenan solos ─────────────
+
+  // Recalcula lo que depende de otros campos, salvo lo que el usuario ya escribió a mano:
+  //  - suma asegurada = suma del valor de los bienes marcados
+  //  - IVA            = 16% de (prima neta + derecho de póliza)
+  //  - prima total    = prima neta + derecho de póliza + IVA (siempre)
+  const derivar = (f) => {
+    const m = manual.current;
+    const next = { ...f };
+
+    if (!m.suma) {
+      next.suma_asegurada = fmt(sumaBienes(f.precios_bienes, f.bienes_seleccionados));
+    }
+
+    const base = num(f.prima_neta) + num(f.derecho_poliza);
+
+    if (!m.iva) {
+      next.iva = fmt(base * TASA_IVA);
+    }
+
+    next.prima_total = fmt(base + num(next.iva));
+    return next;
+  };
+
   const obtenerCoberturaParaBien = (bienTipo) => {
     const mapeoCoberturas = {
       'vehiculo': ['Daños Materiales', 'Robo Total', 'Robo Parcial', 'Responsabilidad Civil', 'Gastos Médicos Ocupantes'],
@@ -161,24 +250,6 @@ const Polizas = () => {
     return { valido: true, mensaje: '' };
   };
 
-  const calcularPrimaTotalDesdeBienes = (preciosBienes, bienesSeleccionados) => {
-    let sumaTotal = 0;
-    bienesSeleccionados.forEach(bienId => {
-      const precio = parseFloat(preciosBienes[bienId]) || 0;
-      sumaTotal += precio;
-    });
-    return sumaTotal;
-  };
-
-  const actualizarPrimaTotal = (preciosBienes, bienesSeleccionados) => {
-    const sumaBienes = calcularPrimaTotalDesdeBienes(preciosBienes, bienesSeleccionados);
-    const neta = parseFloat(formData.prima_neta) || 0;
-    const derecho = parseFloat(formData.derecho_poliza) || 0;
-    const iva = parseFloat(formData.iva) || 0;
-    const total = sumaBienes + neta + derecho + iva;
-    setFormData(prev => ({ ...prev, prima_total: total.toFixed(2) }));
-  };
-
   const validarBienesSeleccionados = async (bienesIds, polizaTipo, preciosBienes) => {
     const nuevosErrores = {};
     let todoValido = true;
@@ -207,7 +278,7 @@ const Polizas = () => {
   };
 
   const cargarBienesPorClienteId = async (clienteId) => {
-    if (!clienteId) return;
+    if (!clienteId) return [];
 
     setCargandoBienes(true);
     try {
@@ -227,6 +298,7 @@ const Polizas = () => {
     }
   };
 
+  // Busca al cliente por RFC. SOLO llena los datos del cliente; los datos de la póliza no se copian.
   const buscarClientePorRfc = async (rfc) => {
     if (!rfc || rfc.length < 8) return;
 
@@ -237,9 +309,7 @@ const Polizas = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      const data = response.data;
-      const cliente = data.cliente;
-
+      const cliente = response.data.cliente;
       const bienes = await cargarBienesPorClienteId(cliente.id);
 
       const preciosIniciales = {};
@@ -247,79 +317,59 @@ const Polizas = () => {
         preciosIniciales[bien.id] = bien.valor || 0;
       });
 
-      if (data.tienePoliza) {
-        const ultimaPoliza = data.ultimaPoliza;
-
-        setFormData(prev => ({
-          ...prev,
-          id_cliente: cliente.id,
-          nombre_cliente: `${cliente.nombre} ${cliente.apellido}`,
-          correo_cliente: cliente.correo || "",
-          telefono_cliente: cliente.telefono || "",
-          domicilio_cliente: cliente.domicilio || "",
-          curp_cliente: cliente.curp || "",
-          numero_poliza: ultimaPoliza.numero_poliza,
-          tipo: ultimaPoliza.tipo,
-          suma_asegurada: ultimaPoliza.suma_asegurada,
-          prima_neta: ultimaPoliza.prima_neta,
-          derecho_poliza: ultimaPoliza.derecho_poliza,
-          iva: ultimaPoliza.iva,
-          prima_total: ultimaPoliza.prima_total,
-          forma_pago: ultimaPoliza.forma_pago,
-          observaciones: ultimaPoliza.observaciones || "",
-          fecha_inicio: new Date().toISOString().split('T')[0],
-          fecha_fin: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0],
-          bienes_seleccionados: [],
-          precios_bienes: preciosIniciales
-        }));
-      } else {
-        setFormData(prev => ({
-          ...prev,
-          id_cliente: cliente.id,
-          nombre_cliente: `${cliente.nombre} ${cliente.apellido}`,
-          correo_cliente: cliente.correo || "",
-          telefono_cliente: cliente.telefono || "",
-          domicilio_cliente: cliente.domicilio || "",
-          curp_cliente: cliente.curp || "",
-          numero_poliza: "",
-          tipo: "",
-          suma_asegurada: "",
-          prima_neta: "",
-          derecho_poliza: "",
-          iva: "",
-          prima_total: "",
-          forma_pago: "",
-          observaciones: "",
-          fecha_inicio: "",
-          fecha_fin: "",
-          bienes_seleccionados: [],
-          precios_bienes: preciosIniciales
-        }));
-      }
+      setFormData(prev => derivar({
+        ...prev,
+        id_cliente: cliente.id,
+        nombre_cliente: `${cliente.nombre} ${cliente.apellido}`,
+        correo_cliente: cliente.correo || "",
+        telefono_cliente: cliente.telefono || "",
+        domicilio_cliente: cliente.domicilio || "",
+        curp_cliente: cliente.curp || "",
+        bienes_seleccionados: [],
+        precios_bienes: preciosIniciales
+      }));
+      setErroresBienes({});
     } catch (error) {
       if (error.response?.status === 404) {
-        setFormData(prev => ({ ...prev, nombre_cliente: "Cliente no encontrado" }));
+        // Limpia al cliente anterior para no guardar la póliza a nombre de otra persona
+        setFormData(prev => derivar({
+          ...prev,
+          id_cliente: "",
+          nombre_cliente: "Cliente no encontrado",
+          correo_cliente: "",
+          telefono_cliente: "",
+          domicilio_cliente: "",
+          curp_cliente: "",
+          bienes_seleccionados: [],
+          precios_bienes: {}
+        }));
         setBienesCliente([]);
       }
     }
   };
 
   const handleSeleccionarBien = async (bienId) => {
-    const seleccionados = [...formData.bienes_seleccionados];
-    const index = seleccionados.indexOf(bienId);
-    let nuevosSeleccionados;
+    const yaEsta = formData.bienes_seleccionados.includes(bienId);
+    const nuevosSeleccionados = yaEsta
+      ? formData.bienes_seleccionados.filter(id => id !== bienId)
+      : [...formData.bienes_seleccionados, bienId];
 
-    if (index === -1) {
-      nuevosSeleccionados = [...seleccionados, bienId];
-    } else {
-      nuevosSeleccionados = seleccionados.filter(id => id !== bienId);
+    // Si todavía no hay tipo de póliza, se sugiere según el bien elegido
+    let tipoSugerido = "";
+    if (!editingPoliza && !formData.tipo && !yaEsta) {
+      const bien = bienesCliente.find(b => b.id === bienId);
+      tipoSugerido = TIPO_POR_BIEN[bien?.tipo] || "";
     }
 
-    setFormData(prev => ({ ...prev, bienes_seleccionados: nuevosSeleccionados }));
-    actualizarPrimaTotal(formData.precios_bienes, nuevosSeleccionados);
+    setFormData(prev => derivar({
+      ...prev,
+      bienes_seleccionados: nuevosSeleccionados,
+      tipo: tipoSugerido || prev.tipo
+    }));
 
-    if (formData.tipo) {
-      await validarBienesSeleccionados(nuevosSeleccionados, formData.tipo, formData.precios_bienes);
+    const tipoActual = tipoSugerido || formData.tipo;
+    if (tipoActual) {
+      await validarBienesSeleccionados(nuevosSeleccionados, tipoActual, formData.precios_bienes);
     }
   };
 
@@ -329,8 +379,7 @@ const Polizas = () => {
       [bienId]: parseFloat(nuevoPrecio) || 0
     };
 
-    setFormData(prev => ({ ...prev, precios_bienes: nuevosPrecios }));
-    actualizarPrimaTotal(nuevosPrecios, formData.bienes_seleccionados);
+    setFormData(prev => derivar({ ...prev, precios_bienes: nuevosPrecios }));
 
     if (formData.bienes_seleccionados.includes(bienId) && formData.tipo) {
       validarBienesSeleccionados(formData.bienes_seleccionados, formData.tipo, nuevosPrecios);
@@ -344,37 +393,117 @@ const Polizas = () => {
     setBuscarRfcTimer(setTimeout(() => buscarClientePorRfc(rfc), 500));
   };
 
-  const calcularPrimaTotal = () => {
-    const sumaBienes = calcularPrimaTotalDesdeBienes(formData.precios_bienes, formData.bienes_seleccionados);
-    const neta = parseFloat(formData.prima_neta) || 0;
-    const derecho = parseFloat(formData.derecho_poliza) || 0;
-    const iva = parseFloat(formData.iva) || 0;
-    setFormData(prev => ({ ...prev, prima_total: (sumaBienes + neta + derecho + iva).toFixed(2) }));
-  };
-
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    const m = manual.current;
 
-    if (['prima_neta', 'derecho_poliza', 'iva'].includes(name)) {
-      setTimeout(calcularPrimaTotal, 0);
-    }
+    // Lo que el usuario escribe a mano deja de llenarse solo; si lo borra, vuelve a ser automático
+    if (name === 'fecha_fin') m.fin = value !== '';
+    if (name === 'iva') m.iva = value !== '';
+    if (name === 'suma_asegurada') m.suma = value !== '';
+
+    setFormData(prev => {
+      const next = { ...prev, [name]: value };
+
+      // La vigencia dura un año desde el inicio
+      if (name === 'fecha_inicio' && !m.fin) {
+        next.fecha_fin = sumarAnio(value);
+      }
+
+      return derivar(next);
+    });
 
     if (name === 'tipo' && formData.bienes_seleccionados.length > 0) {
       await validarBienesSeleccionados(formData.bienes_seleccionados, value, formData.precios_bienes);
     }
   };
 
+  // ───────────── Documentos PDF ─────────────
+
+  const resetDocumentos = () => {
+    setDocPoliza(null);
+    setDocEndoso(null);
+    setDocActual(null);
+    setErroresDocs({});
+    setSiguienteEndoso("");
+    setFileKey(k => k + 1);
+  };
+
+  const handleArchivo = (e, tipo) => {
+    const file = e.target.files?.[0] || null;
+    const error = validarPdf(file);
+    const clave = tipo === 'poliza' ? 'poliza' : 'endoso_doc';
+
+    setErroresDocs(prev => ({ ...prev, [clave]: error }));
+
+    if (error || !file) {
+      e.target.value = "";
+      tipo === 'poliza' ? setDocPoliza(null) : setDocEndoso(null);
+      return;
+    }
+
+    tipo === 'poliza' ? setDocPoliza(file) : setDocEndoso(file);
+  };
+
+  const handleTieneEndoso = (valor) => {
+    setFormData(prev => ({
+      ...prev,
+      tiene_endoso: valor,
+      descripcion_endoso: valor ? prev.descripcion_endoso : ""
+    }));
+
+    if (!valor) {
+      setDocEndoso(null);
+      setErroresDocs(prev => ({ ...prev, endoso_descripcion: "", endoso_doc: "" }));
+      setFileKey(k => k + 1);
+    }
+  };
+
+  // Abre un PDF protegido (necesita token) en una pestaña nueva
+  const abrirPdf = async (url) => {
+    const ventana = window.open('', '_blank');
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+
+      if (ventana) {
+        ventana.location.href = blobUrl;
+      } else {
+        window.location.href = blobUrl;
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (error) {
+      if (ventana) ventana.close();
+      console.error('Error al abrir documento:', error);
+      alert('No se pudo abrir el documento');
+    }
+  };
+
   const handleNuevaPoliza = () => {
+    manual.current = { fin: false, iva: false, suma: false };
+
+    // La vigencia arranca hoy y termina en un año
+    const hoy = hoyLocal();
+
     setEditingPoliza(null);
-    setFormData(FORM_VACIO);
+    setFormData({ ...FORM_VACIO, fecha_inicio: hoy, fecha_fin: sumarAnio(hoy) });
     setBienesCliente([]);
     setErroresBienes({});
+    resetDocumentos();
     setShowModal(true);
   };
 
   const handleEditar = async (poliza) => {
+    // Al editar se respetan los valores guardados: vigencia y suma no se tocan solos.
+    // El IVA y la prima total sí se recalculan si cambias la prima neta o el derecho de póliza.
+    manual.current = { fin: true, iva: false, suma: true };
+
     setEditingPoliza(poliza);
+    resetDocumentos();
     try {
       const token = localStorage.getItem('token');
       const res = await axios.get(`${API_URL}/polizas/${poliza.id}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -413,9 +542,13 @@ const Polizas = () => {
         forma_pago: data.formaPago || "",
         observaciones: data.observaciones || "",
         bienes_seleccionados: bienesAsociados,
-        precios_bienes: preciosIniciales
+        precios_bienes: preciosIniciales,
+        tiene_endoso: false,
+        descripcion_endoso: ""
       });
 
+      setDocActual(data.tiene_documento ? { nombre: data.documento_nombre } : null);
+      setSiguienteEndoso(data.siguiente_endoso || "");
       setBienesCliente(bienesResponse.data);
       setErroresBienes({});
     } catch (error) {
@@ -437,8 +570,23 @@ const Polizas = () => {
         }
       }
 
-      const dataToSend = {
-        numero_poliza: formData.numero_poliza,
+      // Validación de documentos y endoso
+      const nuevosErrores = { poliza: erroresDocs.poliza || "" };
+      if (formData.tiene_endoso) {
+        if (!formData.descripcion_endoso.trim()) nuevosErrores.endoso_descripcion = 'Escribe la descripción del endoso.';
+        if (!docEndoso) nuevosErrores.endoso_doc = erroresDocs.endoso_doc || 'Sube el documento del endoso (PDF).';
+      }
+      setErroresDocs(nuevosErrores);
+
+      if (Object.values(nuevosErrores).some(Boolean)) {
+        document.getElementById('seccion-documentos')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+
+      // Se envía como FormData porque lleva archivos PDF.
+      // Ni el N° de póliza ni el de endoso se envían: los asigna el servidor.
+      const fd = new FormData();
+      const simples = {
         id_cliente: formData.id_cliente,
         tipo: formData.tipo,
         fecha_inicio: formData.fecha_inicio,
@@ -449,32 +597,42 @@ const Polizas = () => {
         iva: formData.iva,
         prima_total: formData.prima_total,
         forma_pago: formData.forma_pago,
-        observaciones: formData.observaciones,
-        bienes_ids: formData.bienes_seleccionados,
-        precios_bienes: formData.precios_bienes
+        observaciones: formData.observaciones
       };
+      Object.entries(simples).forEach(([k, v]) => fd.append(k, v ?? ""));
 
-      let polizaId;
-      if (editingPoliza) {
-        await axios.put(`${API_URL}/polizas/${editingPoliza.id}`, dataToSend, { headers: { Authorization: `Bearer ${token}` } });
-        polizaId = editingPoliza.id;
-        alert('Póliza actualizada');
-      } else {
-        const response = await axios.post(`${API_URL}/polizas`, dataToSend, { headers: { Authorization: `Bearer ${token}` } });
-        polizaId = response.data.poliza.id;
-        alert('Póliza creada');
+      fd.append('bienes_sync', '1');
+      formData.bienes_seleccionados.forEach(id => fd.append('bienes_ids[]', id));
+      Object.entries(formData.precios_bienes).forEach(([id, precio]) => fd.append(`precios_bienes[${id}]`, precio));
+
+      if (docPoliza) fd.append('documento', docPoliza);
+
+      fd.append('tiene_endoso', formData.tiene_endoso ? '1' : '0');
+      if (formData.tiene_endoso) {
+        fd.append('descripcion_endoso', formData.descripcion_endoso.trim());
+        fd.append('endoso_documento', docEndoso);
       }
 
-      await axios.post(`${API_URL}/polizas/${polizaId}/asignar-bienes`, {
-        bienes_ids: formData.bienes_seleccionados,
-        precios_bienes: formData.precios_bienes
-      }, { headers: { Authorization: `Bearer ${token}` } });
+      const headers = { Authorization: `Bearer ${token}` };
+
+      if (editingPoliza) {
+        fd.append('_method', 'PUT');
+        await axios.post(`${API_URL}/polizas/${editingPoliza.id}`, fd, { headers });
+      } else {
+        const res = await axios.post(`${API_URL}/polizas`, fd, { headers });
+        alert(`Póliza creada con el N° ${res.data.poliza.numero_poliza}`);
+      }
 
       setShowModal(false);
       cargarPolizas();
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al guardar');
+      const errores = error.response?.data?.errors;
+      if (errores) {
+        alert(Object.values(errores).flat()[0]);
+      } else {
+        alert(error.response?.data?.message || 'Error al guardar');
+      }
     }
   };
 
@@ -517,6 +675,7 @@ const Polizas = () => {
       const data = res.data;
       const items = [
         { icon: <AssignmentIcon />, label: "N° Póliza", value: data.nPoliza },
+        { icon: <AssignmentIcon />, label: "Endoso", value: data.endoso },
         { icon: <PersonIcon />, label: "Cliente", value: data.cliente },
         { icon: <DateRangeIcon />, label: "Fecha de inicio", value: data.fechaInicio },
         { icon: <DateRangeIcon />, label: "Fecha final", value: data.fechaFinal },
@@ -527,7 +686,7 @@ const Polizas = () => {
         { icon: <MonetizationOnIcon />, label: "Derecho de póliza", value: `$${Number(data.derecho_poliza).toLocaleString()}` },
         { icon: <MonetizationOnIcon />, label: "IVA", value: `$${Number(data.iva).toLocaleString()}` },
         { icon: <MonetizationOnIcon />, label: "Prima total", value: `$${Number(data.prima_total).toLocaleString()}` },
-        { icon: <NotesIcon />, label: "Observaciones", value: data.observaciones || "—" }
+        { icon: <NotesIcon />, label: "Observaciones", value: data.observaciones || "—", fullWidth: true }
       ];
 
       setPolizaDetalle({ ...data, items });
@@ -660,6 +819,7 @@ const Polizas = () => {
           setShowModal(false);
           setBienesCliente([]);
           setErroresBienes({});
+          resetDocumentos();
         }}
         onSave={handleGuardar}
         editando={!!editingPoliza}
@@ -667,7 +827,8 @@ const Polizas = () => {
         subtitulo={editingPoliza ? "Modifica los datos de la póliza" : "Ingresa el RFC del cliente y los datos de la póliza"}
         btnTexto={editingPoliza ? "Guardar cambios" : "Agregar póliza"}
         campos={FORM_CAMPOS}
-        formData={formData}
+        // En una póliza nueva el N° se muestra como texto informativo; el real lo asigna el servidor
+        formData={{ ...formData, numero_poliza: editingPoliza ? formData.numero_poliza : TEXTO_NUMERO_AUTO }}
         onChange={handleInputChange}
         customHandlers={{ onRfcChange: handleRfcChange }}
       >
@@ -802,7 +963,7 @@ const Polizas = () => {
                             </div>
                             {estaSeleccionado && (
                               <span style={{ fontSize: '11px', color: '#6B7280' }}>
-                                (El precio se suma a la prima total)
+                                (El precio se suma a la suma asegurada)
                               </span>
                             )}
                           </div>
@@ -851,6 +1012,116 @@ const Polizas = () => {
             )}
           </div>
         )}
+
+        {/* Documento de la póliza + Endoso: mismo diseño que el resto del formulario */}
+        <div id="seccion-documentos">
+
+          {/* DOCUMENTO DE LA PÓLIZA */}
+          <div className="balam-section-title">DOCUMENTO DE LA PÓLIZA</div>
+          <div className="balam-fields-grid">
+
+            {editingPoliza && docActual && (
+              <div className="balam-field balam-full">
+                <label>DOCUMENTO ACTUAL</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', fontSize: 13 }}>
+                  <span>{docActual.nombre || 'documento.pdf'}</span>
+                  <button
+                    type="button"
+                    className="balam-btn cancel"
+                    style={{ padding: '6px 14px', fontSize: 12 }}
+                    onClick={() => abrirPdf(`${API_URL}/polizas/${editingPoliza.id}/documento`)}
+                  >
+                    Ver PDF
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="balam-field balam-full">
+              <label style={{ color: erroresDocs.poliza ? COLOR_ERROR : "" }}>
+                {docActual ? 'REEMPLAZAR DOCUMENTO (PDF)' : 'SUBIR DOCUMENTO (PDF)'}
+              </label>
+              <input
+                key={`doc-poliza-${fileKey}`}
+                type="file"
+                accept="application/pdf,.pdf"
+                onChange={(e) => handleArchivo(e, 'poliza')}
+                style={{ borderColor: erroresDocs.poliza ? COLOR_ERROR : "" }}
+              />
+              <span style={estiloAyuda}>Solo archivos PDF · Tamaño máximo: {MAX_PDF_MB} MB</span>
+              {erroresDocs.poliza && (
+                <span style={{ ...estiloMensaje, color: COLOR_ERROR }}>{erroresDocs.poliza}</span>
+              )}
+            </div>
+          </div>
+
+          {/* ENDOSO */}
+          <div className="balam-section-title" style={{ marginTop: 24 }}>ENDOSO</div>
+          <div className="balam-fields-grid">
+
+            <div className="balam-field">
+              <label>{editingPoliza ? '¿AGREGAR UN ENDOSO?' : '¿TIENE ENDOSO?'}</label>
+              <select
+                className="balam-select"
+                value={formData.tiene_endoso ? 'si' : 'no'}
+                onChange={(e) => handleTieneEndoso(e.target.value === 'si')}
+              >
+                <option value="no">{editingPoliza ? 'No agregar endoso' : 'No tiene endoso'}</option>
+                <option value="si">{editingPoliza ? 'Sí, agregar endoso' : 'Sí tiene endoso'}</option>
+              </select>
+            </div>
+
+            {formData.tiene_endoso && (
+              <>
+                {/* El N° de endoso lo asigna el sistema a partir del N° de póliza */}
+                <div className="balam-field">
+                  <label>N° DE ENDOSO</label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={editingPoliza ? (siguienteEndoso || TEXTO_ENDOSO_AUTO) : TEXTO_ENDOSO_AUTO}
+                  />
+                  <span style={estiloAyuda}>Se arma con el N° de póliza y un consecutivo</span>
+                </div>
+
+                <div className="balam-field balam-full">
+                  <label style={{ color: erroresDocs.endoso_descripcion ? COLOR_ERROR : "" }}>
+                    DESCRIPCIÓN DEL ENDOSO<span style={estiloRequerido}>*</span>
+                  </label>
+                  <textarea
+                    className="balam-textarea"
+                    rows={3}
+                    maxLength={255}
+                    value={formData.descripcion_endoso}
+                    onChange={(e) => setFormData(prev => ({ ...prev, descripcion_endoso: e.target.value }))}
+                    placeholder="Describe qué cambio se hizo a la póliza"
+                    style={{ borderColor: erroresDocs.endoso_descripcion ? COLOR_ERROR : "" }}
+                  />
+                  {erroresDocs.endoso_descripcion && (
+                    <span style={{ ...estiloMensaje, color: COLOR_ERROR }}>{erroresDocs.endoso_descripcion}</span>
+                  )}
+                </div>
+
+                <div className="balam-field balam-full">
+                  <label style={{ color: erroresDocs.endoso_doc ? COLOR_ERROR : "" }}>
+                    DOCUMENTO DEL ENDOSO (PDF)<span style={estiloRequerido}>*</span>
+                  </label>
+                  <input
+                    key={`doc-endoso-${fileKey}`}
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={(e) => handleArchivo(e, 'endoso')}
+                    style={{ borderColor: erroresDocs.endoso_doc ? COLOR_ERROR : "" }}
+                  />
+                  <span style={estiloAyuda}>Solo archivos PDF · Tamaño máximo: {MAX_PDF_MB} MB</span>
+                  {erroresDocs.endoso_doc && (
+                    <span style={{ ...estiloMensaje, color: COLOR_ERROR }}>{erroresDocs.endoso_doc}</span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       </EditModal>
 
       <ConfirmDeleteModal
@@ -875,6 +1146,10 @@ const Polizas = () => {
         subtitulo={polizaDetalle ? polizaDetalle.cliente : ""}
         avatar="P"
         items={polizaDetalle ? polizaDetalle.items : []}
+        documento={polizaDetalle?.tiene_documento ? { nombre: polizaDetalle.documento_nombre } : null}
+        onVerDocumento={() => abrirPdf(`${API_URL}/polizas/${polizaDetalle.id}/documento`)}
+        endosos={polizaDetalle ? polizaDetalle.endosos || [] : []}
+        onVerDocumentoEndoso={(e) => abrirPdf(`${API_URL}/polizas/${polizaDetalle.id}/endosos/${e.id}/documento`)}
       />
 
       {/* MODAL DE DESCARGA DEL LISTADO (PDF / Excel / CSV) */}
