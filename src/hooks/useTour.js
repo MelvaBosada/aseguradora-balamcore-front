@@ -1,8 +1,20 @@
 import { useCallback, useEffect, useRef } from "react";
+import axios from "axios";
 import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
 
-const TOUR_STORAGE_PREFIX = "balam_tour_completed";
+const API = import.meta.env.VITE_API_URL || "/api";
+
+const marcarTourCompletado = async () => {
+  try {
+    const u = JSON.parse(localStorage.getItem("usuario") || "{}");
+    if (u.tour_completado) return;
+    await axios.post(`${API}/tour/completar`);
+    localStorage.setItem("usuario", JSON.stringify({ ...u, tour_completado: true }));
+  } catch (err) {
+    console.error("No se pudo guardar el avance de la guía:", err);
+  }
+};
 
 const normalizeRole = (role = "") =>
   role.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
@@ -55,10 +67,9 @@ const closeSidebarSection = (element) => {
 };
 
 const TOUR_MODULES = [
-  { route: "/admin", element: '[data-tour="topbar"]', title: "Topbar", description: "Este es el panel superior del sistema. Aquí revisas tus notificaciones, tu perfil y el acceso rápido a la ayuda.", side: "bottom" },
+  { route: "/admin", element: '[data-tour="topbar"]', title: "Topbar", description: "Este es el panel superior del sistema. Aquí revisas tus notificaciones, tu cuenta y el estado de tu plan.", side: "bottom" },
   { route: "/admin", element: '[data-tour="notificaciones-boton"]', title: "Notificaciones", description: "En este botón revisas alertas, avisos y recordatorios importantes del sistema.", side: "bottom" },
-  { route: "/admin", element: '[data-tour="perfil-usuario"]', title: "Perfil", description: "Desde aquí puedes revisar tu información personal y cerrar tu sesión del sistema.", side: "bottom" },
-  { route: "/admin", element: '[data-tour="tour-help"]', title: "Botón de ayuda", description: "Este icono reabre el recorrido guiado en cualquier momento para recordarte cómo usar la plataforma.", side: "bottom" },
+  { route: "/admin", element: '[data-tour="perfil-usuario"]', title: "Tu cuenta", description: "Desde aquí entras a tu perfil, tu suscripción, tus pagos, la guía de uso y el soporte, y cierras tu sesión.", side: "bottom" },
   { route: "/admin", element: '[data-tour="plan-status"]', title: "Estado del plan", description: "Aquí revisas si tu plan está activo, sus días restantes y tus opciones de renovación o prueba.", side: "bottom" },
   { route: "/admin", element: '[data-tour="sidebar"]', title: "Sidebar", description: "El menú lateral es la navegación principal del sistema y organiza todas las secciones del negocio.", side: "right" },
   { route: "/admin/dashboard", element: '[data-tour="menu-dashboard"]', title: "Dashboard", description: "El dashboard es la vista general del negocio con KPI, tendencias y métricas clave de operación.", side: "right" },
@@ -117,14 +128,9 @@ const getOrderedTourSteps = (role) => {
 
 export const getTourSteps = (role) => getOrderedTourSteps(role);
 
-const getStorageKey = (usuario, role) => {
-  const identity = usuario.id || usuario.id_usuario || usuario.correo || "anonymous";
-  return `${TOUR_STORAGE_PREFIX}:${identity}:${normalizeRole(role) || "user"}`;
-};
-
 const useTour = ({ role, usuario = {}, autoStart = false, navigate } = {}) => {
   const driverRef = useRef(null);
-  const storageKey = getStorageKey(usuario, role);
+  const yaHizoTour = Boolean(usuario.tour_completado);
 
   const goToRoute = useCallback((route) => {
     if (!route || !navigate || route === window.location.pathname) return;
@@ -172,20 +178,20 @@ const useTour = ({ role, usuario = {}, autoStart = false, navigate } = {}) => {
         }
       },
       onDestroyed: () => {
-        localStorage.setItem(storageKey, "true");
+        marcarTourCompletado();
       },
     });
 
     driverRef.current.setSteps(steps);
     driverRef.current.drive();
-  }, [goToRoute, role, storageKey]);
+  }, [goToRoute, role]);
 
   useEffect(() => {
-    if (!autoStart || localStorage.getItem(storageKey)) return undefined;
+    if (!autoStart || yaHizoTour) return undefined;
 
     const timer = window.setTimeout(startTour, 350);
     return () => window.clearTimeout(timer);
-  }, [autoStart, startTour, storageKey]);
+  }, [autoStart, startTour, yaHizoTour]);
 
   useEffect(() => () => driverRef.current?.destroy(), []);
 
