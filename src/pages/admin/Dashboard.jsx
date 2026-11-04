@@ -12,7 +12,9 @@ import PeopleIcon from "@mui/icons-material/People";
 import AvisosPanel from "../../components/Avisospanel";
 import ModalPlanes from "../../components/ModalPlanes";
 import "../../css/Dashboard.css";
-import usePermisos from "../../hooks/usePermisos";
+import usePermisos from "../../context/PermisosContext";
+
+import ResultadoPagoModal from "../../components/ResultadoPagoModal";
 
 const API = import.meta.env.VITE_API_URL || '/api';
 const PIE_COLORS = ["#0F4C3A", "#295E4E", "#4a9477", "#f59e0b", "#94a3b8"];
@@ -39,12 +41,12 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 const badgeEstado = (estado) => {
     const map = {
-        abierto:       "badge-activo",
-        en_proceso:    "badge-activo",
+        abierto: "badge-activo",
+        en_proceso: "badge-activo",
         en_evaluacion: "badge-pendiente",
-        resuelto:      "badge-pendiente",
-        cerrado:       "badge-vencido",
-        rechazado:     "badge-vencido",
+        resuelto: "badge-pendiente",
+        cerrado: "badge-vencido",
+        rechazado: "badge-vencido",
     };
     return <span className={`badge-estado ${map[estado] ?? ""}`}>{estado}</span>;
 };
@@ -61,19 +63,21 @@ const FiltroBtn = ({ valor, actual, onChange }) => (
 const Dashboard = () => {
     const { verificarPagoStripe, vencida } = usePermisos();
     const pagoVerificado = useRef(false);
+    const [resultadoPago, setResultadoPago] = useState(null);
+    const verificacionIniciada = useRef(false);
 
-    const [openPlanes, setOpenPlanes]               = useState(false);
-    const [kpis, setKpis]                           = useState(null);
-    const [ingresos, setIngresos]                   = useState([]);
-    const [polizasTipo, setPolizasTipo]             = useState([]);
-    const [tendencia, setTendencia]                 = useState([]);
+    const [openPlanes, setOpenPlanes] = useState(false);
+    const [kpis, setKpis] = useState(null);
+    const [ingresos, setIngresos] = useState([]);
+    const [polizasTipo, setPolizasTipo] = useState([]);
+    const [tendencia, setTendencia] = useState([]);
     const [ultimosSiniestros, setUltimosSiniestros] = useState([]);
 
-    const [filtroIngresos, setFiltroIngresos]   = useState("mensual");
+    const [filtroIngresos, setFiltroIngresos] = useState("mensual");
     const [filtroTendencia, setFiltroTendencia] = useState("mensual");
 
-    const [loadingKpis, setLoadingKpis]           = useState(true);
-    const [loadingIngresos, setLoadingIngresos]   = useState(true);
+    const [loadingKpis, setLoadingKpis] = useState(true);
+    const [loadingIngresos, setLoadingIngresos] = useState(true);
     const [loadingTendencia, setLoadingTendencia] = useState(true);
 
     // Abrir modal si la suscripción está vencida
@@ -180,15 +184,20 @@ const Dashboard = () => {
     };
 
     // Verificar pago de Stripe al retornar a la pantalla
+    // Al volver de Stripe: verifica el pago y muestra el resultado
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        if (params.get("pago") !== "exitoso" || pagoVerificado.current) return;
+        const pago = params.get("pago");
 
-        pagoVerificado.current = true;
-        verificarPagoStripe().then((res) => {
-            if (res) window.location.reload();
-        });
-    }, [verificarPagoStripe]);
+        if (pago === "exitoso" && !verificacionIniciada.current) {
+            verificacionIniciada.current = true;
+            setResultadoPago({ kind: "verificando" });
+            verificarPagoStripe().then((res) => setResultadoPago(res || null));
+        } else if (pago === "cancelado") {
+            setResultadoPago({ ok: false, kind: "abandonado" });
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <div className="dash-wrapper">
@@ -196,6 +205,13 @@ const Dashboard = () => {
                 open={openPlanes}
                 onClose={() => setOpenPlanes(false)}
                 onLogout={handleLogout}
+            />
+            <ResultadoPagoModal
+                resultado={resultadoPago}
+                onClose={() => {
+                    setResultadoPago(null);
+                    window.location.replace(window.location.pathname);
+                }}
             />
 
             {/* KPIs */}
@@ -226,7 +242,7 @@ const Dashboard = () => {
                         <h3>Ingresos vs Siniestros</h3>
                         <div className="chart-filtros">
                             <FiltroBtn valor="mensual" actual={filtroIngresos} onChange={setFiltroIngresos} />
-                            <FiltroBtn valor="anual"   actual={filtroIngresos} onChange={setFiltroIngresos} />
+                            <FiltroBtn valor="anual" actual={filtroIngresos} onChange={setFiltroIngresos} />
                         </div>
                     </div>
                     <div className="chart-inner">
@@ -240,7 +256,7 @@ const Dashboard = () => {
                                         <YAxis tick={{ fontSize: 11 }} />
                                         <Tooltip content={<CustomTooltip />} />
                                         <Legend wrapperStyle={{ fontSize: "12px" }} />
-                                        <Bar dataKey="ingresos"   name="Ingresos"   fill="#0F4C3A" radius={[5, 5, 0, 0]} />
+                                        <Bar dataKey="ingresos" name="Ingresos" fill="#0F4C3A" radius={[5, 5, 0, 0]} />
                                         <Bar dataKey="siniestros" name="Siniestros" fill="#f59e0b" radius={[5, 5, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
@@ -322,7 +338,7 @@ const Dashboard = () => {
                         <h3>Tendencia de siniestros</h3>
                         <div className="chart-filtros">
                             <FiltroBtn valor="mensual" actual={filtroTendencia} onChange={setFiltroTendencia} />
-                            <FiltroBtn valor="anual"   actual={filtroTendencia} onChange={setFiltroTendencia} />
+                            <FiltroBtn valor="anual" actual={filtroTendencia} onChange={setFiltroTendencia} />
                         </div>
                     </div>
                     <div className="chart-inner">

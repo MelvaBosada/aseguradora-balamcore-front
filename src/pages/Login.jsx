@@ -6,18 +6,20 @@ import axios from "axios";
 import logoSin from "../assets/LogoSin.png";
 import LetrasColor from "../assets/LetrasColor.png";
 import ButtonVerdeForm from "../components/ButtonVerdeForm";
+import usePermisos from "../context/PermisosContext";
 
 function Login({ onGoToRegister }) {
   const navigate = useNavigate();
+  const { sincronizarSesion } = usePermisos();
 
   // ── Estados ──────────────────────────────────────────────────
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(false);   // true = inputs rojos
-  const [open, setOpen] = useState(false);   // controla el snackbar
+  const [error, setError] = useState(false);       // true = inputs rojos
+  const [open, setOpen] = useState(false);         // controla el snackbar
   const [mensaje, setMensaje] = useState("");      // texto del snackbar
   const [loading, setLoading] = useState(false);   // true mientras espera al backend
-  const [isAnimating, setIsAnimating] = useState(false);   // animación del logo
+  const [isAnimating, setIsAnimating] = useState(false); // animación del logo
 
   // ── Animación del logo al cargar ─────────────────────────────
   useEffect(() => {
@@ -40,29 +42,25 @@ function Login({ onGoToRegister }) {
     setLoading(true);
 
     try {
-      
       // 2. Manda correo y password al backend Laravel
       const res = await axios.post(
         "/login",
-        {
-          correo,
-          password,
-        },
-        {
-          withCredentials: true,
-          skipLoader: false,
-        }
+        { correo, password },
+        { withCredentials: true, skipLoader: false }
       );
 
-      // 3. Guarda el usuario, permisos, módulos y suscripción en localStorage
-localStorage.setItem("token",        res.data.token);
-localStorage.setItem("usuario",      JSON.stringify(res.data.usuario));
-localStorage.setItem("permisos",     JSON.stringify(res.data.permisos));
-localStorage.setItem("modulos",      JSON.stringify(res.data.modulos));
-localStorage.setItem("suscripcion",  JSON.stringify(res.data.suscripcion));
+      // 3. Guarda usuario, permisos, módulos y suscripción en localStorage
+      localStorage.setItem("token",       res.data.token);
+      localStorage.setItem("usuario",     JSON.stringify(res.data.usuario));
+      localStorage.setItem("permisos",    JSON.stringify(res.data.permisos));
+      localStorage.setItem("modulos",     JSON.stringify(res.data.modulos));
+      localStorage.setItem("suscripcion", JSON.stringify(res.data.suscripcion));
 
       // Setea el token globalmente para todas las peticiones axios
-axios.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
+      axios.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
+
+      // Actualiza el contexto con la sesión nueva (evita datos de la cuenta anterior)
+      sincronizarSesion();
 
       // 4. Muestra mensaje de éxito
       setMensaje("Sesión iniciada correctamente");
@@ -176,8 +174,8 @@ axios.defaults.headers.common["Authorization"] = `Bearer ${res.data.token}`;
             fontWeight: 600,
             fontSize: "13px",
             padding: "6px 20px",
-            whiteSpace: "nowrap",                       // no parte en 2 líneas
-            boxShadow: "0 4px 20px rgba(0,0,0,0.25)",  // sombra elevada
+            whiteSpace: "nowrap",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
           }}
         >
           {mensaje}

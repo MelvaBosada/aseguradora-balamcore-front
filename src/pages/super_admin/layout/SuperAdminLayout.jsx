@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: "/superadmin/planes",       icon: "◆", label: "Planes"       },
   { to: "/superadmin/modulos",      icon: "⊞", label: "Módulos"      }, 
   { to: "/superadmin/usuarios",       icon: "◉", label: "Usuarios"       }, 
+   { to: "/superadmin/soporte",       icon: "☎", label: "Soporte"       }, 
 ];
 
 export default function SuperAdminLayout() {
