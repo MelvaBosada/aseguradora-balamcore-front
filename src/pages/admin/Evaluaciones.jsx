@@ -22,7 +22,6 @@ const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 /* ─── CONFIG TABLA ───────────────────────────── */
 const campos = [
-  "id",
   "nSiniestro",
   "dictamen",
   "montoRecomendado",
@@ -34,7 +33,6 @@ const campos = [
 ];
 
 const columnas = [
-  "Id",
   "N° Siniestro",
   "Dictamen",
   "Monto recomendado",
