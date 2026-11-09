@@ -14,7 +14,10 @@ import "./layout.css";
 
 const Sidebar = ({ open, onClose }) => {
   const [openMenu, setOpenMenu] = useState(null);
-  const { tiene, tieneAlguno } = usePermisos();
+  const { tiene, tieneAlguno, tienePermiso, tieneModulo } = usePermisos();
+
+  // "siniestros.configurar" no es un módulo del plan: se revisa el permiso y el módulo "siniestros" por separado
+  const puedeConfigurarSiniestros = tienePermiso("siniestros.configurar") && tieneModulo("siniestros");
 
   const toggleMenu = (menu) => {
     setOpenMenu(openMenu === menu ? null : menu);
@@ -63,7 +66,7 @@ const Sidebar = ({ open, onClose }) => {
         )}
 
         {/* CATÁLOGOS */}
-        {tieneAlguno("clientes", "empleados", "bienes", "coberturas", "perfiles") && (
+        {(tieneAlguno("clientes", "empleados", "bienes", "coberturas", "perfiles") || puedeConfigurarSiniestros) && (
           <div className="menu-section" data-tour="menu-catalogos">
             <div className="menu-section-title" onClick={() => toggleMenu("catalogos")}>
               <span><GroupIcon /> Catálogos</span>
@@ -74,6 +77,7 @@ const Sidebar = ({ open, onClose }) => {
               {tiene("empleados")  && <NavLink to="/admin/empleados"  className="submenu-item" data-tour="menu-empleados" onClick={onClose}>Empleados</NavLink>}
               {tiene("bienes")     && <NavLink to="/admin/bienes"     className="submenu-item" data-tour="menu-bienes" onClick={onClose}>Bienes</NavLink>}
               {tiene("coberturas") && <NavLink to="/admin/coberturas" className="submenu-item" data-tour="menu-coberturas" onClick={onClose}>Coberturas</NavLink>}
+              {puedeConfigurarSiniestros && <NavLink to="/admin/configuracion-siniestros" className="submenu-item" data-tour="menu-config-siniestros" onClick={onClose}>Config. siniestros</NavLink>}
               {tiene("perfiles")   && <NavLink to="/admin/perfiles"   className="submenu-item" data-tour="menu-perfiles" onClick={onClose}>Perfiles</NavLink>}
             </div>
           </div>

@@ -8,7 +8,7 @@ import "../../css/Clientes.css";
 import AddCircleOutlinedIcon from "@mui/icons-material/AddCircleOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import SearchIcon from "@mui/icons-material/Search";
 import DownloadIcon from "@mui/icons-material/Download";
 import AssignmentIcon from "@mui/icons-material/Assignment";
@@ -18,6 +18,11 @@ import PriorityHighIcon from "@mui/icons-material/PriorityHigh";
 import InfoIcon from "@mui/icons-material/Info";
 import ReportIcon from "@mui/icons-material/Report";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+
 
 // Componentes
 import PrimaryButton from "../../components/PrimaryButton";
@@ -27,18 +32,25 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 import DescargarModal from "../../components/DescargarModal";
+import AsignarAjustadorModal from "../../components/siniestro/AsignarAjustadorModal";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
-const campos = ["nSiniestro", "tipo", "cliente", "estatus", "prioridad"];
+const AVISO_EXITO_MS = 3500;
+const SIN_CONEXION = "No hay conexión con el servidor.";
+
+const campos = ["nSiniestro", "tipo", "cliente", "ajustador", "estatus", "prioridad"];
 const columnas = [
   "N° Siniestro",
   "Tipo",
   "Cliente",
+  "Ajustador",
   "Estatus",
   "Prioridad",
   "Acciones"
 ];
+
+const textoCasos = (n) => `${n} ${n === 1 ? "caso" : "casos"}`;
 
 const FORM_CAMPOS_SINIESTRO = [
   {
@@ -56,7 +68,7 @@ const FORM_CAMPOS_SINIESTRO = [
     readOnly: true
   },
   {
-    label: "Selecciona Póliza",
+    label: "Póliza",
     name: "id_poliza",
     type: "select",
     options: [],
@@ -64,7 +76,7 @@ const FORM_CAMPOS_SINIESTRO = [
     required: true
   },
   {
-    label: "Selecciona Reporte",
+    label: "Reporte",
     name: "id_reporte",
     type: "select",
     options: [],
@@ -97,16 +109,18 @@ const FORM_CAMPOS_SINIESTRO = [
     required: true
   },
   {
-    label: "Monto Reclamado",
+    label: "Reserva / Estimado (Puede ser 0)",
     name: "monto_reclamado",
     type: "number",
     seccion: "Datos del Siniestro",
     required: true
   },
   {
-    label: "Deducible Aplicado",
-    name: "deducible_aplicado",
-    type: "number",
+    label: "Ajustador asignado (opcional)",
+    name: "id_empleado",
+    type: "select",
+    buscable: true,
+    options: [], // se llena con la API (ver camposConOpciones)
     seccion: "Datos del Siniestro"
   }
 ];
@@ -120,7 +134,7 @@ const FORM_VACIO_SINIESTRO = {
   tipo: "",
   prioridad: "",
   monto_reclamado: "",
-  deducible_aplicado: ""
+  id_empleado: "" // "" = auto-asignar
 };
 
 const getAuthHeaders = () => {
@@ -128,10 +142,22 @@ const getAuthHeaders = () => {
 
   return {
     headers: {
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json"
     }
   };
 };
+
+// Mensaje legible a partir de un error de axios
+const mensajeError = (error, defecto) => {
+  if (!error.response) return SIN_CONEXION;
+  const errores = error.response?.data?.errors;
+  if (errores) return Object.values(errores).flat().join("\n");
+  return error.response?.data?.message || defecto || error.message;
+};
+
+// Estilos del icono del aviso de advertencia (por si el CSS no define .advertencia)
+const ESTILO_ICONO_ADVERTENCIA = { background: "#FFF4D6", color: "#9A6B00" };
 
 const Siniestros = () => {
   const location = useLocation();
@@ -158,7 +184,36 @@ const Siniestros = () => {
   const [polizasOptions, setPolizasOptions] = useState([]);
   const [reportesOptions, setReportesOptions] = useState([]);
 
+  // Ajustadores y modal de asignación / reasignación
+  const [ajustadores, setAjustadores] = useState([]);
+  const [showAsignar, setShowAsignar] = useState(false);
+  const [siniestroAsignar, setSiniestroAsignar] = useState(null);
+
+  // Aviso con el diseño del sistema (reemplaza alert)
+  // { tipo: 'exito' | 'error' | 'advertencia', titulo, mensaje, alAceptar? }
+  const [aviso, setAviso] = useState(null);
+
   const timerRfcRef = useRef(null);
+
+  const mostrarAviso = useCallback((tipo, titulo, mensaje, alAceptar = null) => {
+    setAviso({ tipo, titulo, mensaje, alAceptar });
+  }, []);
+
+  const cerrarAviso = () => {
+    const callback = aviso?.alAceptar;
+    setAviso(null);
+    if (callback) callback();
+  };
+
+  // Los avisos de éxito se cierran solos
+  useEffect(() => {
+    if (aviso?.tipo !== "exito") return;
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
+
+  // Limpia el temporizador del RFC al desmontar
+  useEffect(() => () => clearTimeout(timerRfcRef.current), []);
 
   // =========================================================
   // CARGAR SINIESTROS
@@ -181,17 +236,41 @@ const Siniestros = () => {
       setTotalPages(response.data.last_page || 1);
     } catch (error) {
       console.error("Error cargando siniestros:", error);
+      mostrarAviso(
+        "error",
+        "No se pudieron cargar los siniestros",
+        mensajeError(error)
+      );
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
+  }, [currentPage, searchTerm, estatusFilter, itemsPerPage, mostrarAviso]);
 
   useEffect(() => {
     cargarSiniestros();
   }, [cargarSiniestros]);
 
   // =========================================================
-  // NUEVO: CARGAR DATOS DEL REPORTE SELECCIONADO
+  // CARGAR AJUSTADORES (para el formulario y el modal de reasignación)
+  // =========================================================
+  const cargarAjustadores = useCallback(async () => {
+    try {
+      const res = await axios.get(
+        `${API_URL}/siniestros/ajustadores`,
+        getAuthHeaders()
+      );
+      setAjustadores(res.data || []);
+    } catch (error) {
+      console.error("Error cargando ajustadores:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    cargarAjustadores();
+  }, [cargarAjustadores]);
+
+  // =========================================================
+  // CARGAR DATOS DEL REPORTE SELECCIONADO
   // =========================================================
   const cargarDatosPorReporteId = useCallback(
     async (reporteId, idPolizaDesdeReporte) => {
@@ -242,13 +321,9 @@ const Siniestros = () => {
         // Cargar los reportes disponibles.
         const reportes = (data.reportes || []).map((r) => ({
           value: String(r.id),
-          label: `${
-            r.numero_reporte || r.id
-          } - Póliza: ${
+          label: `${r.numero_reporte || r.id} - Póliza: ${
             r.numero_poliza || r.id_poliza || ""
-          } - ${
-            r.fecha_reporte || ""
-          }`,
+          } - ${r.fecha_reporte || ""}`,
           id_poliza: r.id_poliza
         }));
 
@@ -297,16 +372,21 @@ const Siniestros = () => {
           error.response?.data || error
         );
 
-        alert(
-          "No se pudieron cargar los datos del reporte. Verifica la conexión con el servidor."
+        mostrarAviso(
+          "error",
+          "No se pudieron cargar los datos del reporte",
+          mensajeError(
+            error,
+            "Verifica la conexión con el servidor e inténtalo de nuevo."
+          )
         );
       }
     },
-    []
+    [mostrarAviso]
   );
 
   // =========================================================
-  // NUEVO: RECIBIR EL REPORTE DESDE EL MÓDULO DE REPORTES
+  // RECIBIR EL REPORTE DESDE EL MÓDULO DE REPORTES
   // =========================================================
   useEffect(() => {
     const state = location.state;
@@ -352,9 +432,7 @@ const Siniestros = () => {
         setReportesOptions(
           data.reportes.map((r) => ({
             value: String(r.id),
-            label: `${
-              r.numero_reporte || r.id
-            } - Póliza: ${
+            label: `${r.numero_reporte || r.id} - Póliza: ${
               r.numero_poliza || ""
             }`,
             id_poliza: r.id_poliza
@@ -364,9 +442,7 @@ const Siniestros = () => {
         setPolizasOptions(
           (data.polizas || []).map((p) => ({
             value: String(p.id),
-            label: `${
-              p.numero_poliza || p.id
-            } - ${p.tipo || ""}`
+            label: `${p.numero_poliza || p.id} - ${p.tipo || ""}`
           }))
         );
       } else {
@@ -415,13 +491,9 @@ const Siniestros = () => {
         setReportesOptions(
           response.data.map((r) => ({
             value: String(r.id),
-            label: `${
-              r.numero_reporte || r.id
-            } - ${
+            label: `${r.numero_reporte || r.id} - ${
               r.fecha_reporte || ""
-            } - ${
-              r.estado || ""
-            }`,
+            } - ${r.estado || ""}`,
             id_poliza: r.id_poliza || polizaId
           }))
         );
@@ -530,6 +602,11 @@ const Siniestros = () => {
         "No se pudo identificar el ID del siniestro:",
         siniestro
       );
+      mostrarAviso(
+        "error",
+        "No se pudo editar",
+        "No se pudo identificar el siniestro seleccionado."
+      );
       return;
     }
 
@@ -545,9 +622,7 @@ const Siniestros = () => {
         setReportesOptions(
           data.reportes.map((r) => ({
             value: String(r.id),
-            label: `${
-              r.numero_reporte || r.id
-            } - Póliza: ${
+            label: `${r.numero_reporte || r.id} - Póliza: ${
               r.numero_poliza || ""
             }`,
             id_poliza: r.id_poliza
@@ -559,9 +634,7 @@ const Siniestros = () => {
         setPolizasOptions(
           data.polizas.map((p) => ({
             value: String(p.id),
-            label: `${
-              p.numero_poliza || p.id
-            } - ${p.tipo || ""}`
+            label: `${p.numero_poliza || p.id} - ${p.tipo || ""}`
           }))
         );
       }
@@ -597,10 +670,10 @@ const Siniestros = () => {
           data.reporte_id ||
           ""
         ),
-        tipo: (data.tipo || "").toLowerCase(),
-        prioridad: (data.prioridad || "").toLowerCase(),
+        tipo: data.tipo_raw,
+        prioridad: data.prioridad_raw,
         monto_reclamado: data.monto_reclamado ?? "",
-        deducible_aplicado: data.deducible_aplicado ?? ""
+        id_empleado: data.id_empleado ? String(data.id_empleado) : ""
       });
 
       setEditingSiniestro(siniestro);
@@ -611,8 +684,10 @@ const Siniestros = () => {
         error
       );
 
-      alert(
-        "Error al obtener datos del siniestro para editar"
+      mostrarAviso(
+        "error",
+        "No se pudo abrir el siniestro",
+        mensajeError(error, "Error al obtener los datos del siniestro para editar.")
       );
     }
   };
@@ -622,7 +697,17 @@ const Siniestros = () => {
   // =========================================================
   const handleGuardar = async () => {
     if (!formData.id_reporte) {
-      alert("Debes seleccionar un reporte");
+      mostrarAviso("error", "Faltan datos", "Debes seleccionar un reporte.");
+      return;
+    }
+
+    if (!formData.tipo) {
+      mostrarAviso("error", "Faltan datos", "Selecciona el tipo de siniestro.");
+      return;
+    }
+
+    if (!formData.prioridad) {
+      mostrarAviso("error", "Faltan datos", "Selecciona la prioridad del siniestro.");
       return;
     }
 
@@ -630,7 +715,7 @@ const Siniestros = () => {
       formData.monto_reclamado === "" ||
       formData.monto_reclamado === null
     ) {
-      alert("Debes ingresar el monto reclamado");
+      mostrarAviso("error", "Faltan datos", "Debes ingresar el monto reclamado.");
       return;
     }
 
@@ -641,12 +726,7 @@ const Siniestros = () => {
         prioridad: formData.prioridad,
         monto_reclamado: parseFloat(
           formData.monto_reclamado
-        ),
-        deducible_aplicado:
-          formData.deducible_aplicado !== "" &&
-          formData.deducible_aplicado !== null
-            ? parseFloat(formData.deducible_aplicado)
-            : null
+        )
       };
 
       const idToEdit =
@@ -654,30 +734,61 @@ const Siniestros = () => {
         editingSiniestro?.id_siniestro;
 
       if (editingSiniestro && idToEdit) {
+        // El ajustador NO se edita aquí: se cambia con "Reasignar" (queda auditado)
         await axios.put(
           `${API_URL}/siniestros/${idToEdit}`,
           dataToSend,
           getAuthHeaders()
         );
-      } else {
-        await axios.post(
-          `${API_URL}/siniestros`,
-          dataToSend,
-          getAuthHeaders()
+
+        cerrarModal();
+        await cargarSiniestros();
+        mostrarAviso(
+          "exito",
+          "Siniestro actualizado",
+          "Los cambios se guardaron correctamente."
         );
+        return;
       }
 
+      // "" = auto-asignar: el backend usa el ajustador menos cargado
+      dataToSend.id_empleado = formData.id_empleado
+        ? parseInt(formData.id_empleado, 10)
+        : null;
+
+      const res = await axios.post(
+        `${API_URL}/siniestros`,
+        dataToSend,
+        getAuthHeaders()
+      );
+
       cerrarModal();
-      await cargarSiniestros();
+
+      const irAlExpediente = () =>
+        navigate(`/admin/siniestros/${res.data.siniestro.id}`);
+
+      // Al crear: si hay alertas se muestran y, al aceptar, se abre el expediente
+      if (res.data.advertencias?.length) {
+        mostrarAviso(
+          "advertencia",
+          "Siniestro abierto con alertas",
+          res.data.advertencias.join("\n"),
+          irAlExpediente
+        );
+        return;
+      }
+
+      irAlExpediente();
     } catch (error) {
       console.error(
         "Error al guardar el siniestro:",
         error
       );
 
-      alert(
-        "Error al guardar: " +
-          (error.response?.data?.message || error.message)
+      mostrarAviso(
+        "error",
+        "No se pudo guardar",
+        mensajeError(error, "No se pudo guardar el siniestro.")
       );
     }
   };
@@ -784,6 +895,26 @@ const Siniestros = () => {
   };
 
   // =========================================================
+  // ASIGNAR / REASIGNAR AJUSTADOR
+  // =========================================================
+  const handleAsignarClick = (siniestro) => {
+    setSiniestroAsignar(siniestro);
+    setShowAsignar(true);
+  };
+
+  const handleAsignado = async () => {
+    setShowAsignar(false);
+    setSiniestroAsignar(null);
+    // La carga de cada ajustador cambió, se recargan ambos
+    await Promise.all([cargarSiniestros(), cargarAjustadores()]);
+    mostrarAviso(
+      "exito",
+      "Ajustador asignado",
+      "La asignación se guardó correctamente y quedó registrada."
+    );
+  };
+
+  // =========================================================
   // ELIMINAR SINIESTRO
   // =========================================================
   const handleEliminarClick = (siniestro) => {
@@ -799,12 +930,18 @@ const Siniestros = () => {
       siniestroToDelete.id_siniestro;
 
     if (!id) {
-      alert("No se encontró el ID del registro a eliminar");
+      setShowDeleteModal(false);
+      setSiniestroToDelete(null);
+      mostrarAviso(
+        "error",
+        "No se pudo eliminar",
+        "No se encontró el ID del registro a eliminar."
+      );
       return;
     }
 
     try {
-      await axios.delete(
+      const res = await axios.delete(
         `${API_URL}/siniestros/${id}`,
         getAuthHeaders()
       );
@@ -813,15 +950,24 @@ const Siniestros = () => {
       setSiniestroToDelete(null);
 
       await cargarSiniestros();
+      mostrarAviso(
+        "exito",
+        "Siniestro eliminado",
+        res.data?.message || "El siniestro se eliminó correctamente."
+      );
     } catch (error) {
       console.error(
         "Error al eliminar siniestro:",
         error
       );
 
-      alert(
-        "Error al eliminar el siniestro: " +
-          (error.response?.data?.message || error.message)
+      setShowDeleteModal(false);
+      setSiniestroToDelete(null);
+
+      mostrarAviso(
+        "error",
+        "No se pudo eliminar",
+        mensajeError(error, "No se pudo eliminar el siniestro.")
       );
     }
   };
@@ -840,8 +986,12 @@ const Siniestros = () => {
   };
 
   // Preparar las opciones de los selects del formulario.
-  const camposConOpciones = FORM_CAMPOS_SINIESTRO.map(
-    (campo) => {
+  const camposConOpciones = FORM_CAMPOS_SINIESTRO
+    // El ajustador solo se elige al crear; después se cambia con "Reasignar"
+    .filter(
+      (campo) => !(editingSiniestro && campo.name === "id_empleado")
+    )
+    .map((campo) => {
       if (campo.name === "id_poliza") {
         return {
           ...campo,
@@ -856,9 +1006,21 @@ const Siniestros = () => {
         };
       }
 
+      if (campo.name === "id_empleado") {
+        return {
+          ...campo,
+          options: [
+            { value: "", label: "Auto-asignar (Menos cargado)" },
+            ...ajustadores.map((a) => ({
+              value: String(a.id),
+              label: `${a.nombre} (${textoCasos(a.carga)})`
+            }))
+          ]
+        };
+      }
+
       return campo;
-    }
-  );
+    });
 
   // =========================================================
   // PANTALLA DE CARGA
@@ -904,7 +1066,7 @@ const Siniestros = () => {
 
           <select
             className="form-select"
-            style={{ width: "180px" }}
+            style={{ width: "220px" }}
             value={estatusFilter}
             onChange={(e) => {
               setEstatusFilter(e.target.value);
@@ -913,11 +1075,17 @@ const Siniestros = () => {
           >
             <option value="Todos">Todos</option>
             <option value="abierto">Abierto</option>
+            <option value="documentacion_pendiente">Documentación pendiente</option>
             <option value="en_proceso">En proceso</option>
-            <option value="en_evaluacion">En evaluación</option>
-            <option value="resuelto">Resuelto</option>
-            <option value="cerrado">Cerrado</option>
+            <option value="en_evaluacion">Evaluación</option>
+            <option value="dictaminado">Dictaminado</option>
+            <option value="autorizado">Autorizado</option>
+            <option value="en_pago">En proceso de pago</option>
+            <option value="pagado">Pagado</option>
             <option value="rechazado">Rechazado</option>
+            <option value="cancelado">Cancelado</option>
+            <option value="cerrado">Cerrado</option>
+            <option value="reabierto">Reabierto</option>
           </select>
         </div>
 
@@ -942,10 +1110,18 @@ const Siniestros = () => {
           campos={campos}
           acciones={[
             {
-              titulo: "Ver detalle",
+              titulo: "Expediente",
               clase: "tabla-btn-ver",
-              icono: <VisibilityIcon fontSize="small" />,
-              onClick: handleVerDetalle
+              icono: <FolderSharedIcon fontSize="small" />,
+              onClick: (s) => navigate(`/admin/siniestros/${s.id}`)
+            },
+            {
+              // El tooltip depende de la fila (TablaForm ya lo soporta)
+              titulo: (s) =>
+                s.id_empleado ? "Reasignar Ajustador" : "Asignar Ajustador",
+              clase: "tabla-btn-reasignar",
+              icono: <AssignmentIndIcon fontSize="small" />,
+              onClick: handleAsignarClick
             },
             {
               titulo: "Editar",
@@ -998,6 +1174,18 @@ const Siniestros = () => {
         customHandlers={{
           onRfcChange: handleRfcChange
         }}
+      />
+
+      {/* ASIGNAR / REASIGNAR AJUSTADOR */}
+      <AsignarAjustadorModal
+        open={showAsignar}
+        siniestro={siniestroAsignar}
+        ajustadores={ajustadores}
+        onClose={() => {
+          setShowAsignar(false);
+          setSiniestroAsignar(null);
+        }}
+        onGuardado={handleAsignado}
       />
 
       {/* CONFIRMACIÓN DE ELIMINACIÓN */}
@@ -1061,6 +1249,29 @@ const Siniestros = () => {
         avatar="S"
         items={siniestroDetalle?.items || []}
       />
+
+      {/* ---------- Aviso (éxito / error / advertencia) ---------- */}
+      {aviso && (
+        <div
+          className="balam-overlay"
+          style={{ zIndex: 3000 }}
+          onClick={(e) => e.target === e.currentTarget && cerrarAviso()}
+        >
+          <div className="balam-modal evi-aviso">
+            <div
+              className={`evi-aviso-icono ${aviso.tipo}`}
+              style={aviso.tipo === "advertencia" ? ESTILO_ICONO_ADVERTENCIA : undefined}
+            >
+              {aviso.tipo === "exito" && <CheckCircleIcon style={{ fontSize: 40 }} />}
+              {aviso.tipo === "error" && <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+              {aviso.tipo === "advertencia" && <WarningAmberIcon style={{ fontSize: 40 }} />}
+            </div>
+            <h3>{aviso.titulo}</h3>
+            <p style={{ whiteSpace: "pre-line" }}>{aviso.mensaje}</p>
+            <button className="balam-btn save" onClick={cerrarAviso}>Aceptar</button>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE DESCARGA DEL LISTADO (PDF / Excel / CSV) */}
       <DescargarModal

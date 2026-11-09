@@ -17,8 +17,7 @@ import ReceiptIcon        from "@mui/icons-material/Receipt";
 import EventIcon          from "@mui/icons-material/Event";
 import NotesIcon          from "@mui/icons-material/Notes";
 import CheckCircleIcon    from "@mui/icons-material/CheckCircle";
-import Snackbar           from "@mui/material/Snackbar";
-import Alert              from "@mui/material/Alert";
+import ErrorOutlineIcon   from "@mui/icons-material/ErrorOutline";
 
 import PrimaryButton       from "../../components/PrimaryButton";
 import TablaForm           from "../../components/TablaForm";
@@ -29,9 +28,12 @@ import RenovarPolizaModal  from "../../components/RenovarPolizaModal";
 import DescargarModal      from "../../components/DescargarModal";
 
 import { PolizasVencerData } from "../../components/PolizasVencerData";
+import "../../css/Clientes.css";
 import "../../css/PolizasVencer.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
+
+const AVISO_EXITO_MS = 3500;
 
 const ESTATUS_DIAS = {
   Todos:        30,
@@ -81,13 +83,18 @@ const PolizasVencer = () => {
   const [showDescarga, setShowDescarga] = useState(false);
   const [selected,     setSelected]     = useState(null);
 
-  const [snackOpen,     setSnackOpen]     = useState(false);
-  const [snackMsg,      setSnackMsg]      = useState("");
-  const [snackSeverity, setSnackSeverity] = useState("success");
+  const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', titulo, mensaje }
 
-  const showSnack = (msg, severity = "success") => {
-    setSnackMsg(msg); setSnackSeverity(severity); setSnackOpen(true);
-  };
+  const mostrarAviso = useCallback((tipo, titulo, mensaje) => {
+    setAviso({ tipo, titulo, mensaje });
+  }, []);
+
+  // Los avisos de éxito se cierran solos
+  useEffect(() => {
+    if (aviso?.tipo !== "exito") return;
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
 
   const fetchPolizas = useCallback(async (estatusFiltro) => {
     setLoading(true);
@@ -100,11 +107,11 @@ const PolizasVencer = () => {
     } catch (err) {
       console.error(err);
       setError("No se pudieron cargar las pólizas. Intenta de nuevo.");
-      showSnack("Error al cargar pólizas", "error");
+      mostrarAviso("error", "No se pudieron cargar las pólizas", "Ocurrió un error al cargar las pólizas por vencer. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mostrarAviso]);
 
   useEffect(() => {
     fetchPolizas(estatus);
@@ -123,7 +130,7 @@ const PolizasVencer = () => {
     return matchSearch && matchEstatus;
   });
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleSearch  = (e) => { setSearch(e.target.value);  setCurrentPage(1); };
@@ -134,13 +141,13 @@ const PolizasVencer = () => {
   const openRenovar = (p) => { setSelected(p); setRenovarOpen(true); };
 
   const handleEnviado = () => {
-    showSnack(`Correo enviado a ${selected?.correo || "cliente"}`);
+    mostrarAviso("exito", "Aviso enviado", `Correo enviado a ${selected?.correo || "cliente"}.`);
     fetchPolizas(estatus);
   };
 
   const handleConfirmRenovar = (data) => {
     setRenovarOpen(false);
-    showSnack(`Póliza ${data.nPoliza} renovada exitosamente`);
+    mostrarAviso("exito", "Póliza renovada", `La póliza ${data.nPoliza} se renovó exitosamente.`);
     fetchPolizas(estatus);
   };
 
@@ -287,16 +294,25 @@ const PolizasVencer = () => {
         }
       />
 
-      <Snackbar
-        open={snackOpen}
-        autoHideDuration={2500}
-        onClose={() => setSnackOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity={snackSeverity} variant="filled" onClose={() => setSnackOpen(false)}>
-          {snackMsg}
-        </Alert>
-      </Snackbar>
+      {/* ---------- Aviso (éxito / error) ---------- */}
+      {aviso && (
+        <div
+          className="balam-overlay"
+          style={{ zIndex: 3000 }}
+          onClick={(e) => e.target === e.currentTarget && setAviso(null)}
+        >
+          <div className="balam-modal evi-aviso">
+            <div className={`evi-aviso-icono ${aviso.tipo}`}>
+              {aviso.tipo === "exito"
+                ? <CheckCircleIcon style={{ fontSize: 40 }} />
+                : <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+            </div>
+            <h3>{aviso.titulo}</h3>
+            <p style={{ whiteSpace: "pre-line" }}>{aviso.mensaje}</p>
+            <button className="balam-btn save" onClick={() => setAviso(null)}>Aceptar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

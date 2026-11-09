@@ -67,7 +67,7 @@ const ReporteEvidencias = ({ Miniatura, getAuthHeaders, onAviso }) => {
     } catch (error) {
       setResultado(null);
       const msg = error.response?.data?.message || "No se pudo realizar la búsqueda.";
-      onAviso("error", "Sin resultados", msg);
+      onAviso("error", error.response?.status === 404 ? "Sin resultados" : "No se pudo buscar", msg);
     } finally {
       setBuscando(false);
     }
@@ -124,8 +124,8 @@ const ReporteEvidencias = ({ Miniatura, getAuthHeaders, onAviso }) => {
 
   return (
     <div>
-      <p className="text-muted mb-3">
-        Escribe el número de siniestro, elige las fotos y descarga el reporte fotográfico en PDF o Word.
+      <p className="mb-3">
+        Reporte fotográfico en PDF o Word con las fotos de un siniestro.
       </p>
 
       {/* Búsqueda */}
@@ -144,7 +144,7 @@ const ReporteEvidencias = ({ Miniatura, getAuthHeaders, onAviso }) => {
             />
           </div>
         </div>
-        <button className="btn btn-success" onClick={() => buscar()} disabled={buscando || !numero.trim()}>
+        <button className="balam-btn save" onClick={() => buscar()} disabled={buscando || !numero.trim()}>
           {buscando ? "Buscando…" : "Buscar fotos"}
         </button>
       </div>
@@ -195,7 +195,7 @@ const ReporteEvidencias = ({ Miniatura, getAuthHeaders, onAviso }) => {
                   display: "grid",
                   gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
                   gap: 12,
-                  maxHeight: 360,
+                  maxHeight: 240,
                   overflowY: "auto",
                   padding: 4,
                   marginBottom: 20
@@ -268,7 +268,7 @@ const ReporteEvidencias = ({ Miniatura, getAuthHeaders, onAviso }) => {
               </div>
 
               <button
-                className="btn btn-success"
+                className="balam-btn save"
                 onClick={generar}
                 disabled={generando || seleccion.size === 0}
               >

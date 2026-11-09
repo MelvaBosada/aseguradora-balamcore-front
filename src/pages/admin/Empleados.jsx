@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import '../../css/Clientes.css';
 
@@ -13,6 +13,8 @@ import EmailIcon from "@mui/icons-material/Email";
 import HomeIcon from "@mui/icons-material/Home";
 import BadgeIcon from "@mui/icons-material/Badge";
 import DownloadIcon from "@mui/icons-material/Download";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
@@ -23,8 +25,20 @@ import Paginacion from "../../components/Paginacion";
 import DescargarModal from "../../components/DescargarModal";
 
 const API = import.meta.env.VITE_API_URL || '/api';
+
+const AVISO_EXITO_MS = 3500;
+const SIN_CONEXION = "No hay conexión con el servidor.";
+
 const campos = ["nombre", "apellidos", "curp", "numero_de_telefono", "correo", "rol"];
 const columnas = ["Nombre", "Apellidos", "CURP", "Teléfono", "Correo", "Rol", "Acciones"];
+
+// Extrae un mensaje legible de un error de axios
+const mensajeError = (error, defecto) => {
+  if (!error.response) return SIN_CONEXION;
+  const data = error.response.data || {};
+  const detalle = data.errors ? Object.values(data.errors).flat().join("\n") : null;
+  return detalle || data.message || defecto;
+};
 
 const FORM_VACIO = {
   nombre: "", apellidos: "", fecha_nacimiento: "", genero: "",
@@ -181,6 +195,18 @@ const Empleados = () => {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [errores, setErrores] = useState({});
   const [showDescarga, setShowDescarga] = useState(false);
+  const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', titulo, mensaje }
+
+  const mostrarAviso = useCallback((tipo, titulo, mensaje) => {
+    setAviso({ tipo, titulo, mensaje });
+  }, []);
+
+  // Los avisos de éxito se cierran solos
+  useEffect(() => {
+    if (aviso?.tipo !== "exito") return;
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
 
   // Helper para generar cabeceras unificadas en todas las peticiones
   const getHeaders = () => {
@@ -228,11 +254,17 @@ const Empleados = () => {
         setEmpleados(normalizarEmpleados(resEmp.data, listaRoles));
       } catch (err) {
         console.error("Error al cargar datos:", err);
+        mostrarAviso(
+          "error",
+          "No se pudieron cargar los empleados",
+          mensajeError(err, "Ocurrió un error al cargar los empleados.")
+        );
       } finally {
         setLoading(false);
       }
     };
     cargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuario]);
 
   const recargarEmpleados = async () => {
@@ -242,12 +274,18 @@ const Empleados = () => {
       setEmpleados(normalizarEmpleados(res.data, roles));
     } catch (err) {
       console.error("Error al recargar empleados:", err);
+      mostrarAviso(
+        "error",
+        "No se pudo actualizar la lista",
+        mensajeError(err, "Ocurrió un error al recargar los empleados.")
+      );
     }
   };
 
   const handleInputChange = async (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setErrores(prev => (prev[name] ? { ...prev, [name]: undefined } : prev));
 
     if (name === "codigo_postal" && value.length === 5) {
       try {
@@ -305,10 +343,16 @@ const Empleados = () => {
 
     if (Object.keys(nuevosErrores).length > 0) {
       setErrores(nuevosErrores);
+      mostrarAviso(
+        "error",
+        "Faltan campos requeridos",
+        "Revisa los campos marcados en el formulario."
+      );
       return;
     }
 
     setErrores({});
+    const isEdit = !!editingEmp;
 
     try {
       const payload = { ...formData, id_aseguradora: usuario.id_aseguradora };
@@ -316,30 +360,52 @@ const Empleados = () => {
 
       const headers = getHeaders();
 
-      if (editingEmp) {
+      if (isEdit) {
         await axios.put(`${API}/empleados/${editingEmp.id}`, payload, { headers });
       } else {
         await axios.post(`${API}/empleados`, payload, { headers });
       }
       await recargarEmpleados();
       setShowModal(false);
+      mostrarAviso(
+        "exito",
+        isEdit ? "Empleado actualizado" : "Empleado creado",
+        isEdit
+          ? "Los cambios se guardaron correctamente."
+          : "El empleado se guardó correctamente."
+      );
     } catch (err) {
       console.error("Error al guardar empleado:", err);
       console.error("Detalle:", err.response?.data);
+
+      // Marca en el formulario los campos que el servidor rechazó
+      const erroresServidor = err.response?.data?.errors;
+      if (erroresServidor) {
+        setErrores(
+          Object.fromEntries(Object.entries(erroresServidor).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]))
+        );
+      }
+      mostrarAviso("error", "No se pudo guardar", mensajeError(err, "Error al guardar el empleado."));
     }
   };
 
   const handleEliminarClick = (e) => { setEmpToDelete(e); setShowDeleteModal(true); };
 
   const handleConfirmarEliminar = async () => {
+    if (!empToDelete) return;
+
     try {
       const headers = getHeaders();
       await axios.delete(`${API}/empleados/${empToDelete.id}`, { headers });
       await recargarEmpleados();
       setShowDeleteModal(false);
       setEmpToDelete(null);
+      mostrarAviso("exito", "Empleado eliminado", "El empleado se eliminó correctamente.");
     } catch (err) {
       console.error("Error al eliminar empleado:", err);
+      setShowDeleteModal(false);
+      setEmpToDelete(null);
+      mostrarAviso("error", "No se pudo eliminar", mensajeError(err, "Error al eliminar el empleado."));
     }
   };
 
@@ -352,7 +418,7 @@ const Empleados = () => {
     );
   });
 
-  const totalPages = Math.ceil(filteredEmps.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredEmps.length / itemsPerPage) || 1;
   const paginated = filteredEmps.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const handleSearch = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
   const handleVerDetalle = (e) => { setEmpDetalle(e); setShowDetalleModal(true); };
@@ -428,7 +494,6 @@ const Empleados = () => {
           />
           <PrimaryButton text="Nuevo empleado" icon={<AddCircleOutlinedIcon />} onClick={handleNuevo} />
         </div>
-        
       </div>
 
       <div className="mb-4">
@@ -490,11 +555,31 @@ const Empleados = () => {
       <DescargarModal
         open={showDescarga}
         onClose={() => setShowDescarga(false)}
-        url={`${import.meta.env.VITE_API_URL || "/api"}/exportar/empleados`}
+        url={`${API}/exportar/empleados`}
         params={{ search: searchTerm }}
         nombreArchivo="empleados"
         titulo="Descargar listado de empleados"
       />
+
+      {/* ---------- Aviso (éxito / error) ---------- */}
+      {aviso && (
+        <div
+          className="balam-overlay"
+          style={{ zIndex: 3000 }}
+          onClick={(e) => e.target === e.currentTarget && setAviso(null)}
+        >
+          <div className="balam-modal evi-aviso">
+            <div className={`evi-aviso-icono ${aviso.tipo}`}>
+              {aviso.tipo === "exito"
+                ? <CheckCircleIcon style={{ fontSize: 40 }} />
+                : <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+            </div>
+            <h3>{aviso.titulo}</h3>
+            <p style={{ whiteSpace: "pre-line" }}>{aviso.mensaje}</p>
+            <button className="balam-btn save" onClick={() => setAviso(null)}>Aceptar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

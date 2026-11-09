@@ -2,6 +2,7 @@
 import "../css/BalamCoreModal.css";
 import logo from "../assets/Logo.png";
 import useAccionAsync from "../hooks/useAccionAsync";
+import SelectBalam from "./SelectBalam";
 
 function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos, formData, onChange, errores = {}, customHandlers = {}, dropdowns = {}, children }) {
   const [handleSave, saving] = useAccionAsync(onSave);
@@ -81,7 +82,18 @@ function EditModal({ open, onClose, onSave, titulo, subtitulo, btnTexto, campos,
                       </label>
 
                       {/* SELECT */}
-                      {campo.type === "select" ? (
+                      {campo.type === "select" && campo.buscable ? (
+                        // SELECT PROPIO (estilizado, responsivo, con buscador)
+                        <SelectBalam
+                          name={campo.name}
+                          value={formData[campo.name] || campo.defaultValue || ""}
+                          options={campo.options}
+                          placeholder={`Selecciona ${campo.label.toLowerCase()}...`}
+                          onChange={onChange}
+                          error={!!errores[campo.name]}
+                        />
+
+                      ) : campo.type === "select" ? (
                         <select
                           name={campo.name}
                           value={formData[campo.name] || campo.defaultValue || ""}

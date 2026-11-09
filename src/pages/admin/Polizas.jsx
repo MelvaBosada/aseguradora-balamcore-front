@@ -7,6 +7,7 @@ import AddCircleRoundedIcon from '@mui/icons-material/AddCircleRounded';
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import SearchIcon from "@mui/icons-material/Search";
 import DownloadIcon from "@mui/icons-material/Download";
 import AssignmentIcon from "@mui/icons-material/Assignment";
@@ -23,6 +24,8 @@ import ComputerIcon from "@mui/icons-material/Computer";
 import BuildIcon from "@mui/icons-material/Build";
 import WarningIcon from "@mui/icons-material/Warning";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
@@ -30,12 +33,19 @@ import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import Paginacion from "../../components/Paginacion";
 import PolizaDetalleModal from "../../components/PolizaDetalleModal";
+import PolizaCoberturasModal from "../../components/PolizaCoberturasModal";
 import DescargarModal from "../../components/DescargarModal";
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const MAX_PDF_MB = 2;
 const MAX_PDF_BYTES = MAX_PDF_MB * 1024 * 1024;
+
+const AVISO_EXITO_MS = 3500;
+const SIN_CONEXION = "No hay conexión con el servidor.";
+
+// Estilos del icono de advertencia (por si el CSS no define .advertencia)
+const ESTILO_ICONO_ADVERTENCIA = { background: "#FFF4D6", color: "#9A6B00" };
 
 // IVA general en México: 16% sobre (prima neta + derecho de póliza)
 const TASA_IVA = 0.16;
@@ -98,6 +108,14 @@ const validarPdf = (file) => {
   return "";
 };
 
+// Mensaje legible a partir de un error de axios
+const mensajeError = (error, defecto) => {
+  if (!error.response) return SIN_CONEXION;
+  const errores = error.response?.data?.errors;
+  if (errores) return Object.values(errores).flat().join("\n");
+  return error.response?.data?.message || defecto || error.message;
+};
+
 // ───────────── Helpers de cálculo y fechas ─────────────
 
 const num = (v) => parseFloat(v) || 0;
@@ -129,6 +147,7 @@ const Polizas = () => {
   const [showDescarga, setShowDescarga] = useState(false);
   const [polizaToDelete, setPolizaToDelete] = useState(null);
   const [polizaDetalle, setPolizaDetalle] = useState(null);
+  const [polizaCob, setPolizaCob] = useState(null); // póliza a la que se le asignan coberturas
   const [editingPoliza, setEditingPoliza] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -150,8 +169,23 @@ const Polizas = () => {
   const [fileKey, setFileKey] = useState(0);        // sirve para limpiar los <input type="file">
   const [siguienteEndoso, setSiguienteEndoso] = useState(""); // N° que recibirá el próximo endoso (al editar)
 
+  // Aviso con el diseño del sistema (reemplaza alert)
+  // { tipo: 'exito' | 'error' | 'advertencia', titulo, mensaje }
+  const [aviso, setAviso] = useState(null);
+
   // Indica qué campos el usuario ya escribió a mano: esos dejan de llenarse solos.
   const manual = useRef({ fin: false, iva: false, suma: false });
+
+  const mostrarAviso = useCallback((tipo, titulo, mensaje) => {
+    setAviso({ tipo, titulo, mensaje });
+  }, []);
+
+  // Los avisos de éxito se cierran solos
+  useEffect(() => {
+    if (aviso?.tipo !== 'exito') return;
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
 
   // Cargar coberturas al iniciar
   useEffect(() => {
@@ -182,10 +216,11 @@ const Polizas = () => {
       setTotalPages(response.data.last_page);
     } catch (error) {
       console.error('Error:', error);
+      mostrarAviso('error', 'No se pudieron cargar las pólizas', mensajeError(error));
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
+  }, [currentPage, searchTerm, estatusFilter, itemsPerPage, mostrarAviso]);
 
   useEffect(() => {
     cargarPolizas();
@@ -479,7 +514,16 @@ const Polizas = () => {
     } catch (error) {
       if (ventana) ventana.close();
       console.error('Error al abrir documento:', error);
-      alert('No se pudo abrir el documento');
+
+      // Con responseType 'blob' el JSON de error llega como Blob: se intenta leer el mensaje
+      let mensaje = error.response ? 'El documento no está disponible.' : SIN_CONEXION;
+      try {
+        const texto = await error.response?.data?.text?.();
+        if (texto) mensaje = JSON.parse(texto).message || mensaje;
+      } catch {
+        /* se mantiene el mensaje por defecto */
+      }
+      mostrarAviso('error', 'No se pudo abrir el documento', mensaje);
     }
   };
 
@@ -551,21 +595,34 @@ const Polizas = () => {
       setSiguienteEndoso(data.siguiente_endoso || "");
       setBienesCliente(bienesResponse.data);
       setErroresBienes({});
+      setShowModal(true);
     } catch (error) {
       console.error('Error:', error);
+      setEditingPoliza(null);
+      mostrarAviso(
+        'error',
+        'No se pudo abrir la póliza',
+        mensajeError(error, 'No se pudieron cargar los datos de la póliza para editar.')
+      );
     }
-    setShowModal(true);
   };
 
   const handleGuardar = async () => {
     try {
       const token = localStorage.getItem('token');
-      if (!formData.id_cliente) { alert('Primero busca un cliente por RFC'); return; }
+      if (!formData.id_cliente) {
+        mostrarAviso('error', 'Faltan datos', 'Primero busca un cliente por RFC.');
+        return;
+      }
 
       if (formData.bienes_seleccionados.length > 0) {
         const esValido = await validarBienesSeleccionados(formData.bienes_seleccionados, formData.tipo, formData.precios_bienes);
         if (!esValido) {
-          alert('Hay bienes que no cumplen con los rangos de cobertura. Revisa los errores marcados.');
+          mostrarAviso(
+            'error',
+            'Bienes fuera de cobertura',
+            'Hay bienes que no cumplen con los rangos de cobertura. Revisa los errores marcados.'
+          );
           return;
         }
       }
@@ -618,21 +675,47 @@ const Polizas = () => {
       if (editingPoliza) {
         fd.append('_method', 'PUT');
         await axios.post(`${API_URL}/polizas/${editingPoliza.id}`, fd, { headers });
-      } else {
-        const res = await axios.post(`${API_URL}/polizas`, fd, { headers });
-        alert(`Póliza creada con el N° ${res.data.poliza.numero_poliza}`);
+
+        setShowModal(false);
+        cargarPolizas();
+        mostrarAviso('exito', 'Póliza actualizada', 'Los cambios se guardaron correctamente.');
+        return;
+      }
+
+      const res = await axios.post(`${API_URL}/polizas`, fd, { headers });
+      const numeroNuevo = res.data.poliza.numero_poliza;
+
+      // Asignar a la póliza las mismas coberturas que se usan para validar los bienes
+      const idsCob = [...new Set(formData.bienes_seleccionados.flatMap((id) => {
+        const bien = bienesCliente.find((b) => b.id === id);
+        return bien ? obtenerCoberturaParaBien(bien.tipo).map((c) => c.id) : [];
+      }))];
+
+      let fallaronCoberturas = false;
+      if (idsCob.length) {
+        try {
+          await axios.put(`${API_URL}/polizas/${res.data.poliza.id}/coberturas`, { ids: idsCob }, { headers });
+        } catch (errCob) {
+          console.error('Error al asignar coberturas:', errCob);
+          fallaronCoberturas = true;
+        }
       }
 
       setShowModal(false);
       cargarPolizas();
+
+      if (fallaronCoberturas) {
+        mostrarAviso(
+          'advertencia',
+          'Póliza creada sin coberturas',
+          `La póliza se creó con el N° ${numeroNuevo}, pero no se pudieron asignar las coberturas.\nAsígnalas con el botón "Coberturas".`
+        );
+      } else {
+        mostrarAviso('exito', 'Póliza creada', `La póliza se creó con el N° ${numeroNuevo}.`);
+      }
     } catch (error) {
       console.error('Error:', error);
-      const errores = error.response?.data?.errors;
-      if (errores) {
-        alert(Object.values(errores).flat()[0]);
-      } else {
-        alert(error.response?.data?.message || 'Error al guardar');
-      }
+      mostrarAviso('error', 'No se pudo guardar', mensajeError(error, 'Error al guardar la póliza.'));
     }
   };
 
@@ -664,7 +747,7 @@ const Polizas = () => {
 
       if (!polizaId) {
         console.error('No se pudo obtener el ID de la póliza', polizaOrId);
-        alert('Error: No se pudo identificar la póliza');
+        mostrarAviso('error', 'No se pudo abrir el detalle', 'No se pudo identificar la póliza seleccionada.');
         return;
       }
 
@@ -693,7 +776,11 @@ const Polizas = () => {
       setShowDetalleModal(true);
     } catch (error) {
       console.error('Error al cargar detalles:', error);
-      alert('Error al cargar detalles de la póliza');
+      mostrarAviso(
+        'error',
+        'No se pudo abrir el detalle',
+        mensajeError(error, 'Error al cargar los detalles de la póliza.')
+      );
     }
   };
 
@@ -703,18 +790,27 @@ const Polizas = () => {
   };
 
   const handleConfirmarEliminar = async () => {
-    if (polizaToDelete) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.delete(`${API_URL}/polizas/${polizaToDelete.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setShowDeleteModal(false);
-        cargarPolizas();
-      } catch (error) {
-        console.error('Error al eliminar:', error);
-        alert('Error al eliminar la póliza');
-      }
+    if (!polizaToDelete) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.delete(`${API_URL}/polizas/${polizaToDelete.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setShowDeleteModal(false);
+      setPolizaToDelete(null);
+      cargarPolizas();
+      mostrarAviso(
+        'exito',
+        'Póliza eliminada',
+        res.data?.message || 'La póliza se eliminó correctamente.'
+      );
+    } catch (error) {
+      console.error('Error al eliminar:', error);
+      setShowDeleteModal(false);
+      setPolizaToDelete(null);
+      mostrarAviso('error', 'No se pudo eliminar', mensajeError(error, 'Error al eliminar la póliza.'));
     }
   };
 
@@ -789,6 +885,12 @@ const Polizas = () => {
               clase: "tabla-btn-ver",
               icono: <VisibilityIcon fontSize="small" />,
               onClick: (item) => handleVerDetalle(item)
+            },
+            {
+              titulo: "Coberturas",
+              clase: "tabla-btn-ver",
+              icono: <VerifiedUserIcon fontSize="small" />,
+              onClick: (p) => setPolizaCob({ id: p.id, nPoliza: p.nPoliza })
             },
             {
               titulo: "Editar",
@@ -1126,7 +1228,10 @@ const Polizas = () => {
 
       <ConfirmDeleteModal
         open={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setPolizaToDelete(null);
+        }}
         onConfirm={handleConfirmarEliminar}
         title="Eliminar póliza"
         subtitle="¿Deseas eliminar esta póliza?"
@@ -1151,6 +1256,36 @@ const Polizas = () => {
         endosos={polizaDetalle ? polizaDetalle.endosos || [] : []}
         onVerDocumentoEndoso={(e) => abrirPdf(`${API_URL}/polizas/${polizaDetalle.id}/endosos/${e.id}/documento`)}
       />
+
+      {/* COBERTURAS CONTRATADAS DE LA PÓLIZA */}
+      <PolizaCoberturasModal
+        open={!!polizaCob}
+        poliza={polizaCob}
+        onClose={() => setPolizaCob(null)}
+      />
+
+      {/* ---------- Aviso (éxito / error / advertencia) ---------- */}
+      {aviso && (
+        <div
+          className="balam-overlay"
+          style={{ zIndex: 3000 }}
+          onClick={(e) => e.target === e.currentTarget && setAviso(null)}
+        >
+          <div className="balam-modal evi-aviso">
+            <div
+              className={`evi-aviso-icono ${aviso.tipo}`}
+              style={aviso.tipo === 'advertencia' ? ESTILO_ICONO_ADVERTENCIA : undefined}
+            >
+              {aviso.tipo === 'exito' && <CheckCircleIcon style={{ fontSize: 40 }} />}
+              {aviso.tipo === 'error' && <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+              {aviso.tipo === 'advertencia' && <WarningAmberIcon style={{ fontSize: 40 }} />}
+            </div>
+            <h3>{aviso.titulo}</h3>
+            <p style={{ whiteSpace: 'pre-line' }}>{aviso.mensaje}</p>
+            <button className="balam-btn save" onClick={() => setAviso(null)}>Aceptar</button>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE DESCARGA DEL LISTADO (PDF / Excel / CSV) */}
       <DescargarModal

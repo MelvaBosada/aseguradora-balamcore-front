@@ -1,19 +1,31 @@
 // pages/admin/SolicitudesRenovacion.jsx
 import { useState, useEffect, useCallback } from "react";
 import axios from 'axios';
-import SearchIcon    from "@mui/icons-material/Search";
-import AutorenewIcon from "@mui/icons-material/Autorenew";
-import Snackbar      from "@mui/material/Snackbar";
-import Alert         from "@mui/material/Alert";
-import FilterListIcon from "@mui/icons-material/FilterList";
+import SearchIcon       from "@mui/icons-material/Search";
+import AutorenewIcon    from "@mui/icons-material/Autorenew";
+import FilterListIcon   from "@mui/icons-material/FilterList";
+import CheckCircleIcon  from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 import TablaForm          from "../../components/TablaForm";
 import Paginacion         from "../../components/Paginacion";
 import RenovarPolizaModal from "../../components/RenovarPolizaModal";
 
+import "../../css/Clientes.css";
 import "../../css/PolizasVencer.css";
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+
+const AVISO_EXITO_MS = 3500;
+const SIN_CONEXION = "No hay conexión con el servidor.";
+
+// Extrae un mensaje legible de un error de axios
+const mensajeError = (error, defecto) => {
+  if (!error.response) return SIN_CONEXION;
+  const data = error.response.data || {};
+  const detalle = data.errors ? Object.values(data.errors).flat().join("\n") : null;
+  return detalle || data.message || defecto;
+};
 
 const campos   = ["nPoliza", "nombre", "apellido", "tipo", "vigencia", "vence", "asesor", "estatus"];
 const columnas = ["N° Póliza", "Nombre", "Apellido(s)", "Tipo", "Vigencia", "Vence", "Asesor", "Estatus", "Acciones"];
@@ -50,15 +62,23 @@ const SolicitudesRenovacion = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
   const [detallePoliza, setDetallePoliza] = useState(null);
-  const [snackOpen, setSnackOpen] = useState(false);
-  const [snackMessage, setSnackMessage] = useState("");
-  const [snackSeverity, setSnackSeverity] = useState("success");
   const [itemsPerPage, setItemsPerPage] = useState(8);
   const [totalPages, setTotalPages] = useState(1);
   const [estatusFilter, setEstatusFilter] = useState("Todos");
   const [formData, setFormData] = useState(FORM_VACIO);
+  const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', titulo, mensaje }
 
-  // ✅ CORRECCIÓN: useCallback con las mismas deps que el useEffect original
+  const mostrarAviso = useCallback((tipo, titulo, mensaje) => {
+    setAviso({ tipo, titulo, mensaje });
+  }, []);
+
+  // Los avisos de éxito se cierran solos
+  useEffect(() => {
+    if (aviso?.tipo !== "exito") return;
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
+
   const cargarSolicitudes = useCallback(async () => {
     setLoading(true);
     try {
@@ -73,15 +93,19 @@ const SolicitudesRenovacion = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setSolicitudes(response.data.data);
-      setTotalPages(response.data.last_page);
+      setTotalPages(response.data.last_page || 1);
     } catch (error) {
       console.error('Error:', error);
+      mostrarAviso(
+        "error",
+        "No se pudieron cargar las renovaciones",
+        mensajeError(error, "Ocurrió un error al cargar las solicitudes de renovación.")
+      );
     } finally {
       setLoading(false);
     }
-  }, [currentPage, search, itemsPerPage, estatusFilter]);
+  }, [currentPage, search, itemsPerPage, estatusFilter, mostrarAviso]);
 
-  // ✅ CORRECCIÓN: cargarSolicitudes incluida en el array de dependencias
   useEffect(() => {
     cargarSolicitudes();
   }, [cargarSolicitudes]);
@@ -112,6 +136,11 @@ const SolicitudesRenovacion = () => {
       return data;
     } catch (error) {
       console.error('Error:', error);
+      mostrarAviso(
+        "error",
+        "No se pudo cargar la póliza",
+        mensajeError(error, "Ocurrió un error al cargar el detalle de la póliza.")
+      );
       return null;
     }
   };
@@ -123,7 +152,9 @@ const SolicitudesRenovacion = () => {
 
   const handleRenovar = async (poliza) => {
     setSelected(poliza);
-    await cargarDetallePoliza(poliza.id);
+    const detalle = await cargarDetallePoliza(poliza.id);
+    // Si no se pudo cargar el detalle, no se abre el modal (el aviso de error ya se mostró)
+    if (!detalle) return;
     setModalOpen(true);
   };
 
@@ -164,18 +195,14 @@ const SolicitudesRenovacion = () => {
       });
       
       setModalOpen(false);
-      setSnackMessage("Póliza renovada exitosamente");
-      setSnackSeverity("success");
-      setSnackOpen(true);
+      mostrarAviso("exito", "Póliza renovada", "La póliza se renovó exitosamente.");
       cargarSolicitudes();
       setFormData(FORM_VACIO);
       setDetallePoliza(null);
       
     } catch (error) {
       console.error('Error:', error);
-      setSnackMessage(error.response?.data?.message || "Error al renovar la póliza");
-      setSnackSeverity("error");
-      setSnackOpen(true);
+      mostrarAviso("error", "No se pudo renovar", mensajeError(error, "Error al renovar la póliza."));
     }
   };
 
@@ -255,12 +282,25 @@ const SolicitudesRenovacion = () => {
         camposNuevos={CAMPOS_RENOVAR}
       />
 
-      <Snackbar open={snackOpen} autoHideDuration={2500} onClose={() => setSnackOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}>
-        <Alert severity={snackSeverity} variant="filled" onClose={() => setSnackOpen(false)}>
-          {snackMessage}
-        </Alert>
-      </Snackbar>
+      {/* ---------- Aviso (éxito / error) ---------- */}
+      {aviso && (
+        <div
+          className="balam-overlay"
+          style={{ zIndex: 3000 }}
+          onClick={(e) => e.target === e.currentTarget && setAviso(null)}
+        >
+          <div className="balam-modal evi-aviso">
+            <div className={`evi-aviso-icono ${aviso.tipo}`}>
+              {aviso.tipo === "exito"
+                ? <CheckCircleIcon style={{ fontSize: 40 }} />
+                : <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+            </div>
+            <h3>{aviso.titulo}</h3>
+            <p style={{ whiteSpace: "pre-line" }}>{aviso.mensaje}</p>
+            <button className="balam-btn save" onClick={() => setAviso(null)}>Aceptar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

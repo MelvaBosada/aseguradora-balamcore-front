@@ -1,157 +1,183 @@
-/* ── AVISAR MODAL ────────────────────────────────── */
-.avisar-modal {
-  max-width: 420px;
-  width: 95%;
-  max-height: 85vh;
+/* ── AVISAR MODAL (mismo diseño que DetalleModal) ── */
+.balam-modal.avisar-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 88vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: #fff;
+  border-radius: 20px;
+  padding: 0;
+  box-shadow: 0 24px 60px rgba(15, 76, 58, 0.18), 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
+/* Header blanco con barrita verde arriba */
 .avisar-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #041E17, #0F4C3A);
-  border-radius: 16px 16px 0 0;
+  gap: 14px;
+  padding: 22px 26px 18px;
+  border-bottom: 1px solid #E5E7EB;
+  background: #fff;
+  position: relative;
   flex-shrink: 0;
 }
+.avisar-header::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0F4C3A, #295E4E);
+}
 
-.avisar-header-icon {
-  width: 38px;
-  height: 38px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 10px;
+.avisar-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0F4C3A, #295E4E);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #fff;
 }
-.avisar-header-icon svg { font-size: 20px !important; }
+.avisar-avatar svg { font-size: 22px !important; }
 
-.avisar-header-info { flex: 1; }
-.avisar-header-info h2 {
-  margin: 0 0 2px;
-  font-size: 14px;
+.avisar-header-text { flex: 1; min-width: 0; }
+.avisar-header-text h2 {
+  margin: 0 0 3px;
+  font-size: 1.05rem;
   font-weight: 700;
-  color: #fff;
+  color: #1f2d2a;
 }
-.avisar-header-info p {
-  margin: 0;
-  font-size: 11px;
-  color: rgba(255,255,255,0.65);
+.avisar-header-text span {
+  display: block;
+  font-size: 12px;
+  color: #6B7280;
+  font-weight: 500;
 }
 
-/* Body scrollable */
+/* Botón X gris */
+.avisar-close {
+  margin-left: auto;
+  background: #F3F4F6;
+  border: none;
+  border-radius: 8px;
+  padding: 6px;
+  min-width: 32px;
+  min-height: 32px;
+  cursor: pointer;
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.18s, color 0.18s;
+}
+.avisar-close:hover { background: #E5E7EB; color: #1f2d2a; }
+
+/* Body */
 .avisar-body {
-  padding: 16px 20px;
+  padding: 20px 26px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
+  min-height: 0;
+  background: #fff;
   scrollbar-width: thin;
-  scrollbar-color: #d1d5db transparent;
+  scrollbar-color: #CBD5D1 transparent;
 }
+.avisar-body::-webkit-scrollbar { width: 5px; }
+.avisar-body::-webkit-scrollbar-track { background: transparent; }
+.avisar-body::-webkit-scrollbar-thumb { background: #CBD5D1; border-radius: 99px; }
+.avisar-body::-webkit-scrollbar-thumb:hover { background: #9CA3AF; }
 
-.avisar-poliza-info {
+/* Tarjetas de datos */
+.avisar-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.avisar-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   background: #F9FAFB;
   border: 1px solid #E5E7EB;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  min-width: 0;
+  box-sizing: border-box;
 }
+.avisar-item.span-full { grid-column: 1 / -1; }
 
-.avisar-info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
+.avisar-item-icon { color: #0F4C3A; margin-top: 1px; flex-shrink: 0; }
+.avisar-item-icon svg { font-size: 18px !important; }
 
-.avisar-info-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: #6B7280;
+.avisar-item-text { min-width: 0; flex: 1; }
+.avisar-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  flex-shrink: 0;
+  letter-spacing: 0.05em;
+  color: #9CA3AF;
+  margin-bottom: 3px;
 }
-
-.avisar-info-value {
-  font-size: 12.5px;
+.avisar-value {
+  display: block;
+  font-size: 13px;
   font-weight: 600;
   color: #1f2d2a;
-  text-align: right;
+  overflow-wrap: anywhere;
 }
 
-.avisar-vence {
-  color: #dc2626;
-  background: #fee2e2;
-  padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 11.5px;
-}
-
-.avisar-email {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #0F4C3A;
-}
-
-/* Preview */
-.avisar-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
+/* Vista previa */
+.avisar-preview { display: flex; flex-direction: column; gap: 8px; }
 .avisar-preview-label {
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: #9CA3AF;
 }
-
 .avisar-preview-body {
-  background: #fff;
+  background: #F9FAFB;
   border: 1px solid #E5E7EB;
-  border-left: 3px solid #0F4C3A;
-  border-radius: 10px;
+  border-left: 4px solid #0F4C3A;
+  border-radius: 12px;
   padding: 12px 14px;
   font-size: 12.5px;
   color: #374151;
   line-height: 1.65;
 }
-
 .avisar-preview-body p { margin: 0 0 6px; }
 .avisar-preview-body p:last-child { margin-bottom: 0; }
 
-/* Send btn */
-.avisar-send-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* Footer (usa los botones pill de balam-btn, igual que "Cerrar") */
+.balam-footer.avisar-footer {
+  background: #fff;
+  border-top: 1px solid #E5E7EB;
+  padding: 14px 26px 18px;
+  flex-shrink: 0;
 }
-/* Pega esto al final de tu AvisarModal.css */
-
+.avisar-send-btn { display: flex; align-items: center; }
 .avisar-send-btn.avisar-enviado {
   background: #16a34a;
-  border-color: #16a34a;
+  box-shadow: none;
   color: #fff;
-  cursor: not-allowed;
-  pointer-events: none; /* bloquea completamente el click */
-  opacity: 1;           /* se ve normal, no apagado */
+  pointer-events: none;
+  opacity: 1;
 }
 
-.avisar-send-btn.avisar-enviado:hover {
-  background: #15803d;  /* verde un poco más oscuro al hover */
-  border-color: #15803d;
-  color: #fff;
+/* Responsivo */
+@media (max-width: 500px) {
+  .avisar-header { padding: 18px 16px 14px; }
+  .avisar-body { padding: 16px; }
+  .avisar-grid { grid-template-columns: 1fr; }
+  .balam-footer.avisar-footer { padding: 12px 16px 16px; }
 }
