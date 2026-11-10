@@ -9,6 +9,7 @@ import DiamondIcon from "@mui/icons-material/Diamond";
 import WorkspacePremiumIcon from "@mui/icons-material/WorkspacePremium";
 import PersonIcon from "@mui/icons-material/Person";
 import GroupIcon from "@mui/icons-material/Group";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import CreditCardIcon from "@mui/icons-material/CreditCard";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import ExploreIcon from "@mui/icons-material/Explore";
@@ -143,6 +144,9 @@ const Topbar = ({ onToggleSidebar, onStartTour, collapsed }) => {
         ...(esAdmin && tiene("empleados")
           ? [{ label: "Gestión de usuarios", icon: GroupIcon, onClick: () => irA("/admin/empleados") }]
           : []),
+        ...(esAdmin
+          ? [{ label: "Papelera", icon: DeleteOutlineIcon, onClick: () => irA("/admin/papelera") }]
+          : []),
       ],
     },
     ...(esAdmin
@@ -171,25 +175,29 @@ const Topbar = ({ onToggleSidebar, onStartTour, collapsed }) => {
     },
   ];
 
-  const handleLogout = async () => {
-    const token = localStorage.getItem("token");
+const handleLogout = () => {
+  const token = localStorage.getItem("token");
 
-    ["token", "usuario", "permisos", "modulos", "suscripcion"]
-      .forEach((k) => localStorage.removeItem(k));
-    delete axios.defaults.headers.common["Authorization"];
-    sincronizarSesion();
-    navigate("/", { replace: true });
+  // Avisa al backend sin esperar; keepalive hace que la petición
+  // sobreviva a la recarga de la página
+  if (token) {
+    fetch(`${API_BASE}/logout`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+      keepalive: true,
+    }).catch(() => {});
+  }
 
-    if (token) {
-      try {
-        await axios.post(`${API_BASE}/logout`, {}, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      } catch (err) {
-        console.error("Error al cerrar sesión:", err);
-      }
-    }
-  };
+  ["token", "usuario", "permisos", "modulos", "suscripcion"]
+    .forEach((k) => localStorage.removeItem(k));
+  delete axios.defaults.headers.common["Authorization"];
+
+  // Recarga completa: limpia todo el estado de React
+  window.location.replace("/");
+};
 
   const fechaActual = new Date().toLocaleDateString("es-MX", {
     weekday: "long",

@@ -1,30 +1,34 @@
 // components/EvaluacionDocumento.jsx
-import logo from "../assets/Logo.png";
+import useMarcaAseguradora from "../hooks/useMarcaAseguradora";
+import { EncabezadoDocumento, PieMarca, Fila, mxn, cuentaOculta } from "./EncabezadoDocumento";
 
-const Fila = ({ label, value }) => (
-  <div className="fila">
-    <span className="lbl">{label}</span>
-    <span className="val">{value || "—"}</span>
-  </div>
-);
+const NIVELES = {
+  auto: "Automática (dentro del límite del ajustador)",
+  supervisor: "Supervisor",
+  gerente: "Gerencia",
+};
 
 const EvaluacionDocumento = ({ data: d, printRef }) => {
+  const marca = useMarcaAseguradora();
+
   if (!d) return null;
+
+  const nombreAseguradora = marca?.nombre || d.aseguradora;
+  const c = d.calculo;
+  const topes = (c?.topes || []).filter((t) => t.aplicado).map((t) => t.concepto);
 
   return (
     <div className="doc" ref={printRef}>
 
-      {/* HEADER */}
-      <div className="top">
-        <div>
-          <div className="titulo">Evaluación de Siniestro</div>
-          <div className="sub">Aseguradora: {d.aseguradora}</div>
-          <div className="sub">Número de siniestro: {d.nSiniestro}</div>
-          <div className="sub">Número de póliza: {d.nPoliza}</div>
-          <div className="sub">Fecha de emisión: {d.fechaEmision}</div>
-        </div>
-        <img src={logo} alt="Logo" className="logo" />
-      </div>
+      <EncabezadoDocumento
+        titulo="Evaluación de Siniestro"
+        marca={marca}
+        lineas={[
+          `Número de siniestro: ${d.nSiniestro}`,
+          `Número de póliza: ${d.nPoliza}`,
+          `Fecha de emisión: ${d.fechaEmision}`,
+        ]}
+      />
 
       {/* FILA 1: Datos del Asegurado + Siniestro */}
       <div className="grid2">
@@ -71,12 +75,43 @@ const EvaluacionDocumento = ({ data: d, printRef }) => {
         </div>
       </div>
 
+      {/* CÁLCULO DEL MONTO (lo calcula el sistema) */}
+      {c && (
+        <div className="grid1">
+          <div className="sec">
+            <div className="sec-titulo">Cálculo del monto</div>
+            <div className="grid3">
+              <Fila label="Cobertura aplicada" value={c.cobertura || "Sin cobertura asignada"} />
+              <Fila label="Daño evaluado" value={mxn(c.monto_evaluado)} />
+              <Fila label="Deducible" value={mxn(c.deducible)} />
+              {Number(c.coaseguro) > 0 && (
+                <Fila label={`Coaseguro (paga ${c.porcentaje_cobertura}%)`} value={mxn(c.coaseguro)} />
+              )}
+              {topes.length > 0 && <Fila label="Tope aplicado" value={topes.join("; ")} />}
+              {Number(c.pagos_siniestro) > 0 && (
+                <Fila label="Ya indemnizado en este siniestro" value={mxn(c.pagos_siniestro)} />
+              )}
+              <Fila label="Monto a indemnizar" value={mxn(c.monto_final)} />
+              {d.nivel_autorizacion && (
+                <Fila label="Autorización" value={NIVELES[d.nivel_autorizacion] || d.nivel_autorizacion} />
+              )}
+            </div>
+            {d.motivo_resolucion && (
+              <>
+                <div className="lbl" style={{ marginTop: 6 }}>Resolución:</div>
+                <p className="txt">{d.motivo_resolucion}</p>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* MONTO */}
       <div className="grid1">
         <div className="sec">
           <div className="sec-titulo">Monto Reclamado</div>
           <div className="grid3">
-            <Fila label="Monto reclamado" value={d.montoReclamado} />
+            <Fila label="Monto reclamado" value={d.montoReclamadoPDF || d.montoReclamado} />
             <Fila label="Monto aprobado" value={d.montoAprobadoPDF} />
             <Fila label="Deducible" value={d.deducible} />
           </div>
@@ -92,7 +127,7 @@ const EvaluacionDocumento = ({ data: d, printRef }) => {
             <Fila label="Forma de pago" value={d.formaPago} />
             <Fila label="Banco" value={d.banco} />
             <Fila label="Titular" value={d.titularBanco} />
-            <Fila label="Cuenta" value={d.cuentaBancaria} />
+            <Fila label="Cuenta" value={cuentaOculta(d.cuentaBancaria)} />
             <Fila label="Fecha autorización" value={d.fechaAutorizacion} />
             <Fila label="Fecha de pago" value={d.fechaPagoPDF} />
             <Fila label="Referencia" value={d.referencia} />
@@ -105,6 +140,8 @@ const EvaluacionDocumento = ({ data: d, printRef }) => {
         <div className="sec">
           <div className="sec-titulo">Estatus de la Evaluación</div>
           <span className="lbl">Estatus: </span>
+          <span className="badge">{d.estatus}</span>
+          <span className="lbl" style={{ marginLeft: 14 }}>Pago: </span>
           <span className="badge">{d.estatusPDF}</span>
         </div>
       </div>
@@ -112,7 +149,7 @@ const EvaluacionDocumento = ({ data: d, printRef }) => {
       {/* FOOTER */}
       <div className="footer">
         <div>
-          <div>{d.aseguradora}</div>
+          <div>{nombreAseguradora}</div>
           <div>Departamento de Siniestros</div>
           <div>Responsable: {d.ajustadorPDF || "___________________"}</div>
         </div>
@@ -123,6 +160,8 @@ const EvaluacionDocumento = ({ data: d, printRef }) => {
           </div>
         </div>
       </div>
+
+      <PieMarca />
 
     </div>
   );

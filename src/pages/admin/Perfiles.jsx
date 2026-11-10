@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import AddCircleOutlinedIcon from "@mui/icons-material/AddCircleOutlined";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import LockOpenIcon from "@mui/icons-material/LockOpen";
+import EditAttributesIcon from '@mui/icons-material/EditAttributes';
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
@@ -14,6 +16,17 @@ import Paginacion from "../../components/Paginacion";
 import "../../css/Clientes.css";
 
 const API = import.meta.env.VITE_API_URL || "/api";
+
+const AVISO_EXITO_MS = 3500;
+const SIN_CONEXION = "No hay conexión con el servidor.";
+
+// Extrae un mensaje legible de un error de axios
+const mensajeError = (error, defecto) => {
+  if (!error.response) return SIN_CONEXION;
+  const data = error.response.data || {};
+  const detalle = data.errors ? Object.values(data.errors).flat().join("\n") : null;
+  return detalle || data.message || defecto;
+};
 
 const campos = ["nombre"];
 const columnas = ["Nombre", "Acciones"];
@@ -47,6 +60,19 @@ const Perfiles = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
   const [formData, setFormData] = useState(FORM_VACIO);
+  const [errores, setErrores] = useState({});
+  const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', titulo, mensaje }
+
+  const mostrarAviso = useCallback((tipo, titulo, mensaje) => {
+    setAviso({ tipo, titulo, mensaje });
+  }, []);
+
+  // Los avisos de éxito se cierran solos
+  useEffect(() => {
+    if (aviso?.tipo !== "exito") return;
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
 
   const puedeEditar = (perfil) =>
     perfil?.puede_editar ?? !perfil?.es_base;
@@ -54,7 +80,7 @@ const Perfiles = () => {
   const puedeEliminar = (perfil) =>
     perfil?.puede_eliminar ?? !perfil?.es_base;
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -67,14 +93,19 @@ const Perfiles = () => {
       setPermisosDisponibles(resPermisos.data);
     } catch (error) {
       console.error("Error al cargar perfiles y permisos:", error);
+      mostrarAviso(
+        "error",
+        "No se pudieron cargar los perfiles",
+        mensajeError(error, "Ocurrió un error al cargar los perfiles y permisos.")
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }, [mostrarAviso]);
 
   useEffect(() => {
     cargarDatos();
-  }, []);
+  }, [cargarDatos]);
 
   const recargarPerfiles = async () => {
     try {
@@ -82,6 +113,11 @@ const Perfiles = () => {
       setPerfiles(response.data);
     } catch (error) {
       console.error("Error al recargar perfiles:", error);
+      mostrarAviso(
+        "error",
+        "No se pudo actualizar la lista",
+        mensajeError(error, "Ocurrió un error al recargar los perfiles.")
+      );
     }
   };
 
@@ -92,11 +128,13 @@ const Perfiles = () => {
       ...previous,
       [name]: value,
     }));
+    setErrores((prev) => (prev[name] ? { ...prev, [name]: undefined } : prev));
   };
 
   const handleNuevo = () => {
     setEditingPerfil(null);
     setFormData({ ...FORM_VACIO });
+    setErrores({});
     setShowModal(true);
   };
 
@@ -109,22 +147,28 @@ const Perfiles = () => {
     setFormData({
       nombre: perfil.nombre,
     });
+    setErrores({});
     setShowModal(true);
   };
 
   const handleGuardar = async () => {
+    if (editingPerfil && !puedeEditar(editingPerfil)) {
+      return;
+    }
+
+    if (!formData.nombre || !formData.nombre.trim()) {
+      setErrores({ nombre: "Este campo es requerido" });
+      mostrarAviso("error", "Faltan campos requeridos", "Escribe el nombre del perfil.");
+      return;
+    }
+
+    const esEdicion = !!editingPerfil;
+
     try {
       setLoading(true);
 
-      if (editingPerfil) {
-        if (!puedeEditar(editingPerfil)) {
-          return;
-        }
-
-        await axios.put(
-          `${API}/roles/${editingPerfil.id}`,
-          formData
-        );
+      if (esEdicion) {
+        await axios.put(`${API}/roles/${editingPerfil.id}`, formData);
       } else {
         await axios.post(`${API}/roles`, formData);
       }
@@ -133,14 +177,27 @@ const Perfiles = () => {
       setShowModal(false);
       setEditingPerfil(null);
       setFormData({ ...FORM_VACIO });
+      setErrores({});
+      mostrarAviso(
+        "exito",
+        esEdicion ? "Perfil actualizado" : "Perfil creado",
+        esEdicion
+          ? "Los cambios se guardaron correctamente."
+          : "El perfil se guardó correctamente."
+      );
     } catch (error) {
       console.error("Error al guardar perfil:", error);
 
-      const mensaje =
-        error.response?.data?.message ||
-        "No se pudo guardar el perfil.";
-
-      alert(mensaje);
+      // Marca en el formulario los campos que el servidor rechazó
+      const erroresServidor = error.response?.data?.errors;
+      if (erroresServidor) {
+        setErrores(
+          Object.fromEntries(
+            Object.entries(erroresServidor).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])
+          )
+        );
+      }
+      mostrarAviso("error", "No se pudo guardar", mensajeError(error, "No se pudo guardar el perfil."));
     } finally {
       setLoading(false);
     }
@@ -169,14 +226,12 @@ const Perfiles = () => {
 
       setShowDeleteModal(false);
       setPerfilToDelete(null);
+      mostrarAviso("exito", "Perfil eliminado", "El perfil se eliminó correctamente.");
     } catch (error) {
       console.error("Error al eliminar perfil:", error);
-
-      const mensaje =
-        error.response?.data?.message ||
-        "No se pudo eliminar el perfil.";
-
-      alert(mensaje);
+      setShowDeleteModal(false);
+      setPerfilToDelete(null);
+      mostrarAviso("error", "No se pudo eliminar", mensajeError(error, "No se pudo eliminar el perfil."));
     } finally {
       setLoading(false);
     }
@@ -186,20 +241,18 @@ const Perfiles = () => {
     try {
       setLoading(true);
 
-      const response = await axios.get(
-        `${API}/roles/${perfil.id}/permisos`
-      );
+      const response = await axios.get(`${API}/roles/${perfil.id}/permisos`);
 
-      setPermisosDelPerfil(
-        response.data.map((permiso) => permiso.id)
-      );
+      setPermisosDelPerfil(response.data.map((permiso) => permiso.id));
 
       setPerfilPermisos(perfil);
       setShowPermisosModal(true);
     } catch (error) {
-      console.error(
-        "Error al cargar permisos del perfil:",
-        error
+      console.error("Error al cargar permisos del perfil:", error);
+      mostrarAviso(
+        "error",
+        "No se pudieron cargar los permisos",
+        mensajeError(error, "No se pudieron cargar los permisos del perfil.")
       );
     } finally {
       setLoading(false);
@@ -214,32 +267,27 @@ const Perfiles = () => {
     try {
       setLoading(true);
 
-      await axios.post(
-        `${API}/roles/${perfilPermisos.id}/permisos`,
-        {
-          permisos: idsSeleccionados,
-        }
-      );
+      await axios.post(`${API}/roles/${perfilPermisos.id}/permisos`, {
+        permisos: idsSeleccionados,
+      });
 
       setShowPermisosModal(false);
       setPerfilPermisos(null);
       setPermisosDelPerfil([]);
+      mostrarAviso("exito", "Permisos actualizados", "Los permisos del perfil se guardaron correctamente.");
     } catch (error) {
       console.error("Error al guardar permisos:", error);
-
-      const mensaje =
-        error.response?.data?.message ||
-        "No se pudieron guardar los permisos.";
-
-      alert(mensaje);
+      mostrarAviso(
+        "error",
+        "No se pudieron guardar los permisos",
+        mensajeError(error, "No se pudieron guardar los permisos.")
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const totalPages = Math.ceil(
-    perfiles.length / itemsPerPage
-  );
+  const totalPages = Math.ceil(perfiles.length / itemsPerPage) || 1;
 
   const paginated = perfiles.slice(
     (currentPage - 1) * itemsPerPage,
@@ -280,7 +328,7 @@ const Perfiles = () => {
             {
               titulo: "Asignar permisos",
               clase: "tabla-btn-ver",
-              icono: <LockOpenIcon fontSize="small" />,
+              icono: <EditAttributesIcon fontSize="small" />,
               onClick: handleAsignarPermisos,
             },
             {
@@ -314,24 +362,17 @@ const Perfiles = () => {
         onClose={() => setShowModal(false)}
         onSave={handleGuardar}
         editando={Boolean(editingPerfil)}
-        titulo={
-          editingPerfil
-            ? "Editar perfil"
-            : "Nuevo perfil"
-        }
+        titulo={editingPerfil ? "Editar perfil" : "Nuevo perfil"}
         subtitulo={
           editingPerfil
             ? "Modifica el nombre del perfil"
             : "Ingresa el nombre del nuevo perfil"
         }
-        btnTexto={
-          editingPerfil
-            ? "Guardar cambios"
-            : "Crear perfil"
-        }
+        btnTexto={editingPerfil ? "Guardar cambios" : "Crear perfil"}
         campos={FORM_CAMPOS}
         formData={formData}
         onChange={handleInputChange}
+        errores={errores}
       />
 
       <ConfirmDeleteModal
@@ -366,6 +407,26 @@ const Perfiles = () => {
         permisosDisponibles={permisosDisponibles}
         permisosActuales={permisosDelPerfil}
       />
+
+      {/* ---------- Aviso (éxito / error) ---------- */}
+      {aviso && (
+        <div
+          className="balam-overlay"
+          style={{ zIndex: 3000 }}
+          onClick={(e) => e.target === e.currentTarget && setAviso(null)}
+        >
+          <div className="balam-modal evi-aviso">
+            <div className={`evi-aviso-icono ${aviso.tipo}`}>
+              {aviso.tipo === "exito"
+                ? <CheckCircleIcon style={{ fontSize: 40 }} />
+                : <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+            </div>
+            <h3>{aviso.titulo}</h3>
+            <p style={{ whiteSpace: "pre-line" }}>{aviso.mensaje}</p>
+            <button className="balam-btn save" onClick={() => setAviso(null)}>Aceptar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

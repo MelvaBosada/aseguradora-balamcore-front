@@ -9,6 +9,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import SearchIcon from "@mui/icons-material/Search";
 import DownloadIcon from "@mui/icons-material/Download";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 // Componentes
 import PrimaryButton from "../../components/PrimaryButton";
@@ -22,6 +24,9 @@ import DescargarModal from "../../components/DescargarModal";
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
 const API_URL = `${API_BASE}/clientes`;
 
+const AVISO_EXITO_MS = 3500;
+const SIN_CONEXION = "No hay conexión con el servidor.";
+
 // Helper de headers para peticiones autenticadas
 const getAuthConfig = () => ({
   headers: {
@@ -30,6 +35,14 @@ const getAuthConfig = () => ({
     Authorization: `Bearer ${localStorage.getItem("token")}`,
   },
 });
+
+// Extrae un mensaje legible de un error de axios
+const mensajeError = (error, defecto) => {
+  if (!error.response) return SIN_CONEXION;
+  const data = error.response.data || {};
+  const detalle = data.errors ? Object.values(data.errors).flat().join("\n") : null;
+  return detalle || data.message || defecto;
+};
 
 const campos = ["rfc", "nombre", "apellido", "telefono", "correo"];
 const columnas = ["RFC", "Nombre", "Apellido(s)", "Teléfono", "Correo", "Acciones"];
@@ -110,11 +123,33 @@ const Clientes = () => {
   const [editingCliente, setEditingCliente] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO);
   const [itemsPerPage, setItemsPerPage] = useState(8);
   const [estatusFilter, setEstatusFilter] = useState("Todos");
   const [totalPages, setTotalPages] = useState(1);
+
+  const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', titulo, mensaje }
+
+  const mostrarAviso = useCallback((tipo, titulo, mensaje) => {
+    setAviso({ tipo, titulo, mensaje });
+  }, []);
+
+  // Los avisos de éxito se cierran solos
+  useEffect(() => {
+    if (aviso?.tipo !== "exito") return;
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // GET: Cargar clientes con paginación y filtros
   const cargarClientes = useCallback(async () => {
@@ -137,11 +172,17 @@ const Clientes = () => {
       if (error.response?.status === 401) {
         localStorage.removeItem("token");
         window.location.href = "/login";
+        return;
       }
+      mostrarAviso(
+        "error",
+        "No se pudieron cargar los clientes",
+        mensajeError(error, "Ocurrió un error al cargar los clientes.")
+      );
     } finally {
       setLoading(false);
     }
-  }, [currentPage, searchTerm, estatusFilter, itemsPerPage]);
+  }, [currentPage, searchTerm, estatusFilter, itemsPerPage, mostrarAviso]);
 
   useEffect(() => {
     cargarClientes();
@@ -208,7 +249,10 @@ const Clientes = () => {
     const missingFields = requiredFields.filter((field) => !formData[field]);
 
     if (missingFields.length > 0) {
-      alert(`Faltan campos requeridos: ${missingFields.join(", ")}`);
+      const etiquetas = missingFields.map(
+        (name) => FORM_CAMPOS.find((c) => c.name === name)?.label || name
+      );
+      mostrarAviso("error", "Faltan campos requeridos", etiquetas.join("\n"));
       return;
     }
 
@@ -218,21 +262,26 @@ const Clientes = () => {
       telefono_alternativo: formData.telefono_alternativo || null,
     };
 
+    const isEdit = !!editingCliente;
+
     try {
-      if (editingCliente) {
+      if (isEdit) {
         await axios.put(`${API_URL}/${editingCliente.id}`, clienteData, getAuthConfig());
       } else {
         await axios.post(API_URL, clienteData, getAuthConfig());
       }
       setShowModal(false);
       cargarClientes();
+      mostrarAviso(
+        "exito",
+        isEdit ? "Cliente actualizado" : "Cliente creado",
+        isEdit
+          ? "Los cambios se guardaron correctamente."
+          : "El cliente se guardó correctamente."
+      );
     } catch (error) {
       console.error("Error al guardar cliente:", error.response?.data || error.message);
-      const errorMsg =
-        error.response?.data?.message ||
-        error.response?.data?.errors ||
-        "Error al guardar cliente";
-      alert(typeof errorMsg === "object" ? JSON.stringify(errorMsg) : errorMsg);
+      mostrarAviso("error", "No se pudo guardar", mensajeError(error, "Error al guardar cliente."));
     }
   };
 
@@ -250,20 +299,18 @@ const Clientes = () => {
       setShowDeleteModal(false);
       setClienteToDelete(null);
       cargarClientes();
+      mostrarAviso("exito", "Cliente eliminado", "El cliente se eliminó correctamente.");
     } catch (error) {
       console.error("Error al eliminar cliente:", error.response?.data || error.message);
-      alert(error.response?.data?.message || "Error al eliminar cliente");
+      setShowDeleteModal(false);
+      setClienteToDelete(null);
+      mostrarAviso("error", "No se pudo eliminar", mensajeError(error, "Error al eliminar cliente."));
     }
   };
 
   const handleVerDetalle = (cliente) => {
     setClienteDetalle(cliente);
     setShowDetalleModal(true);
-  };
-
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
   };
 
   if (loading && clientes.length === 0) {
@@ -281,7 +328,7 @@ const Clientes = () => {
 
   return (
     <div className="container py-4">
-      <h1 className="h2 fw-bold mb-3">Listado clientes</h1>
+      <h1 className="h2 fw-bold mb-3">Clientes</h1>
       <hr className="mt-2 mb-3" />
 
       <div className="d-flex align-items-end justify-content-between mb-4 gap-3 flex-wrap">
@@ -293,8 +340,8 @@ const Clientes = () => {
               type="text"
               className="search-custom"
               placeholder="Buscar cliente..."
-              value={searchTerm}
-              onChange={handleSearch}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
         </div>
@@ -430,6 +477,26 @@ const Clientes = () => {
             : "Se exportarán todos los clientes."
         }
       />
+
+      {/* ---------- Aviso (éxito / error) ---------- */}
+      {aviso && (
+        <div
+          className="balam-overlay"
+          style={{ zIndex: 3000 }}
+          onClick={(e) => e.target === e.currentTarget && setAviso(null)}
+        >
+          <div className="balam-modal evi-aviso">
+            <div className={`evi-aviso-icono ${aviso.tipo}`}>
+              {aviso.tipo === "exito"
+                ? <CheckCircleIcon style={{ fontSize: 40 }} />
+                : <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+            </div>
+            <h3>{aviso.titulo}</h3>
+            <p style={{ whiteSpace: "pre-line" }}>{aviso.mensaje}</p>
+            <button className="balam-btn save" onClick={() => setAviso(null)}>Aceptar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,6 +3,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import "../css/BalamCoreModal.css";
 import "../css/ClienteDetalleModal.css";
+import FichaCobertura from "./FichaCobertura";
 
 const FULL_WIDTH = { gridColumn: "1 / -1", width: "100%", flexBasis: "100%" };
 
@@ -52,6 +53,7 @@ function PolizaDetalleModal({
   onVerDocumento,            // () => void
   endosos = [],
   onVerDocumentoEndoso,      // (endoso) => void
+  coberturas = [],
 }) {
   if (!open) return null;
 
@@ -88,6 +90,19 @@ function PolizaDetalleModal({
               </div>
             </div>
           ))}
+
+          <div style={{ ...FULL_WIDTH, marginTop: 6 }}>
+            <div className="detalle-label" style={{ marginBottom: 8, display: "block" }}>
+              Resumen de coberturas ({coberturas.length})
+            </div>
+            {coberturas.length > 0 ? (
+              coberturas.map((cobertura) => (
+                <FichaCobertura key={cobertura.id} cobertura={cobertura} checked />
+              ))
+            ) : (
+              <div className="detalle-value">Sin coberturas asignadas</div>
+            )}
+          </div>
 
           {/* DOCUMENTO DE LA PÓLIZA */}
           <div className="detalle-item" style={FULL_WIDTH}>

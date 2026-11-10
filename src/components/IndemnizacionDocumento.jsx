@@ -1,33 +1,38 @@
-import logo from "../assets/Logo.png";
+import useMarcaAseguradora from "../hooks/useMarcaAseguradora";
+import { EncabezadoDocumento, PieMarca, Fila, mxn, cuentaOculta } from "./EncabezadoDocumento";
 
 /**
- * Componente reutilizable que renderiza el documento de indemnización.
+ * Documento de indemnización (se genera en el navegador a partir de lo que ya muestra la pantalla).
  * Ajustado a los campos de la migración de la base de datos.
  */
-const Fila = ({ label, value }) => (
-  <div className="fila">
-    <span className="lbl">{label}</span>
-    <span className="val">{value || "—"}</span>
-  </div>
-);
+const ETIQUETA_ESTATUS = {
+  pendiente: "PENDIENTE DE DATOS DE PAGO",
+  autorizada: "LISTA PARA PAGAR",
+  pagada: "PAGADA",
+  rechazada: "ANULADA",
+};
 
 const IndemnizacionDocumento = ({ data: d, printRef }) => {
+  const marca = useMarcaAseguradora();
+
   if (!d) return null;
+
+  const nombreAseguradora = marca?.nombre || d.aseguradora;
+  const g = d.desglose || null;
+  const topes = (g?.topes || []).filter((t) => t.aplicado).map((t) => t.concepto);
 
   return (
     <div className="doc" ref={printRef}>
 
-      {/* HEADER */}
-      <div className="top">
-        <div>
-          <div className="titulo">Indemnización por Siniestro</div>
-          <div className="sub">Aseguradora: {d.aseguradora || "Balamcore"}</div>
-          <div className="sub">Número de siniestro: {d.nSiniestro}</div>
-          <div className="sub">Número de póliza: {d.nPoliza || "S/N"}</div>
-          <div className="sub">Fecha de emisión: {d.fechaEmision}</div>
-        </div>
-        <img src={logo} alt="Logo" className="logo" />
-      </div>
+      <EncabezadoDocumento
+        titulo="Indemnización por Siniestro"
+        marca={marca}
+        lineas={[
+          `Número de siniestro: ${d.nSiniestro}`,
+          `Número de póliza: ${d.nPoliza || "S/N"}`,
+          `Fecha de emisión: ${d.fechaEmision}`,
+        ]}
+      />
 
       {/* FILA 1: Asegurado + Siniestro */}
       <div className="grid2">
@@ -43,7 +48,7 @@ const IndemnizacionDocumento = ({ data: d, printRef }) => {
           <div className="sec-titulo">Datos del Siniestro</div>
           <Fila label="Tipo de siniestro"   value={d.tipoSiniestro}   />
           <Fila label="Fecha de ocurrencia" value={d.fechaOcurrencia} />
-          <Fila label="Ubicación"           value={d.domicilio}       />
+          <Fila label="Ubicación"           value={d.lugar}           />
           <div className="lbl" style={{ marginTop: 6 }}>Descripción:</div>
           <p className="txt">{d.observaciones || "Sin observaciones registradas."}</p>
         </div>
@@ -55,7 +60,7 @@ const IndemnizacionDocumento = ({ data: d, printRef }) => {
           <div className="sec-titulo">Evaluación del Siniestro</div>
           <Fila label="N° de evaluación"   value={d.nEvaluacionPDF}  />
           <Fila label="Ajustador asignado" value={d.ajustador || "Asignado por Sistema"} />
-          <Fila label="Fecha evaluación"   value={d.fecha_autorizacion} />
+          <Fila label="Fecha evaluación"   value={d.fechaEvaluacion} />
           <Fila label="Prioridad"           value={d.prioridad || "Media"} />
           <div className="lbl" style={{ marginTop: 6 }}>Resultado:</div>
           <p className="txt">{d.resultadoEval || "Procedente según evaluación técnica de daños."}</p>
@@ -65,12 +70,33 @@ const IndemnizacionDocumento = ({ data: d, printRef }) => {
           <Fila label="Forma de pago"      value={d.forma_pago?.toUpperCase()} />
           <Fila label="Banco"              value={d.banco}              />
           <Fila label="Titular"            value={d.titular_cuenta}     />
-          <Fila label="Cuenta bancaria"    value={d.cuenta_bancaria}    />
-          <Fila label="Fecha autorización" value={d.fecha_autorizacion}  />
-          <Fila label="Fecha de pago"      value={d.fecha_pago || "Pendiente"} />
-          <Fila label="Referencia"         value={d.referencia}         />
+          <Fila label="Cuenta bancaria"    value={cuentaOculta(d.cuenta_bancaria)} />
+          <Fila label="Dictamen autorizado" value={d.fecha_autorizacion} />
+          <Fila label="Fecha de pago"      value={d.fecha_pago ? String(d.fecha_pago).split(" ")[0] : "Pendiente"} />
+          <Fila label="Referencia de pago" value={d.referencia_pago}    />
         </div>
       </div>
+
+      {/* CÁLCULO */}
+      {g && (
+        <div className="grid1">
+          <div className="sec">
+            <div className="sec-titulo">Cálculo de la indemnización</div>
+            <div className="grid3">
+              <Fila label="Cobertura aplicada" value={g.cobertura || "Sin cobertura asignada"} />
+              <Fila label="Daño evaluado" value={mxn(g.monto_evaluado)} />
+              <Fila label="Deducible" value={mxn(g.deducible)} />
+              {Number(g.coaseguro) > 0 && (
+                <Fila label={`Coaseguro (paga ${g.porcentaje_cobertura}%)`} value={mxn(g.coaseguro)} />
+              )}
+              {topes.length > 0 && <Fila label="Tope aplicado" value={topes.join("; ")} />}
+              {Number(g.pagos_siniestro) > 0 && (
+                <Fila label="Ya indemnizado antes" value={mxn(g.pagos_siniestro)} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MONTO */}
       <div className="grid1">
@@ -90,16 +116,16 @@ const IndemnizacionDocumento = ({ data: d, printRef }) => {
         <div className="sec">
           <div className="sec-titulo">Estatus de la Indemnización</div>
           <span className="lbl">Estatus: </span>
-          <span className="badge">{d.estatus?.toUpperCase()}</span>
+          <span className="badge">{ETIQUETA_ESTATUS[d.estatus] || d.estatus?.toUpperCase()}</span>
         </div>
       </div>
 
       {/* FOOTER */}
       <div className="footer">
         <div>
-          <div>{d.aseguradora || "Balamcore Insurance"}</div>
+          <div>{nombreAseguradora}</div>
           <div>Departamento de Siniestros</div>
-          <div>Responsable: ___________________</div>
+          <div>Responsable: {d.ajustador || "___________________"}</div>
         </div>
         <div style={{ textAlign: "right" }}>
           <div>Firma y sello</div>
@@ -108,6 +134,8 @@ const IndemnizacionDocumento = ({ data: d, printRef }) => {
           </div>
         </div>
       </div>
+
+      <PieMarca />
 
     </div>
   );

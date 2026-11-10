@@ -1,0 +1,145 @@
+/* ============================================
+   SELECT BALAMCORE (select propio, responsivo)
+   ============================================ */
+
+.sb-trigger {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  background: #F9FAFB;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  font-size: 13.5px;
+  color: #1f2d2a;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+}
+.sb-trigger:hover:not(:disabled) { border-color: #295E4E; }
+.sb-trigger:focus-visible,
+.sb-trigger.abierto {
+  outline: none;
+  border-color: #0F4C3A;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.12);
+}
+.sb-trigger.con-error { border-color: #C0392B; }
+.sb-trigger:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.sb-texto {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-placeholder { color: #9CA3AF; }
+
+.sb-flecha {
+  flex-shrink: 0;
+  color: #6B7280;
+  transition: transform 0.18s;
+}
+.sb-trigger.abierto .sb-flecha { transform: rotate(180deg); color: #0F4C3A; }
+
+/* ── Menú (se pinta en <body>, por encima de cualquier modal) ── */
+.sb-menu {
+  position: fixed;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(15, 76, 58, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  box-sizing: border-box;
+  animation: sb-entrada 0.14s ease-out;
+}
+@keyframes sb-entrada {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.sb-buscador {
+  padding: 8px;
+  border-bottom: 1px solid #E5E7EB;
+  background: #F9FAFB;
+  flex-shrink: 0;
+}
+.sb-buscador input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  color: #1f2d2a;
+  box-sizing: border-box;
+}
+.sb-buscador input:focus {
+  outline: none;
+  border-color: #0F4C3A;
+  box-shadow: 0 0 0 3px rgba(15, 76, 58, 0.1);
+}
+
+.sb-lista {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+  flex: 1;
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5D1 transparent;
+}
+.sb-lista::-webkit-scrollbar { width: 5px; }
+.sb-lista::-webkit-scrollbar-track { background: transparent; }
+.sb-lista::-webkit-scrollbar-thumb { background: #CBD5D1; border-radius: 99px; }
+.sb-lista::-webkit-scrollbar-thumb:hover { background: #0F4C3A; }
+
+.sb-opcion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #1f2d2a;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.sb-opcion-texto {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sb-opcion.activa { background: rgba(15, 76, 58, 0.08); }
+.sb-opcion.seleccionada { color: #0F4C3A; font-weight: 700; }
+.sb-opcion.seleccionada svg { flex-shrink: 0; color: #0F4C3A; }
+
+.sb-vacio {
+  padding: 14px 10px;
+  text-align: center;
+  font-size: 13px;
+  color: #9CA3AF;
+}
+
+/* ── Responsivo ── */
+@media (max-width: 600px) {
+  .sb-trigger { min-height: 44px; font-size: 14px; }
+  .sb-opcion { padding: 12px 10px; font-size: 14px; }
+  .sb-buscador input { font-size: 16px; } /* evita el zoom automático en iOS */
+}
+
+@media (max-width: 400px) {
+  .sb-trigger { font-size: 13px; padding: 8px 10px; }
+  .sb-opcion { font-size: 13px; }
+}

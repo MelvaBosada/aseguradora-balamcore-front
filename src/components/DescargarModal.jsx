@@ -141,6 +141,7 @@ export default function DescargarModal({
   nombreArchivo = "listado",
   titulo = "Descargar listado",
   nota = "",                 // texto que explica qué se va a exportar
+  tabExtra = null,           // pestaña extra opcional: { id, label, contenido }
 }) {
   const [tab, setTab] = useState("xlsx");
   const [error, setError] = useState("");
@@ -148,7 +149,10 @@ export default function DescargarModal({
   const [cargandoVista, setCargandoVista] = useState(false);
   const [errorVista, setErrorVista] = useState("");
 
-  const actual = FORMATOS.find((f) => f.id === tab);
+  // Pestañas: PDF / Excel / CSV + (opcional) la pestaña extra del módulo
+  const tabs = tabExtra ? [...FORMATOS, { id: tabExtra.id, label: tabExtra.label }] : FORMATOS;
+  const esExtra = !!tabExtra && tab === tabExtra.id;
+  const actual = FORMATOS.find((f) => f.id === tab) || FORMATOS[1];
   const paramsKey = JSON.stringify(params);
 
   // Vista previa: se pide cada vez que se abre el modal
@@ -259,7 +263,7 @@ export default function DescargarModal({
 
         {/* TABS */}
         <div className="balam-tabs">
-          {FORMATOS.map((f) => (
+          {tabs.map((f) => (
             <button
               key={f.id}
               type="button"
@@ -273,45 +277,56 @@ export default function DescargarModal({
 
         {/* BODY */}
         <div className="balam-body-download">
-          <div className="balam-section">
-            <div>
-              <p className="balam-dl-desc">{actual.desc}</p>
-              {nota && <p className="balam-dl-nota">{nota}</p>}
-            </div>
-
-            <div className="balam-section-title">Vista previa</div>
-            {renderVista()}
-
-            {vista && vista.total > 0 && (
-              <p className="balam-dl-nota" style={{ margin: 0 }}>
-                Mostrando {Math.min(vista.completo.filas.length, vista.total)} de{" "}
-                <strong>{vista.total.toLocaleString("es-MX")}</strong> registro(s).
-                {tab !== "pdf" && ` El archivo incluye las ${vista.completo.columnas.length} columnas.`}
-              </p>
-            )}
-
-            {pdfExcedido && (
-              <div className="balam-dl-alerta">
-                El PDF admite hasta {vista.limite_pdf.toLocaleString("es-MX")} registros y tu listado tiene{" "}
-                {vista.total.toLocaleString("es-MX")}. Usa Excel o CSV, o filtra el listado.
+          {esExtra ? (
+            /* Pestaña extra: trae su propio contenido y su propio botón de descarga */
+            <div className="balam-section">{tabExtra.contenido}</div>
+          ) : (
+            <div className="balam-section">
+              <div>
+                <p className="balam-dl-desc">{actual.desc}</p>
+                {nota && <p className="balam-dl-nota">{nota}</p>}
               </div>
-            )}
 
-            {error && <div className="balam-dl-alerta">{error}</div>}
-          </div>
+              <div className="balam-section-title">Vista previa</div>
+              {renderVista()}
+
+              {vista && vista.total > 0 && (
+                <p className="balam-dl-nota" style={{ margin: 0 }}>
+                  Mostrando {Math.min(vista.completo.filas.length, vista.total)} de{" "}
+                  <strong>{vista.total.toLocaleString("es-MX")}</strong> registro(s).
+                  {tab !== "pdf" && ` El archivo incluye las ${vista.completo.columnas.length} columnas.`}
+                </p>
+              )}
+
+              {pdfExcedido && (
+                <div className="balam-dl-alerta">
+                  El PDF admite hasta {vista.limite_pdf.toLocaleString("es-MX")} registros y tu listado tiene{" "}
+                  {vista.total.toLocaleString("es-MX")}. Usa Excel o CSV, o filtra el listado.
+                </div>
+              )}
+
+              {error && <div className="balam-dl-alerta">{error}</div>}
+            </div>
+          )}
         </div>
 
         {/* FOOTER */}
         <div className="balam-footer">
-          <button className="balam-btn cancel" onClick={handleClose}>Cancelar</button>
-          <button
-            className="balam-btn save"
-            onClick={handleDescargar}
-            disabled={cargandoVista || pdfExcedido || sinRegistros || descargando}
-            style={{ opacity: cargandoVista || pdfExcedido || sinRegistros || descargando ? 0.55 : 1 }}
-          >
-            {descargando ? "Descargando..." : `Descargar ${actual.label}`}
-          </button>
+          {esExtra ? (
+            <button className="balam-btn cancel" onClick={handleClose}>Cerrar</button>
+          ) : (
+            <>
+              <button className="balam-btn cancel" onClick={handleClose}>Cancelar</button>
+              <button
+                className="balam-btn save"
+                onClick={handleDescargar}
+                disabled={cargandoVista || pdfExcedido || sinRegistros || descargando}
+                style={{ opacity: cargandoVista || pdfExcedido || sinRegistros || descargando ? 0.55 : 1 }}
+              >
+                {descargando ? "Descargando..." : `Descargar ${actual.label}`}
+              </button>
+            </>
+          )}
         </div>
 
       </div>

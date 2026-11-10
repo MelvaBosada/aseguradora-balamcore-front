@@ -1,0 +1,432 @@
+LISTADO DE ACCIONES DE LAS PAGINAS ADMIN
+=========================================
+
+Fuente: paginas de src/pages/admin y rutas de src/routes/AdminRoutes.jsx.
+Este listado describe las acciones disponibles en el frontend. La disponibilidad
+final tambien depende de permisos y de las respuestas del backend.
+
+
+1. PANEL PRINCIPAL
+------------------
+Archivo: src/pages/admin/AdminHome.jsx
+Ruta: /admin
+
+- Mostrar el panel principal del administrador.
+- Navegar a los modulos disponibles desde el menu/layout.
+
+
+2. DASHBOARD
+------------
+Archivo: src/pages/admin/Dashboard.jsx
+Ruta: /admin/dashboard
+Permiso: dashboard
+
+- Consultar indicadores generales del sistema.
+- Consultar total de polizas activas, siniestros activos y clientes.
+- Consultar ingresos contra siniestros.
+- Consultar polizas por tipo.
+- Consultar ultimos siniestros.
+- Consultar tendencia de siniestros.
+- Cambiar filtros o periodos de las graficas.
+- Cerrar sesion desde el layout.
+
+
+3. CLIENTES
+-----------
+Archivo: src/pages/admin/Clientes.jsx
+Ruta: /admin/clientes
+Permiso: clientes
+
+- Consultar clientes con paginacion.
+- Buscar clientes.
+- Filtrar por estatus.
+- Cambiar cantidad de registros por pagina.
+- Crear un cliente.
+- Editar un cliente.
+- Eliminar un cliente.
+- Ver el detalle de un cliente.
+- Descargar/exportar el listado de clientes.
+
+
+4. EMPLEADOS
+------------
+Archivo: src/pages/admin/Empleados.jsx
+Ruta: /admin/empleados
+Permiso: empleados
+
+- Consultar empleados con paginacion.
+- Buscar empleados.
+- Cambiar cantidad de registros por pagina.
+- Crear un empleado.
+- Editar un empleado.
+- Eliminar un empleado.
+- Ver el detalle de un empleado.
+- Asignar rol al empleado durante el alta o edicion.
+- Capturar datos personales, laborales, de nomina y contacto de emergencia.
+- Descargar/exportar el listado de empleados.
+
+
+5. BIENES
+---------
+Archivo: src/pages/admin/Bienes.jsx
+Ruta: /admin/bienes
+Permiso: bienes
+
+- Consultar bienes con paginacion.
+- Buscar cliente por RFC.
+- Crear un bien.
+- Editar un bien.
+- Eliminar un bien.
+- Ver el detalle de un bien.
+- Capturar bienes de tipo vehiculo, inmueble, electronico o maquinaria.
+- Subir o actualizar la fotografia del bien.
+- Validar el tipo y tamano de la fotografia.
+- Descargar/exportar el listado de bienes.
+
+
+6. POLIZAS
+----------
+Archivo: src/pages/admin/Polizas.jsx
+Ruta: /admin/polizas
+Permiso: polizas
+
+- Consultar polizas con paginacion.
+- Buscar polizas.
+- Filtrar por estatus.
+- Cambiar cantidad de registros por pagina.
+- Crear una poliza.
+- Editar una poliza.
+- Eliminar una poliza.
+- Ver el detalle de una poliza.
+- Buscar al cliente por RFC.
+- Consultar y seleccionar bienes del cliente.
+- Asignar precios a los bienes seleccionados.
+- Calcular prima, derecho de poliza, IVA y prima total.
+- Seleccionar forma de pago.
+- Agregar o editar endoso.
+- Asignar coberturas a una poliza.
+- Consultar coberturas asignadas.
+- Subir documentos PDF relacionados con la poliza.
+- Validar tipo y tamano de archivos PDF.
+- Abrir o descargar el documento de la poliza.
+- Descargar/exportar el listado de polizas.
+
+
+7. POLIZAS POR VENCER
+----------------------
+Archivo: src/pages/admin/PolizasVencer.jsx
+Ruta: /admin/polizasV
+Permiso: polizasV
+
+- Consultar polizas proximas a vencer.
+- Buscar polizas.
+- Filtrar por estatus o rango de vencimiento.
+- Cambiar cantidad de registros por pagina.
+- Abrir el flujo de renovacion de una poliza.
+- Enviar o procesar la renovacion desde el modal correspondiente.
+- Descargar/exportar el listado.
+
+
+8. SOLICITUDES DE RENOVACION
+----------------------------
+Archivo: src/pages/admin/SolicitudesRenovacion.jsx
+Ruta: /admin/solicitudesP
+Permiso: renovaciones
+
+- Consultar solicitudes de renovacion.
+- Buscar solicitudes.
+- Filtrar por estado, incluyendo por vencer y urgente.
+- Ver el detalle de la poliza relacionada.
+- Abrir el formulario de renovacion.
+- Renovar una poliza.
+- Capturar los datos necesarios para crear la renovacion.
+
+
+9. COBERTURAS
+-------------
+Archivo: src/pages/admin/Coberturas.jsx
+Ruta: /admin/coberturas
+Permiso: coberturas
+
+- Consultar coberturas.
+- Buscar coberturas.
+- Crear una cobertura.
+- Editar una cobertura.
+- Eliminar una cobertura.
+- Ver el detalle de una cobertura.
+- Capturar limites, deducibles y reglas de calculo.
+- Descargar/exportar el listado de coberturas.
+
+
+10. SINIESTROS
+--------------
+Archivo: src/pages/admin/Siniestros.jsx
+Ruta: /admin/siniestros
+Permiso: siniestros
+
+- Consultar siniestros con paginacion.
+- Buscar siniestros.
+- Filtrar por estatus.
+- Cambiar cantidad de registros por pagina.
+- Crear un siniestro.
+- Buscar cliente por RFC.
+- Consultar reportes y polizas relacionadas.
+- Asignar automaticamente un ajustador menos cargado al crear.
+- Seleccionar un ajustador especifico al crear.
+- Editar los datos del siniestro.
+- Asignar o reasignar el ajustador.
+- Ver el detalle/resumen del siniestro.
+- Abrir el expediente completo del siniestro.
+- Eliminar un siniestro.
+- Descargar/exportar el listado de siniestros.
+
+
+11. DETALLE DE SINIESTRO / EXPEDIENTE
+-------------------------------------
+Archivo: src/pages/admin/SiniestroDetalle.jsx
+Ruta: /admin/siniestros/:id
+Permiso: siniestros
+
+- Consultar el expediente de un siniestro.
+- Regresar al listado de siniestros.
+- Consultar resumen, datos, historial, evidencias y documentos mediante tabs.
+- Consultar evaluacion e indemnizacion cuando existen.
+- Mostrar documentos faltantes.
+- Cambiar de pestaña del expediente.
+
+
+12. CONFIGURACION DE SINIESTROS
+-------------------------------
+Archivo: src/pages/admin/ConfiguracionSiniestros.jsx
+Ruta: /admin/configuracion-siniestros
+Permiso: siniestros
+Edicion sujeta adicionalmente al permiso siniestros.configurar.
+
+- Consultar la configuracion del flujo de siniestros.
+- Editar parametros de configuracion.
+- Guardar la configuracion.
+- Consultar documentos requeridos.
+- Crear un documento requerido.
+- Editar un documento requerido.
+- Quitar un documento requerido.
+- Guardar documentos requeridos.
+
+
+13. EVIDENCIAS
+--------------
+Archivo: src/pages/admin/Evidencias.jsx
+Ruta: /admin/evidencias
+Permiso: evidencias
+
+- Consultar evidencias con paginacion.
+- Buscar evidencias.
+- Cambiar cantidad de registros por pagina.
+- Buscar y seleccionar un siniestro.
+- Crear una evidencia.
+- Editar una evidencia.
+- Ver el detalle de una evidencia.
+- Descargar una evidencia.
+- Validar/aprobar una evidencia.
+- Rechazar una evidencia indicando el motivo.
+- Eliminar una evidencia indicando el motivo de eliminacion.
+- Descargar/exportar el listado de evidencias.
+
+
+14. EVALUACIONES
+----------------
+Archivo: src/pages/admin/Evaluaciones.jsx
+Ruta: /admin/evaluaciones
+Permiso: evaluaciones
+
+- Consultar evaluaciones.
+- Cambiar entre vista de todas y pendientes de autorizacion.
+- Buscar por numero de evaluacion.
+- Revisar evaluaciones pendientes.
+- Autorizar o devolver el dictamen desde el flujo de revision.
+- Ver el expediente relacionado.
+- Consultar la evaluacion en formato de documento.
+- Descargar la evaluacion.
+- Descargar/exportar el listado.
+
+
+15. INDEMNIZACIONES
+-------------------
+Archivo: src/pages/admin/Indemnizaciones.jsx
+Ruta: /admin/indemnizaciones
+Permiso: indemnizaciones
+
+- Consultar indemnizaciones.
+- Buscar o filtrar registros.
+- Ver el documento o detalle de una indemnizacion.
+- Descargar el documento de indemnizacion.
+- Descargar/exportar el listado.
+
+
+16. PAGOS
+---------
+Archivo: src/pages/admin/Pagos.jsx
+Ruta: /admin/pagos
+Permiso: pagos
+
+- Consultar pagos.
+- Buscar pagos.
+- Filtrar por estatus.
+- Cambiar paginacion.
+- Ver el detalle de un pago.
+- Consultar la informacion del cliente relacionada con el pago.
+
+
+17. REPORTES
+------------
+Archivo: src/pages/admin/Reporte.jsx
+Ruta: /admin/reportes
+Permiso: reportes
+
+- Consultar reportes.
+- Buscar o filtrar reportes.
+- Crear un reporte.
+- Editar un reporte.
+- Validar un reporte.
+- Eliminar un reporte.
+- Descargar/exportar el listado de reportes.
+
+
+18. REPORTES DE EVIDENCIAS
+--------------------------
+Archivo: src/pages/admin/ReporteEvidencias.jsx
+Ruta: sin ruta administrativa directa registrada en AdminRoutes.jsx
+
+- Consultar reportes relacionados con evidencias.
+- Aplicar filtros y busqueda.
+- Consultar resultados del reporte.
+- Descargar/exportar el reporte, segun las opciones disponibles.
+
+
+19. PERFILES
+------------
+Archivo: src/pages/admin/Perfiles.jsx
+Ruta: /admin/perfiles
+Permiso: perfiles
+
+- Consultar perfiles/roles.
+- Crear un perfil.
+- Editar un perfil.
+- Eliminar un perfil.
+- Asignar permisos a un perfil.
+- Modificar los permisos asignados.
+
+
+20. PERMISOS
+------------
+Archivo: src/pages/admin/Permisos.jsx
+Ruta: /admin/permisos
+Permiso: permisos
+
+- Consultar permisos.
+- Buscar permisos.
+- Crear un permiso.
+- Editar un permiso.
+- Eliminar un permiso.
+
+
+21. METODO DE PAGO
+------------------
+Archivo: src/pages/admin/MetodoPago.jsx
+Ruta: /admin/metodo-pago
+Acceso: administrador.
+
+- Iniciar el checkout para registrar o cambiar el metodo de pago.
+- Confirmar y guardar la tarjeta despues del checkout.
+- Activar o desactivar la renovacion automatica.
+- Mostrar el resultado de la operacion.
+
+
+22. MI PLAN
+-----------
+Archivo: src/pages/admin/MiPlan.jsx
+Ruta: /admin/mi-plan
+
+- Consultar el plan y sus limites.
+- Contratar o cambiar de plan.
+- Reanudar una suscripcion.
+- Cancelar al final del periodo.
+- Cancelar de forma inmediata, si la opcion esta disponible.
+- Quitar una programacion de cambio de plan.
+- Quitar una cancelacion programada.
+- Consultar y mostrar las politicas de cancelacion.
+
+
+23. HISTORIAL DE PAGOS
+----------------------
+Archivo: src/pages/admin/HistorialPagos.jsx
+Ruta: /admin/historial-pagos
+Acceso: administrador.
+
+- Consultar el historial de pagos de la suscripcion.
+- Descargar el comprobante de un pago.
+- Descargar la factura de un pago.
+
+
+24. PAPELERA
+------------
+Archivo: src/pages/admin/Papelera.jsx
+Ruta: /admin/papelera
+Acceso: administrador.
+
+- Consultar registros eliminados.
+- Cambiar entre modulos de la papelera.
+- Buscar registros eliminados.
+- Cambiar cantidad de registros por pagina.
+- Restaurar un registro.
+- Eliminar definitivamente un registro.
+
+
+25. PERFIL
+----------
+Archivo: src/pages/admin/Perfil.jsx
+Ruta: /admin/perfil
+
+- Consultar y editar datos de la aseguradora.
+- Consultar y editar datos del empleado/usuario.
+- Cambiar la contrasena.
+- Mostrar u ocultar campos sensibles.
+- Consultar datos sensibles con autenticacion.
+
+
+RESUMEN POR TIPO DE ACCION
+===========================
+
+CRUD completo (crear, consultar, editar y eliminar):
+- Clientes
+- Empleados
+- Bienes
+- Polizas
+- Coberturas
+- Siniestros
+- Perfiles
+- Permisos
+
+Crear, consultar y editar con acciones adicionales:
+- Reportes
+- Evidencias
+- Configuracion de siniestros
+- Solicitudes de renovacion
+- Metodo de pago
+- Perfil
+
+Consulta, filtros y descargas principalmente:
+- Dashboard
+- Pagos
+- Indemnizaciones
+- Evaluaciones
+- Polizas por vencer
+- Historial de pagos
+- Reportes de evidencias
+
+Administracion de suscripcion:
+- Mi plan
+- Metodo de pago
+- Historial de pagos
+
+Acciones de recuperacion:
+- Papelera: restaurar o eliminar definitivamente.

@@ -252,6 +252,7 @@ export const PermisosProvider = ({ children }) => {
     tiene,
     tieneAlguno,
     tieneModulo,
+    tienePermiso,   // ← agrega esta
     suscripcion,
     diasRestantes,
     esPrueba,

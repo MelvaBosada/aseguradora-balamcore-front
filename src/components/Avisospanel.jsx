@@ -5,7 +5,7 @@ import NotificationsIcon  from "@mui/icons-material/Notifications";
 import CloseIcon          from "@mui/icons-material/Close";
 import ChevronRightIcon   from "@mui/icons-material/ChevronRight";
 import AccessTimeIcon     from "@mui/icons-material/AccessTime";
-import SmsFailedSharpIcon from "@mui/icons-material/SmsFailedSharp";
+import EventIcon from '@mui/icons-material/Event';
 
 import { PolizasVencerData } from "../components/PolizasVencerData";
 
@@ -65,7 +65,7 @@ const AvisosPanel = () => {
     <>
       {/* BOTÓN FLOTANTE */}
       <button className="avisos-trigger" onClick={() => setPanelOpen(true)}>
-        <SmsFailedSharpIcon />
+        <EventIcon />
         <span className="avisos-trigger-label"></span>
         {urgentes > 0 && <span className="avisos-badge">{urgentes}</span>}
       </button>

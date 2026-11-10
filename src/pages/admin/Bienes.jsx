@@ -21,6 +21,7 @@ import BadgeIcon from "@mui/icons-material/Badge";
 import EmailIcon from "@mui/icons-material/Email";
 import PhoneIcon from "@mui/icons-material/Phone";
 import HomeIcon from "@mui/icons-material/Home";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 // Componentes
@@ -41,6 +42,9 @@ const API_URL = import.meta.env.VITE_API_URL
 const MAX_FOTO_MB = 2;
 const MAX_FOTO_BYTES = MAX_FOTO_MB * 1024 * 1024;
 const RFC_MIN = 8;
+
+const AVISO_EXITO_MS = 3500;
+const SIN_CONEXION = "No hay conexión con el servidor.";
 
 // Tamaño de la miniatura en la tabla
 const FOTO_TABLA_SIZE = 110;
@@ -260,6 +264,13 @@ const nombreCompleto = (c) =>
 // El teléfono llega como "numero_de_telefono" desde la tabla clientes
 const telefonoCliente = (c) => c?.telefono ?? c?.numero_de_telefono ?? "";
 
+// Lee el error de una respuesta fetch y arma un mensaje legible
+const leerError = async (response, defecto) => {
+  const data = await response.json().catch(() => ({}));
+  const detalle = data.errors ? Object.values(data.errors).flat().join("\n") : null;
+  return detalle || data.message || defecto;
+};
+
 const COLOR_RIESGO = {
   bajo: { bg: "#DDF3E7", color: "#1B6B45" },
   medio: { bg: "#FFF4D6", color: "#9A6B00" },
@@ -402,10 +413,11 @@ const Bienes = () => {
   const [editingBien, setEditingBien] = useState(null);
   const [showDescarga, setShowDescarga] = useState(false);
 
-  // Aviso con el diseño del sistema (reemplaza alert)
+  // Aviso con el diseño del sistema: { tipo: 'exito' | 'error', titulo, mensaje }
   const [aviso, setAviso] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [tipoFilter, setTipoFilter] = useState("Todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO);
@@ -413,9 +425,27 @@ const Bienes = () => {
 
   const timerRfcRef = useRef(null);
 
-  const mostrarAviso = useCallback((titulo, mensaje) => {
-    setAviso({ titulo, mensaje });
+  const mostrarAviso = useCallback((tipo, titulo, mensaje) => {
+    setAviso({ tipo, titulo, mensaje });
   }, []);
+
+  // Los avisos de éxito se cierran solos
+  useEffect(() => {
+    if (aviso?.tipo !== "exito") return;
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Limpia el temporizador del RFC al desmontar
+  useEffect(() => () => clearTimeout(timerRfcRef.current), []);
 
   const getHeaders = () => ({
     Accept: "application/json",
@@ -426,20 +456,28 @@ const Bienes = () => {
     try {
       setLoading(true);
       const response = await fetch(API_URL, { headers: getHeaders() });
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "/login";
+        return;
+      }
+
       if (response.ok) {
         const data = await response.json();
         const finalData = Array.isArray(data) ? data : data.data || [];
         setBienes(finalData.sort((a, b) => b.id - a.id));
-      } else if (response.status === 401) {
-        localStorage.removeItem("token");
-        window.location.href = "/login";
+      } else {
+        const mensaje = await leerError(response, "Ocurrió un error al cargar los bienes.");
+        mostrarAviso("error", "No se pudieron cargar los bienes", mensaje);
       }
     } catch (error) {
       console.error("Error al cargar bienes:", error);
+      mostrarAviso("error", "No se pudieron cargar los bienes", SIN_CONEXION);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mostrarAviso]);
 
   useEffect(() => {
     fetchData();
@@ -522,6 +560,7 @@ const Bienes = () => {
         e.target.value = "";
         setFormData((prev) => ({ ...prev, foto: null }));
         mostrarAviso(
+          "error",
           "Formato no válido",
           `"${archivo.name}" no es una imagen.\nSelecciona una fotografía (JPG, PNG, WEBP…).`,
         );
@@ -532,6 +571,7 @@ const Bienes = () => {
         e.target.value = ""; // limpia la selección del input
         setFormData((prev) => ({ ...prev, foto: null }));
         mostrarAviso(
+          "error",
           "Archivo demasiado grande",
           `"${archivo.name}" pesa ${formatearTamano(archivo.size)}.\nEl tamaño máximo permitido es de ${MAX_FOTO_MB} MB.`,
         );
@@ -588,6 +628,7 @@ const Bienes = () => {
     // Tanto al crear como al editar el bien debe quedar ligado a un cliente válido
     if (!formData.id_cliente) {
       mostrarAviso(
+        "error",
         "Falta el cliente",
         isEdit
           ? "El RFC escrito no corresponde a un cliente. Corrígelo o déjalo como estaba para conservar el cliente actual."
@@ -624,21 +665,22 @@ const Bienes = () => {
       });
 
       if (response.ok) {
+        const data = await response.json().catch(() => ({}));
         cerrarModal();
         fetchData();
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        const detalle = errorData.errors
-          ? Object.values(errorData.errors).flat().join("\n")
-          : null;
         mostrarAviso(
-          "No se pudo guardar",
-          detalle || errorData.message || "El servidor devolvió un error.",
+          "exito",
+          isEdit ? "Bien actualizado" : "Bien registrado",
+          data.message ||
+            (isEdit ? "Los cambios se guardaron correctamente." : "El bien se guardó correctamente."),
         );
+      } else {
+        const mensaje = await leerError(response, "El servidor devolvió un error.");
+        mostrarAviso("error", "No se pudo guardar", mensaje);
       }
     } catch (error) {
       console.error("Error en Fetch:", error);
-      mostrarAviso("No se pudo guardar", "No hay conexión con el servidor.");
+      mostrarAviso("error", "No se pudo guardar", SIN_CONEXION);
     } finally {
       setLoading(false);
     }
@@ -650,19 +692,30 @@ const Bienes = () => {
   };
 
   const handleConfirmarEliminar = async () => {
+    if (!bienToDelete) return;
+
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/${bienToDelete.id}`, {
         method: "DELETE",
         headers: getHeaders(),
       });
+      setShowDeleteModal(false);
+
       if (response.ok) {
-        setShowDeleteModal(false);
+        const data = await response.json().catch(() => ({}));
+        mostrarAviso("exito", "Bien eliminado", data.message || "El bien se eliminó correctamente.");
         fetchData();
+      } else {
+        const mensaje = await leerError(response, "No se pudo eliminar el bien.");
+        mostrarAviso("error", "No se pudo eliminar", mensaje);
       }
     } catch (error) {
       console.error("Error al eliminar:", error);
+      setShowDeleteModal(false);
+      mostrarAviso("error", "No se pudo eliminar", SIN_CONEXION);
     } finally {
+      setBienToDelete(null);
       setLoading(false);
     }
   };
@@ -690,6 +743,8 @@ const Bienes = () => {
 
     return coincideBusqueda && coincideTipo;
   });
+
+  const totalPages = Math.ceil(filteredBienes.length / itemsPerPage) || 1;
 
   const paginated = filteredBienes
     .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -846,11 +901,8 @@ const Bienes = () => {
               type="text"
               className="search-custom"
               placeholder="Buscar por bien, cliente o RFC..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
         </div>
@@ -919,7 +971,7 @@ const Bienes = () => {
 
       <Paginacion
         currentPage={currentPage}
-        totalPages={Math.ceil(filteredBienes.length / itemsPerPage)}
+        totalPages={totalPages}
         onPageChange={setCurrentPage}
         itemsPerPage={itemsPerPage}
         onItemsPerPageChange={setItemsPerPage}
@@ -974,7 +1026,10 @@ const Bienes = () => {
 
       <ConfirmDeleteModal
         open={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setBienToDelete(null);
+        }}
         onConfirm={handleConfirmarEliminar}
         title="Eliminar bien"
         subtitle="¿Deseas eliminar este registro?"
@@ -1029,7 +1084,7 @@ const Bienes = () => {
         }
       />
 
-      {/* ---------- Aviso con el diseño del sistema ---------- */}
+      {/* ---------- Aviso (éxito / error) ---------- */}
       {aviso && (
         <div
           className="balam-overlay"
@@ -1037,11 +1092,13 @@ const Bienes = () => {
           onClick={(e) => e.target === e.currentTarget && setAviso(null)}
         >
           <div className="balam-modal evi-aviso">
-            <div className="evi-aviso-icono error">
-              <ErrorOutlineIcon style={{ fontSize: 40 }} />
+            <div className={`evi-aviso-icono ${aviso.tipo}`}>
+              {aviso.tipo === "exito"
+                ? <CheckCircleIcon style={{ fontSize: 40 }} />
+                : <ErrorOutlineIcon style={{ fontSize: 40 }} />}
             </div>
             <h3>{aviso.titulo}</h3>
-            <p>{aviso.mensaje}</p>
+            <p style={{ whiteSpace: "pre-line" }}>{aviso.mensaje}</p>
             <button className="balam-btn save" onClick={() => setAviso(null)}>
               Aceptar
             </button>

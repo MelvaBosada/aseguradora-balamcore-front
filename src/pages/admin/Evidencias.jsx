@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import axios from 'axios';
 import "../../css/Clientes.css";
 import logo from "../../assets/Logo.png";
+import ReporteEvidencias from "./ReporteEvidencias";
+import DescargarModal from "../../components/DescargarModal";
 
 // Iconos
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
@@ -29,15 +31,17 @@ import FolderZipIcon from "@mui/icons-material/FolderZip";
 import TextSnippetIcon from "@mui/icons-material/TextSnippet";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import PersonIcon from "@mui/icons-material/Person";
+import FingerprintIcon from "@mui/icons-material/Fingerprint";
+import HistoryIcon from "@mui/icons-material/History";
 
 // Componentes
 import PrimaryButton from "../../components/PrimaryButton";
 import TablaForm from "../../components/TablaForm";
-import ConfirmDeleteModal from "../../components/ConfirmDeleteModal";
 import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
-import DescargarModal from "../../components/DescargarModal";
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -45,9 +49,16 @@ const MAX_ARCHIVO_MB = 2;
 const MAX_ARCHIVO_BYTES = MAX_ARCHIVO_MB * 1024 * 1024;
 const MOTIVO_MIN = 10;
 const MOTIVO_MAX = 500;
+const SINIESTRO_CERRADO = ['cerrado', 'cancelado'];
+
+const AVISO_EXITO_MS = 3500;
+const SIN_CONEXION = "No hay conexión con el servidor.";
+
+// Estilos del icono de advertencia (por si el CSS no define .advertencia)
+const ESTILO_ICONO_ADVERTENCIA = { background: "#FFF4D6", color: "#9A6B00" };
 
 const campos = ["archivo_vista", "tipo", "siniestro", "estatus_validacion", "fecha_subida"];
-const columnas = ["Archivo", "Tipo", "Siniestro", "Estatus", "Fecha", "Acciones"];
+const columnas = ["Archivo", "Tipo", "N° Siniestro", "Estatus", "Fecha", "Acciones"];
 
 const FORM_CAMPOS_EVIDENCIA = [
   { label: "N° de Siniestro a buscar", name: "siniestro_buscar", type: "text", seccion: "Buscar Siniestro", fullWidth: true },
@@ -96,7 +107,10 @@ const formatearFecha = (valor) => {
   return isNaN(f.getTime()) ? String(valor) : f.toLocaleString();
 };
 
+// Mensaje legible a partir de un error de axios.
+// Sin respuesta del servidor = sin conexión.
 const mensajeError = (error, defecto) => {
+  if (!error.response) return SIN_CONEXION;
   const errores = error.response?.data?.errors;
   if (errores) return Object.values(errores).flat().join('\n');
   return error.response?.data?.message || defecto || error.message;
@@ -107,6 +121,16 @@ const numeroSiniestro = (d) => {
     return d.siniestro.numero_siniestro || d.id_siniestro || "—";
   }
   return d.siniestro || d.id_siniestro || "—";
+};
+
+const ETIQUETA_ACCION = {
+  crear: 'Subida',
+  editar: 'Edición de datos',
+  reemplazar_archivo: 'Archivo reemplazado',
+  validar: 'Validada',
+  rechazar: 'Rechazada',
+  eliminar: 'Eliminada',
+  integridad_fallida: 'Fallo de integridad'
 };
 
 // ----------------------------------------------------------------------
@@ -159,7 +183,7 @@ const tipoArchivo = (e) => {
 
 // ----------------------------------------------------------------------
 // Carga del archivo como blob por /descargar (con token).
-// No depende de storage:link ni de APP_URL.
+// No depende de storage:link ni de APP_URL (el disco es privado).
 // ----------------------------------------------------------------------
 const useArchivoBlob = (evidencia, habilitado, mimeForzado = null) => {
   const [src, setSrc] = useState(null);
@@ -290,7 +314,7 @@ const ArchivoCelda = ({ evidencia }) => (
   </div>
 );
 
-// Vista previa grande (detalle y rechazo)
+// Vista previa grande (detalle y modales de motivo)
 const VistaArchivo = ({ evidencia, compacto = false }) => {
   const info = tipoArchivo(evidencia);
   const previsualizable = ['imagen', 'pdf', 'video', 'audio'].includes(info.clave);
@@ -363,18 +387,56 @@ const EstatusBadge = ({ estatus }) => {
   );
 };
 
-// Items para el ClienteDetalleModal.
-// El primer item es la vista previa del archivo.
-const construirItemsDetalle = (d) => {
+// Historial (bitácora de movimientos) dentro del detalle
+const HistorialEvidencia = ({ historial }) => {
+  if (!historial) {
+    return <span style={{ color: '#888', fontSize: 13 }}>No se pudo cargar el historial.</span>;
+  }
+
+  const { auditoria = [] } = historial;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, width: '100%' }}>
+      {auditoria.length === 0 ? (
+        <span style={{ color: '#888', fontSize: 13 }}>Sin movimientos registrados.</span>
+      ) : (
+        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {auditoria.map((a) => (
+            <li key={a.id} style={{ fontSize: 13, lineHeight: 1.35, borderLeft: '3px solid #d9e2dd', paddingLeft: 10 }}>
+              <strong>{ETIQUETA_ACCION[a.accion] || a.accion}</strong> · {a.usuario}
+              <div style={{ color: '#888', fontSize: 11 }}>
+                {formatearFecha(a.fecha)}{a.ip ? ` · IP ${a.ip}` : ''}
+              </div>
+              {a.accion === 'rechazar' && a.datos_despues?.motivo_rechazo && (
+                <div style={{ color: '#555' }}>Motivo: {a.datos_despues.motivo_rechazo}</div>
+              )}
+              {a.accion === 'eliminar' && a.datos_despues?.motivo_eliminacion && (
+                <div style={{ color: '#555' }}>Motivo: {a.datos_despues.motivo_eliminacion}</div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+
+    </div>
+  );
+};
+
+// Items para el ClienteDetalleModal. El primer item es la vista previa del archivo.
+const construirItemsDetalle = (d, historial) => {
   const items = [
     { icon: <ImageIcon />, label: "Vista previa", value: <VistaArchivo key={d.id} evidencia={d} />, fullWidth: true },
     { icon: <DescriptionIcon />, label: "Archivo", value: d.nombre_archivo || "—" },
     { icon: <CategoryIcon />, label: "Tipo", value: d.tipo || "—" },
     { icon: <InfoIcon />, label: "Categoría", value: d.categoria || "—" },
     { icon: <AssignmentIcon />, label: "Siniestro", value: numeroSiniestro(d) },
-    { icon: <GavelIcon />, label: "Estatus de validación", value: <EstatusBadge estatus={d.estatus_validacion} /> }
+    { icon: <GavelIcon />, label: "Estatus de validación", value: <EstatusBadge estatus={d.estatus_validacion} /> },
+    { icon: <PersonIcon />, label: "Subida por", value: d.subido_por || "—" }
   ];
 
+  if (d.validado_por) {
+    items.push({ icon: <PersonIcon />, label: "Revisada por", value: d.validado_por });
+  }
   if (d.estatus_validacion === 'rechazada') {
     items.push({ icon: <InfoIcon />, label: "Motivo de rechazo", value: d.motivo_rechazo || "—" });
   }
@@ -393,33 +455,144 @@ const construirItemsDetalle = (d) => {
     });
   }
 
+  if (d.hash_archivo) {
+    items.push({
+      icon: <FingerprintIcon />,
+      label: "Huella SHA-256",
+      value: <span style={{ wordBreak: 'break-all', fontSize: 12 }}>{d.hash_archivo}</span>,
+      fullWidth: true
+    });
+  }
+
+  items.push({
+    icon: <HistoryIcon />,
+    label: "Historial",
+    value: <HistorialEvidencia historial={historial} />,
+    fullWidth: true
+  });
+
   return items;
+};
+
+// ----------------------------------------------------------------------
+// Modal reutilizable para acciones que exigen un motivo (rechazar / eliminar)
+// ----------------------------------------------------------------------
+const ModalMotivo = ({
+  titulo,
+  subtitulo,
+  evidencia,
+  etiqueta,
+  placeholder,
+  motivo,
+  error,
+  onChange,
+  onCancel,
+  onConfirm,
+  procesando,
+  textoBoton,
+  textoProcesando
+}) => (
+  <div
+    className="balam-overlay"
+    onClick={(e) => e.target === e.currentTarget && onCancel()}
+  >
+    <div className="balam-modal evi-modal-medio">
+      <div className="balam-header">
+        <img src={logo} alt="BalamCore" className="balam-logo" />
+        <div>
+          <h2>{titulo}</h2>
+          <p>{subtitulo} · Siniestro: {evidencia.siniestro || "—"}</p>
+        </div>
+      </div>
+
+      <div className="balam-body evi-body">
+        {/* Vista previa centrada con el nombre como leyenda */}
+        <figure className="evi-rechazo-visor">
+          <VistaArchivo key={evidencia.id} evidencia={evidencia} compacto />
+          <figcaption className="evi-leyenda" title={evidencia.nombre_archivo}>
+            {evidencia.nombre_archivo}
+          </figcaption>
+        </figure>
+
+        {/* Motivo a todo el ancho del modal */}
+        <div className="balam-field evi-motivo-campo">
+          <label style={{ color: error ? '#C0392B' : '' }}>
+            {etiqueta} <span style={{ color: 'red', marginLeft: 4 }}>*</span>
+          </label>
+          <textarea
+            className="balam-textarea evi-motivo"
+            rows={4}
+            maxLength={MOTIVO_MAX}
+            value={motivo}
+            onChange={onChange}
+            placeholder={placeholder}
+            style={{ borderColor: error ? '#C0392B' : '' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>
+            <span style={{ color: '#C0392B', fontSize: 11 }}>{error}</span>
+            <span style={{ color: '#888', fontSize: 11 }}>{motivo.length}/{MOTIVO_MAX}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="balam-footer">
+        <button className="balam-btn cancel" onClick={onCancel} disabled={procesando}>
+          Cancelar
+        </button>
+        <button
+          className="balam-btn save"
+          onClick={onConfirm}
+          disabled={procesando}
+          style={{ background: '#C0392B' }}
+        >
+          {procesando ? textoProcesando : textoBoton}
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+const validarMotivoTexto = (texto) => {
+  const t = texto.trim();
+  if (!t) return 'El motivo es obligatorio.';
+  if (t.length < MOTIVO_MIN) return `Describe el motivo con al menos ${MOTIVO_MIN} caracteres (${t.length}/${MOTIVO_MIN}).`;
+  return '';
 };
 
 const Evidencias = () => {
   const location = useLocation();
 
+  const [showDescarga, setShowDescarga] = useState(false);
+
   const [evidencias, setEvidencias] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDetalleModal, setShowDetalleModal] = useState(false);
-  const [showDescarga, setShowDescarga] = useState(false);
 
-  const [evidenciaToDelete, setEvidenciaToDelete] = useState(null);
   const [evidenciaDetalle, setEvidenciaDetalle] = useState(null);
   const [editingEvidencia, setEditingEvidencia] = useState(null);
+
+  // Validar (con confirmación)
+  const [validarEvidencia, setValidarEvidencia] = useState(null);
 
   // Rechazo
   const [rechazoEvidencia, setRechazoEvidencia] = useState(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [errorMotivo, setErrorMotivo] = useState("");
+
+  // Eliminación (con motivo)
+  const [eliminarEvidencia, setEliminarEvidencia] = useState(null);
+  const [motivoEliminacion, setMotivoEliminacion] = useState("");
+  const [errorEliminacion, setErrorEliminacion] = useState("");
+
   const [procesando, setProcesando] = useState(false);
 
   // Aviso con el diseño del sistema (reemplaza alert)
+  // { tipo: 'exito' | 'error' | 'advertencia', titulo, mensaje }
   const [aviso, setAviso] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO_EVIDENCIA);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -437,9 +610,20 @@ const Evidencias = () => {
   // Los avisos de éxito se cierran solos
   useEffect(() => {
     if (aviso?.tipo !== 'exito') return;
-    const t = setTimeout(() => setAviso(null), 3500);
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
     return () => clearTimeout(t);
   }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  // Limpia el temporizador de búsqueda al desmontar
+  useEffect(() => () => clearTimeout(timerSiniestroRef.current), []);
 
   const cargarEvidencias = useCallback(async () => {
     setLoading(true);
@@ -456,15 +640,25 @@ const Evidencias = () => {
 
       const data = response.data.data || [];
 
-      setEvidencias(data.map(e => ({
-        ...e,
-        archivo_vista: <ArchivoCelda evidencia={e} />,
-        siniestro: e.siniestro?.numero_siniestro || e.id_siniestro || "—",
-        fecha_subida: e.fecha_subida ? new Date(e.fecha_subida).toLocaleDateString() : "—"
-      })));
+      setEvidencias(data.map(e => {
+        const numero = e.siniestro?.numero_siniestro || e.id_siniestro || "—";
+        const cerrado = SINIESTRO_CERRADO.includes(e.siniestro?.estatus);
+
+        return {
+          ...e,
+          archivo_vista: <ArchivoCelda evidencia={e} />,
+          siniestro: numero,
+          // Dato crudo para el modal de edición (no depende del texto mostrado)
+          numero_siniestro_txt: String(numero),
+          // Solo una evidencia pendiente de un siniestro abierto admite cambios
+          es_modificable: e.estatus_validacion === 'pendiente' && !cerrado,
+          fecha_subida: e.fecha_subida ? new Date(e.fecha_subida).toLocaleDateString() : "—"
+        };
+      }));
       setTotalPages(response.data.last_page || 1);
     } catch (error) {
       console.error('Error cargando evidencias:', error);
+      mostrarAviso('error', 'No se pudieron cargar las evidencias', mensajeError(error));
     } finally {
       setLoading(false);
     }
@@ -508,6 +702,7 @@ const Evidencias = () => {
     } catch (error) {
       console.error('Error al buscar siniestros:', error);
       setSiniestrosOptions([]);
+      mostrarAviso('error', 'No se pudo buscar el siniestro', mensajeError(error));
     }
   };
 
@@ -557,6 +752,7 @@ const Evidencias = () => {
   };
 
   const cerrarModal = () => {
+    clearTimeout(timerSiniestroRef.current);
     setShowModal(false);
     setEditingEvidencia(null);
     setFormData(FORM_VACIO_EVIDENCIA);
@@ -572,7 +768,7 @@ const Evidencias = () => {
     setFormData({
       siniestro_buscar: "",
       id_siniestro: evidencia.id_siniestro || "",
-      numero_siniestro: evidencia.siniestro || "",
+      numero_siniestro: evidencia.numero_siniestro_txt || "",
       tipo: evidencia.tipo || "",
       categoria: evidencia.categoria || "",
       descripcion: evidencia.descripcion || "",
@@ -605,7 +801,6 @@ const Evidencias = () => {
         fd.append('tipo', formData.tipo);
         fd.append('categoria', formData.categoria ?? '');
         fd.append('descripcion', formData.descripcion ?? '');
-        if (formData.archivo) fd.append('archivo', formData.archivo);
 
         await axios.post(`${API_URL}/evidencias/${editingEvidencia.id}`, fd, getAuthHeaders());
       } else {
@@ -618,8 +813,17 @@ const Evidencias = () => {
         await axios.post(`${API_URL}/evidencias`, fd, getAuthHeaders());
       }
 
+      const eraEdicion = !!editingEvidencia;
+
       cerrarModal();
       cargarEvidencias();
+      mostrarAviso(
+        'exito',
+        eraEdicion ? 'Evidencia actualizada' : 'Evidencia subida',
+        eraEdicion
+          ? 'Los cambios se guardaron correctamente.'
+          : 'La evidencia se subió correctamente.'
+      );
     } catch (error) {
       console.error('Error al guardar la evidencia:', error);
       mostrarAviso('error', 'No se pudo guardar', mensajeError(error));
@@ -628,15 +832,35 @@ const Evidencias = () => {
 
   const handleVerDetalle = async (evidencia) => {
     let data = evidencia;
+    let historial = null;
+    let fallo = null;
+
     try {
       const res = await axios.get(`${API_URL}/evidencias/${evidencia.id}`, getAuthHeaders());
       data = res.data;
     } catch (error) {
       console.warn('No se pudo obtener el detalle extendido, usando datos locales:', error);
+      fallo = error;
     }
 
-    setEvidenciaDetalle({ ...data, items: construirItemsDetalle(data) });
+    try {
+      const res = await axios.get(`${API_URL}/evidencias/${evidencia.id}/historial`, getAuthHeaders());
+      historial = res.data;
+    } catch (error) {
+      console.warn('No se pudo obtener el historial:', error);
+      fallo = fallo || error;
+    }
+
+    setEvidenciaDetalle({ ...data, items: construirItemsDetalle(data, historial) });
     setShowDetalleModal(true);
+
+    if (fallo) {
+      mostrarAviso(
+        'advertencia',
+        'Detalle incompleto',
+        `${mensajeError(fallo)}\nSe muestran los datos disponibles.`
+      );
+    }
   };
 
   const handleDescargar = async (evidencia) => {
@@ -656,32 +880,52 @@ const Evidencias = () => {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error al descargar la evidencia:', error);
-      mostrarAviso('error', 'No se pudo descargar', 'El archivo no está disponible o no se pudo descargar.');
+
+      // Con responseType 'blob' el JSON de error llega como Blob: se intenta leer el mensaje
+      let mensaje = error.response
+        ? 'El archivo no está disponible o no se pudo descargar.'
+        : SIN_CONEXION;
+      try {
+        const texto = await error.response?.data?.text?.();
+        if (texto) mensaje = JSON.parse(texto).message || mensaje;
+      } catch {
+        /* se mantiene el mensaje por defecto */
+      }
+      mostrarAviso('error', 'No se pudo descargar', mensaje);
     }
   };
 
-  const handleValidar = async (evidencia) => {
+  // ----- Validar (con confirmación) -----
+  const abrirValidar = (evidencia) => setValidarEvidencia(evidencia);
+
+  const cerrarValidar = () => {
+    if (procesando) return;
+    setValidarEvidencia(null);
+  };
+
+  const confirmarValidar = async () => {
+    if (!validarEvidencia) return;
+
+    setProcesando(true);
     try {
-      await axios.post(`${API_URL}/evidencias/${evidencia.id}/validar`, {
+      await axios.post(`${API_URL}/evidencias/${validarEvidencia.id}/validar`, {
         accion: 'validar'
       }, getAuthHeaders());
 
-      mostrarAviso('exito', 'Evidencia validada', `La evidencia "${evidencia.nombre_archivo}" se validó correctamente.`);
+      const nombre = validarEvidencia.nombre_archivo;
+      setValidarEvidencia(null);
+      mostrarAviso('exito', 'Evidencia validada', `La evidencia "${nombre}" se validó correctamente.`);
       cargarEvidencias();
     } catch (error) {
       console.error('Error al validar la evidencia:', error);
+      setValidarEvidencia(null);
       mostrarAviso('error', 'No se pudo validar', mensajeError(error));
+    } finally {
+      setProcesando(false);
     }
   };
 
   // ----- Rechazo -----
-  const validarMotivo = (texto) => {
-    const t = texto.trim();
-    if (!t) return 'El motivo del rechazo es obligatorio.';
-    if (t.length < MOTIVO_MIN) return `Describe el motivo con al menos ${MOTIVO_MIN} caracteres (${t.length}/${MOTIVO_MIN}).`;
-    return '';
-  };
-
   const abrirRechazo = (evidencia) => {
     setRechazoEvidencia(evidencia);
     setMotivoRechazo("");
@@ -698,11 +942,11 @@ const Evidencias = () => {
   const handleMotivoChange = (e) => {
     const valor = e.target.value;
     setMotivoRechazo(valor);
-    if (errorMotivo) setErrorMotivo(validarMotivo(valor));
+    if (errorMotivo) setErrorMotivo(validarMotivoTexto(valor));
   };
 
   const confirmarRechazo = async () => {
-    const err = validarMotivo(motivoRechazo);
+    const err = validarMotivoTexto(motivoRechazo);
     if (err) {
       setErrorMotivo(err);
       return;
@@ -729,28 +973,52 @@ const Evidencias = () => {
     }
   };
 
-  const handleEliminarClick = (evidencia) => {
-    setEvidenciaToDelete(evidencia);
-    setShowDeleteModal(true);
+  // ----- Eliminación (borrado lógico con motivo) -----
+  const abrirEliminar = (evidencia) => {
+    setEliminarEvidencia(evidencia);
+    setMotivoEliminacion("");
+    setErrorEliminacion("");
   };
 
-  const handleConfirmarEliminar = async () => {
-    if (!evidenciaToDelete) return;
+  const cerrarEliminar = () => {
+    if (procesando) return;
+    setEliminarEvidencia(null);
+    setMotivoEliminacion("");
+    setErrorEliminacion("");
+  };
 
+  const handleMotivoEliminacionChange = (e) => {
+    const valor = e.target.value;
+    setMotivoEliminacion(valor);
+    if (errorEliminacion) setErrorEliminacion(validarMotivoTexto(valor));
+  };
+
+  const confirmarEliminar = async () => {
+    const err = validarMotivoTexto(motivoEliminacion);
+    if (err) {
+      setErrorEliminacion(err);
+      return;
+    }
+
+    setProcesando(true);
     try {
-      await axios.delete(`${API_URL}/evidencias/${evidenciaToDelete.id}`, getAuthHeaders());
-      setShowDeleteModal(false);
-      setEvidenciaToDelete(null);
+      await axios.delete(`${API_URL}/evidencias/${eliminarEvidencia.id}`, {
+        ...getAuthHeaders(),
+        data: { motivo_eliminacion: motivoEliminacion.trim() }
+      });
+
+      const nombre = eliminarEvidencia.nombre_archivo;
+      setEliminarEvidencia(null);
+      setMotivoEliminacion("");
+      setErrorEliminacion("");
+      mostrarAviso('exito', 'Evidencia eliminada', `La evidencia "${nombre}" se eliminó. El movimiento quedó registrado en la bitácora.`);
       cargarEvidencias();
     } catch (error) {
       console.error('Error al eliminar evidencia:', error);
       mostrarAviso('error', 'No se pudo eliminar', mensajeError(error));
+    } finally {
+      setProcesando(false);
     }
-  };
-
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
   };
 
   const handleItemsPerPageChange = (newItems) => {
@@ -758,13 +1026,9 @@ const Evidencias = () => {
     setCurrentPage(1);
   };
 
-  // En edición: sin buscador de siniestro y con el archivo como reemplazo opcional
+  // En edición: sin buscador de siniestro y sin archivo (el archivo es la prueba y no se reemplaza)
   const camposModal = editingEvidencia
-    ? FORM_CAMPOS_EVIDENCIA
-        .filter(c => c.name !== 'siniestro_buscar')
-        .map(c => c.name === 'archivo'
-          ? { ...c, label: `Reemplazar archivo (opcional, máx. ${MAX_ARCHIVO_MB} MB)` }
-          : c)
+    ? FORM_CAMPOS_EVIDENCIA.filter(c => c.name !== 'siniestro_buscar' && c.name !== 'archivo')
     : FORM_CAMPOS_EVIDENCIA;
 
   if (loading && evidencias.length === 0) {
@@ -792,8 +1056,8 @@ const Evidencias = () => {
               type="text"
               className="search-custom"
               placeholder="Buscar por nombre de archivo..."
-              value={searchTerm}
-              onChange={handleSearch}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
         </div>
@@ -834,42 +1098,46 @@ const Evidencias = () => {
           campos={campos}
           acciones={[
             {
-              titulo: "Ver detalle",
-              clase: "tabla-btn-ver",
-              icono: <VisibilityIcon fontSize="small" />,
-              onClick: handleVerDetalle
-            },
-            {
-              titulo: "Descargar",
-              clase: "tabla-btn-ver",
-              icono: <DownloadIcon fontSize="small" />,
-              onClick: handleDescargar
-            },
-            {
               titulo: "Validar",
               clase: "tabla-btn-edit",
               icono: <CheckCircleIcon fontSize="small" />,
-              onClick: handleValidar,
-              mostrarSi: (e) => e.estatus_validacion === 'pendiente'
+              onClick: abrirValidar,
+              oculto: (e) => !e.es_modificable
             },
             {
               titulo: "Rechazar",
               clase: "tabla-btn-del",
               icono: <CancelIcon fontSize="small" />,
               onClick: abrirRechazo,
-              mostrarSi: (e) => e.estatus_validacion === 'pendiente'
+              oculto: (e) => !e.es_modificable
             },
             {
-              titulo: "Editar",
+              titulo: "Ver detalle",
+              clase: "tabla-btn-ver",
+              icono: <VisibilityIcon fontSize="small" />,
+              onClick: handleVerDetalle
+            },
+            {
+              titulo: "Editar metadatos",
               clase: "tabla-btn-edit",
               icono: <EditIcon fontSize="small" />,
-              onClick: handleEditar
+              onClick: handleEditar,
+              // Solo pendientes de un siniestro abierto. El backend lo vuelve a verificar.
+              oculto: (e) => !e.es_modificable
             },
             {
               titulo: "Eliminar",
               clase: "tabla-btn-del",
               icono: <DeleteIcon fontSize="small" />,
-              onClick: handleEliminarClick
+              onClick: abrirEliminar,
+              // Solo pendientes de un siniestro abierto. El backend lo vuelve a verificar.
+              oculto: (e) => !e.es_modificable
+            },
+            {
+              titulo: "Descargar",
+              clase: "tabla-btn-ver",
+              icono: <DownloadIcon fontSize="small" />,
+              onClick: handleDescargar
             }
           ]}
         />
@@ -892,7 +1160,7 @@ const Evidencias = () => {
         titulo={editingEvidencia ? "Editar evidencia" : "Agregar nueva evidencia"}
         subtitulo={
           editingEvidencia
-            ? "Modifica los datos o reemplaza el archivo"
+            ? "Modifica los datos de la evidencia"
             : "Busca el siniestro y sube el archivo de evidencia"
         }
         btnTexto={editingEvidencia ? "Guardar cambios" : "Subir evidencia"}
@@ -921,13 +1189,20 @@ const Evidencias = () => {
           </div>
         )}
 
-        <div className="evi-hint">
-          <InfoIcon style={{ fontSize: 16 }} />
-          <span>Tamaño máximo por archivo: <strong>{MAX_ARCHIVO_MB} MB</strong>.</span>
-        </div>
+        {editingEvidencia ? (
+          <div className="evi-hint">
+            <InfoIcon style={{ fontSize: 16 }} />
+            <span>El archivo no se puede cambiar. Si te equivocaste, elimina esta evidencia y sube una nueva.</span>
+          </div>
+        ) : (
+          <div className="evi-hint">
+            <InfoIcon style={{ fontSize: 16 }} />
+            <span>Tamaño máximo por archivo: <strong>{MAX_ARCHIVO_MB} MB</strong>.</span>
+          </div>
+        )}
       </EditModal>
 
-      {/* ---------- Ver detalle (con la vista previa dentro) ---------- */}
+      {/* ---------- Ver detalle (con vista previa e historial) ---------- */}
       <ClienteDetalleModal
         open={showDetalleModal}
         onClose={() => { setShowDetalleModal(false); setEvidenciaDetalle(null); }}
@@ -938,101 +1213,73 @@ const Evidencias = () => {
         items={evidenciaDetalle?.items || []}
       />
 
-      {/* ---------- Rechazar evidencia ---------- */}
-      {rechazoEvidencia && (
+      {/* ---------- Confirmar validación ---------- */}
+      {validarEvidencia && (
         <div
           className="balam-overlay"
-          onClick={(e) => e.target === e.currentTarget && cerrarRechazo()}
+          style={{ zIndex: 2900 }}
+          onClick={(e) => e.target === e.currentTarget && cerrarValidar()}
         >
-          <div className="balam-modal evi-modal-medio">
-            <div className="balam-header">
-              <img src={logo} alt="BalamCore" className="balam-logo" />
-              <div>
-                <h2>Rechazar evidencia</h2>
-                <p>Revisa el archivo e indica por qué se rechaza · Siniestro: {rechazoEvidencia.siniestro || "—"}</p>
-              </div>
+          <div className="balam-modal evi-aviso">
+            <div className="evi-aviso-icono exito">
+              <CheckCircleIcon style={{ fontSize: 40 }} />
             </div>
-
-            <div className="balam-body evi-body">
-              {/* Vista previa centrada con el nombre como leyenda */}
-              <figure className="evi-rechazo-visor">
-                <VistaArchivo key={rechazoEvidencia.id} evidencia={rechazoEvidencia} compacto />
-                <figcaption className="evi-leyenda" title={rechazoEvidencia.nombre_archivo}>
-                  {rechazoEvidencia.nombre_archivo}
-                </figcaption>
-              </figure>
-
-              {/* Motivo a todo el ancho del modal */}
-              <div className="balam-field evi-motivo-campo">
-                <label style={{ color: errorMotivo ? '#C0392B' : '' }}>
-                  Motivo del rechazo <span style={{ color: 'red', marginLeft: 4 }}>*</span>
-                </label>
-                <textarea
-                  className="balam-textarea evi-motivo"
-                  rows={4}
-                  maxLength={MOTIVO_MAX}
-                  value={motivoRechazo}
-                  onChange={handleMotivoChange}
-                  placeholder="Describe por qué se rechaza esta evidencia..."
-                  style={{ borderColor: errorMotivo ? '#C0392B' : '' }}
-                />
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>
-                  <span style={{ color: '#C0392B', fontSize: 11 }}>{errorMotivo}</span>
-                  <span style={{ color: '#888', fontSize: 11 }}>{motivoRechazo.length}/{MOTIVO_MAX}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="balam-footer">
-              <button className="balam-btn cancel" onClick={cerrarRechazo} disabled={procesando}>
+            <h3>Validar evidencia</h3>
+            <p style={{ whiteSpace: 'pre-line' }}>
+              Vas a validar "{validarEvidencia.nombre_archivo}" del siniestro {validarEvidencia.siniestro || "—"}.
+              {"\n"}Una vez validada ya no se podrá editar, eliminar ni cambiar su estatus.
+            </p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button className="balam-btn cancel" onClick={cerrarValidar} disabled={procesando}>
                 Cancelar
               </button>
-              <button
-                className="balam-btn save"
-                onClick={confirmarRechazo}
-                disabled={procesando}
-                style={{ background: '#C0392B' }}
-              >
-                {procesando ? 'Rechazando…' : 'Rechazar evidencia'}
+              <button className="balam-btn save" onClick={confirmarValidar} disabled={procesando}>
+                {procesando ? 'Validando…' : 'Validar evidencia'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      <ConfirmDeleteModal
-        open={showDeleteModal}
-        onClose={() => { setShowDeleteModal(false); setEvidenciaToDelete(null); }}
-        onConfirm={handleConfirmarEliminar}
-        title="Eliminar evidencia"
-        subtitle="¿Deseas eliminar este archivo de evidencia del sistema?"
-      >
-        {evidenciaToDelete && (
-          <div>
-            <p><strong>{evidenciaToDelete.nombre_archivo}</strong></p>
-            <p>Siniestro: {evidenciaToDelete.siniestro || "—"}</p>
-            <p>Tipo: {evidenciaToDelete.tipo || "—"}</p>
-            <p>Estatus: {evidenciaToDelete.estatus_validacion || "—"}</p>
-          </div>
-        )}
-      </ConfirmDeleteModal>
+      {/* ---------- Rechazar evidencia ---------- */}
+      {rechazoEvidencia && (
+        <ModalMotivo
+          titulo="Rechazar evidencia"
+          subtitulo="Revisa el archivo e indica por qué se rechaza"
+          evidencia={rechazoEvidencia}
+          etiqueta="Motivo del rechazo"
+          placeholder="Describe por qué se rechaza esta evidencia..."
+          motivo={motivoRechazo}
+          error={errorMotivo}
+          onChange={handleMotivoChange}
+          onCancel={cerrarRechazo}
+          onConfirm={confirmarRechazo}
+          procesando={procesando}
+          textoBoton="Rechazar evidencia"
+          textoProcesando="Rechazando…"
+        />
+      )}
 
-      {/* ---------- Descarga del listado (PDF / Excel / CSV) ---------- */}
-      <DescargarModal
-        open={showDescarga}
-        onClose={() => setShowDescarga(false)}
-        url={`${API_URL}/exportar/evidencias`}
-        params={{ search: searchTerm, estatus: estatusFilter }}
-        nombreArchivo="evidencias"
-        titulo="Descargar listado de evidencias"
-        nota={
-          searchTerm || estatusFilter !== "Todos"
-            ? `Se exportarán las evidencias con los filtros actuales${searchTerm ? ` (búsqueda: "${searchTerm}")` : ""}${estatusFilter !== "Todos" ? ` (estatus: ${estatusFilter})` : ""}.`
-            : "Se exportarán todas las evidencias."
-        }
-      />
+      {/* ---------- Eliminar evidencia (exige motivo) ---------- */}
+      {eliminarEvidencia && (
+        <ModalMotivo
+          titulo="Eliminar evidencia"
+          subtitulo="La evidencia dejará de mostrarse, pero el movimiento queda en la bitácora"
+          evidencia={eliminarEvidencia}
+          etiqueta="Motivo de la eliminación"
+          placeholder="Ej. Archivo subido por error al siniestro equivocado..."
+          motivo={motivoEliminacion}
+          error={errorEliminacion}
+          onChange={handleMotivoEliminacionChange}
+          onCancel={cerrarEliminar}
+          onConfirm={confirmarEliminar}
+          procesando={procesando}
+          textoBoton="Eliminar evidencia"
+          textoProcesando="Eliminando…"
+        />
+      )}
 
-      {/* ---------- Aviso (éxito / error) ---------- */}
+      {/* ---------- Aviso (éxito / error / advertencia) ---------- */}
       {aviso && (
         <div
           className="balam-overlay"
@@ -1040,17 +1287,46 @@ const Evidencias = () => {
           onClick={(e) => e.target === e.currentTarget && setAviso(null)}
         >
           <div className="balam-modal evi-aviso">
-            <div className={`evi-aviso-icono ${aviso.tipo}`}>
-              {aviso.tipo === 'exito'
-                ? <CheckCircleIcon style={{ fontSize: 40 }} />
-                : <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+            <div
+              className={`evi-aviso-icono ${aviso.tipo}`}
+              style={aviso.tipo === 'advertencia' ? ESTILO_ICONO_ADVERTENCIA : undefined}
+            >
+              {aviso.tipo === 'exito' && <CheckCircleIcon style={{ fontSize: 40 }} />}
+              {aviso.tipo === 'error' && <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+              {aviso.tipo === 'advertencia' && <WarningAmberIcon style={{ fontSize: 40 }} />}
             </div>
             <h3>{aviso.titulo}</h3>
-            <p>{aviso.mensaje}</p>
+            <p style={{ whiteSpace: 'pre-line' }}>{aviso.mensaje}</p>
             <button className="balam-btn save" onClick={() => setAviso(null)}>Aceptar</button>
           </div>
         </div>
       )}
+
+      {/* ---------- Descargar (listado Excel/CSV/PDF + fotos por siniestro) ---------- */}
+      <DescargarModal
+        open={showDescarga}
+        onClose={() => setShowDescarga(false)}
+        url={`${API_URL}/exportar/evidencias`}
+        params={{ search: searchTerm, estatus: estatusFilter }}
+        nombreArchivo="evidencias"
+        titulo="Descargar evidencias"
+        nota={
+          searchTerm || estatusFilter !== "Todos"
+            ? `Se exportarán las evidencias con los filtros actuales${searchTerm ? ` (búsqueda: "${searchTerm}")` : ""}${estatusFilter !== "Todos" ? ` (estatus: ${estatusFilter})` : ""}.`
+            : "Se exportarán todas las evidencias."
+        }
+        tabExtra={{
+          id: "reporte",
+          label: "Fotos por siniestro",
+          contenido: (
+            <ReporteEvidencias
+              Miniatura={Miniatura}
+              getAuthHeaders={getAuthHeaders}
+              onAviso={mostrarAviso}
+            />
+          )
+        }}
+      />
     </div>
   );
 };

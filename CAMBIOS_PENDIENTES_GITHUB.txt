@@ -1,0 +1,238 @@
+CAMBIOS PENDIENTES DE SUBIR O INTEGRAR EN GITHUB
+================================================
+
+Fecha del resumen: 9 de noviembre de 2026
+Repositorio: MelvaBosada/aseguradora-balamcore-front
+Rama local: melva
+Comparacion utilizada: rama local contra origin/melva
+
+Este archivo resume los cambios que actualmente existen de forma local y que
+todavia no estan contenidos en la rama remota origin/melva. Los cambios del
+working tree aun no estan publicados en ningun commit remoto. Adicionalmente,
+se indican dos commits que estan en la rama local pero que no forman parte de
+origin/melva; esos commits ya aparecen en GitHub a traves de
+origin/produccion, por lo que estan pendientes de integrar en la rama melva,
+no de volver a publicarse.
+
+
+1. CAMBIOS PRINCIPALES Y FUNCIONALIDADES NUEVAS
+------------------------------------------------
+
+1.1. Modulo de siniestros y expediente
+
+- Se amplio el listado de siniestros para consultar, buscar, filtrar, paginar,
+  crear, editar, eliminar y asignar o reasignar ajustadores.
+- Se agrego el detalle de siniestro en una ruta propia:
+  /admin/siniestros/:id.
+- Se creo un expediente dividido por pestañas para consultar:
+  - Datos generales del siniestro.
+  - Documentos.
+  - Evidencias.
+  - Evaluacion.
+  - Historial.
+  - Indemnizacion.
+- Se agregaron modales para asignar ajustadores, capturar informacion y
+  confirmar acciones.
+- Se agrego el desglose de calculos de indemnizacion y los indicadores visuales
+  de estados, tipos y niveles.
+- Se agrego la pantalla de configuracion de siniestros para administrar
+  catalogos y parametros relacionados con el flujo.
+- Se agrego la papelera administrativa para consultar elementos eliminados y
+  realizar las acciones disponibles sobre ellos.
+
+Archivos nuevos principales:
+- src/pages/admin/SiniestroDetalle.jsx
+- src/pages/admin/ConfiguracionSiniestros.jsx
+- src/pages/admin/Papelera.jsx
+- src/components/siniestro/AsignarAjustadorModal.jsx
+- src/components/siniestro/Badges.jsx
+- src/components/siniestro/DesgloseCalculo.jsx
+- src/components/siniestro/IndemnizacionModales.jsx
+- src/components/siniestro/Modal.jsx
+- src/components/siniestro/TabDatos.jsx
+- src/components/siniestro/TabDocumentos.jsx
+- src/components/siniestro/TabEvaluacion.jsx
+- src/components/siniestro/TabEvidencias.jsx
+- src/components/siniestro/TabHistorial.jsx
+- src/components/siniestro/TabIndemnizacion.jsx
+
+
+1.2. Integracion de API y utilidades de siniestros
+
+- Se agrego un cliente Axios reutilizable para las operaciones de siniestros.
+- Se centralizo el envio del token de autenticacion y el encabezado
+  application/json.
+- Se agrego el manejo de sesiones expiradas: se elimina el token y se
+  redirige al login cuando la API responde con 401.
+- Se agregaron funciones para mostrar errores de validacion, fechas y montos.
+- Se agrego la descarga de archivos protegidos mediante el token de sesion.
+- Se agrego la consulta y cache de la marca, razon social y logotipo de la
+  aseguradora del usuario.
+
+Archivos nuevos:
+- src/services/siniestroApi.js
+- src/hooks/useMarcaAseguradora.js
+
+
+1.3. Permisos y rutas administrativas
+
+- Se agregaron rutas protegidas para el expediente y la configuracion de
+  siniestros.
+- Se agrego la ruta administrativa de papelera.
+- Se ajustaron permisos y visibilidad de acciones en varias pantallas.
+- Se agrego una utilidad para consultar el usuario, sus permisos y validar si
+  puede autorizar evaluaciones por nivel.
+
+Archivos relacionados:
+- src/routes/AdminRoutes.jsx
+- src/context/PermisosContext.jsx
+- src/utils/permisos.js
+- src/components/layout/Sidebar.jsx
+- src/components/layout/Topbar.jsx
+
+
+1.4. Evaluaciones, evidencias e indemnizaciones
+
+- Se reorganizo la pantalla de evaluaciones para integrarla con el nuevo flujo
+  de siniestros y sus niveles de autorizacion.
+- Se amplio el manejo de evidencias: consulta, filtros, visualizacion,
+  descarga, eliminacion y acciones relacionadas con el expediente.
+- Se mejoraron los documentos de evaluacion e indemnizacion para mostrar
+  encabezados, datos y formatos de documento mas completos.
+- Se agregaron o ajustaron validaciones, mensajes, estados de carga y
+  confirmaciones en las acciones.
+
+Archivos relacionados:
+- src/pages/admin/Evaluaciones.jsx
+- src/pages/admin/Evidencias.jsx
+- src/pages/admin/ReporteEvidencias.jsx
+- src/components/EvaluacionDocumento.jsx
+- src/components/IndemnizacionDocumento.jsx
+- src/components/EncabezadoDocumento.jsx
+- src/components/TablaForm.jsx
+
+
+1.5. Polizas, coberturas y endosos
+
+- Se amplio el flujo de polizas para crear y editar informacion, bienes,
+  coberturas, documentos y datos de endoso.
+- Se agrego un modal especifico para consultar las coberturas de una poliza.
+- Se mejoro el detalle de poliza y la presentacion de sus documentos y
+  relaciones.
+- Se ajustaron listados, filtros, formularios y acciones de polizas por vencer
+  y solicitudes de renovacion.
+
+Archivos relacionados:
+- src/pages/admin/Polizas.jsx
+- src/components/PolizaDetalleModal.jsx
+- src/components/PolizaCoberturasModal.jsx
+- src/pages/admin/PolizasVencer.jsx
+- src/pages/admin/SolicitudesRenovacion.jsx
+
+
+1.6. Mejoras generales de interfaz y formularios
+
+- Se agrego el componente SelectBalam y sus estilos para unificar selectores.
+- Se actualizaron estilos de modales, tablas, dashboard y avisos.
+- Se mejoraron formularios y acciones de clientes, bienes, coberturas,
+  empleados, perfiles, reportes y dashboard.
+- Se ajustaron avisos, botones, estados visuales y mensajes de confirmacion.
+- Se incorporaron documentos de referencia con el listado de acciones de las
+  paginas administrativas.
+
+Archivos nuevos:
+- src/components/SelectBalam.jsx
+- src/css/SelectBalam.css
+- src/css/SiniestroDetalle.css
+- ACCIONES_PAGINAS_ADMIN.txt
+- ACCIONES_PAGINAS_ADMIN copy.txt
+
+
+2. COMMITS LOCALES AUN NO PRESENTES EN origin/melva
+---------------------------------------------------
+
+Los siguientes commits existen localmente y la rama remota origin/melva todavia
+no los contiene. Tambien estan referenciados por origin/produccion:
+
+- 4524f06 - Merge pull request #59 from MelvaBosada/melva
+  Integra mejoras de planes, pagos, layout, permisos, evidencias, reportes y
+  nuevas pantallas administrativas.
+
+- 6c0351c - Modificaciones en polizas y endosos
+  Actualiza el flujo de polizas y endosos, mejora el detalle de poliza y
+  amplia considerablemente el modulo de evidencias.
+
+
+3. ARCHIVOS MODIFICADOS LOCALMENTE
+-----------------------------------
+
+- src/components/AvisarModal.jsx
+- src/components/Avisospanel.jsx
+- src/components/DescargarModal.jsx
+- src/components/EditModal.jsx
+- src/components/EvaluacionDocumento.jsx
+- src/components/IndemnizacionDocumento.jsx
+- src/components/TablaForm.jsx
+- src/components/layout/Sidebar.jsx
+- src/components/layout/Topbar.jsx
+- src/context/PermisosContext.jsx
+- src/css/AvisarModal.css
+- src/css/Dashboard.css
+- src/css/TablaForm.css
+- src/pages/admin/Bienes.jsx
+- src/pages/admin/Clientes.jsx
+- src/pages/admin/Coberturas.jsx
+- src/pages/admin/Dashboard.jsx
+- src/pages/admin/Empleados.jsx
+- src/pages/admin/Evaluaciones.jsx
+- src/pages/admin/Evidencias.jsx
+- src/pages/admin/Indemnizaciones.jsx
+- src/pages/admin/Perfiles.jsx
+- src/pages/admin/Polizas.jsx
+- src/pages/admin/PolizasVencer.jsx
+- src/pages/admin/Reporte.jsx
+- src/pages/admin/ReporteEvidencias.jsx
+- src/pages/admin/Siniestros.jsx
+- src/pages/admin/SolicitudesRenovacion.jsx
+- src/routes/AdminRoutes.jsx
+
+
+4. ARCHIVOS NUEVOS AUN NO RASTREADOS
+-------------------------------------
+
+- ACCIONES_PAGINAS_ADMIN.txt
+- ACCIONES_PAGINAS_ADMIN copy.txt
+- src/components/EncabezadoDocumento.jsx
+- src/components/PolizaCoberturasModal.jsx
+- src/components/SelectBalam.jsx
+- src/components/siniestro/AsignarAjustadorModal.jsx
+- src/components/siniestro/Badges.jsx
+- src/components/siniestro/DesgloseCalculo.jsx
+- src/components/siniestro/IndemnizacionModales.jsx
+- src/components/siniestro/Modal.jsx
+- src/components/siniestro/TabDatos.jsx
+- src/components/siniestro/TabDocumentos.jsx
+- src/components/siniestro/TabEvaluacion.jsx
+- src/components/siniestro/TabEvidencias.jsx
+- src/components/siniestro/TabHistorial.jsx
+- src/components/siniestro/TabIndemnizacion.jsx
+- src/css/SelectBalam.css
+- src/css/SiniestroDetalle.css
+- src/hooks/useMarcaAseguradora.js
+- src/pages/admin/ConfiguracionSiniestros.jsx
+- src/pages/admin/Papelera.jsx
+- src/pages/admin/SiniestroDetalle.jsx
+- src/services/siniestroApi.js
+- src/utils/permisos.js
+
+
+5. ESTADO AL MOMENTO DE GENERAR ESTE RESUMEN
+---------------------------------------------
+
+- Los cambios del working tree descritos no se subieron ni se sincronizaron con
+  origin/melva.
+- Los dos commits indicados ya estan disponibles en GitHub bajo
+  origin/produccion, pero no en origin/melva.
+- El archivo actual es solo informativo; no realiza commit ni push.
+- Antes de subir, conviene revisar los archivos de acciones duplicados y
+  ejecutar la compilacion o las pruebas configuradas para el proyecto.
