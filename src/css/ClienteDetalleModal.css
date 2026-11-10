@@ -408,3 +408,8 @@
   .detalle-icon { display: none; } /* sin iconos en pantallas micro */
   .detalle-label { letter-spacing: 0; }
 }
+
+.balam-modal.detalle-modal.detalle-modal-ancho {
+  width: 100% !important;
+  max-width: min(1000px, 96vw) !important;
+}

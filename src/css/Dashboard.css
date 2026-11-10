@@ -418,7 +418,7 @@
 .avisos-panel.open { right: 0; }
 
 .avisos-panel-header {
-  background: linear-gradient(135deg, #041E17, #0F4C3A);
+  background: linear-gradient(135deg, #041E17, #041E17);
   color: white;
   padding: 22px 20px;
   display: flex;

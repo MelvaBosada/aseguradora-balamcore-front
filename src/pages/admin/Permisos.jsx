@@ -34,6 +34,7 @@ const Permisos = () => {
   const [currentPage,     setCurrentPage]     = useState(1);
   const [formData,        setFormData]        = useState(FORM_VACIO);
   const [searchTerm,      setSearchTerm]      = useState("");
+  const [searchInput,     setSearchInput]     = useState("");
   const [itemsPerPage,    setItemsPerPage]    = useState(8);
 
   useEffect(() => {
@@ -52,6 +53,14 @@ const Permisos = () => {
     };
     cargar();
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const recargarPermisos = async () => {
     try {
@@ -123,8 +132,6 @@ const Permisos = () => {
   );
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const handleSearch = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
-
 
   if (loading && permisos.length === 0) {
     return (
@@ -148,7 +155,7 @@ const Permisos = () => {
           <div className="search-input-wrapper">
             <SearchIcon className="search-icon" />
             <input type="text" className="search-custom" placeholder="Buscar permiso..."
-              value={searchTerm} onChange={handleSearch} />
+              value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
           </div>
         </div>
         <PrimaryButton text="Nuevo permiso" icon={<AddCircleOutlinedIcon />} onClick={handleNuevo} />

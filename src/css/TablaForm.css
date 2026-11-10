@@ -1,12 +1,35 @@
+/* ==========================================================
+   VARIABLES
+   ========================================================== */
+:root {
+  --balam: #0f4c3a;       /* Ver */
+  --verde-vivo: #2e9e5b;  /* Aprobar / Agregar */
+  --gris: #394e3f;       /* Descargar / Reasignar */
+  --ambar: #d69c28;       /* Editar */
+  --rojo: #c95246;        /* Rechazar */
+  --vino: #8f2d2d;        /* Eliminar */
+  --ok: #4caf50;  
+  --siniestro: #09241c;   /* Avisado */
+}
+
+/* ==========================================================
+   BOTONES DE ACCIÓN
+   ========================================================== */
 .tabla-acciones {
   display: flex;
   gap: 6px;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
-/* BASE */
+/* Separación entre grupos: ponla en el primer botón de cada grupo */
+.tabla-btn-grupo {
+  margin-left: 8px;
+}
+
+/* BASE: Fondo con tinte sutil del mismo color para evitar el choque con el blanco */
 .tabla-btn {
+  --c: var(--balam);
   width: 30px;
   height: 30px;
   border-radius: 7px;
@@ -15,11 +38,16 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.18s, color 0.18s, transform 0.15s, box-shadow 0.18s;
   flex-shrink: 0;
+  background: color-mix(in srgb, var(--c) 8%, white); /* Fondo ultra suave corporativo */
+  color: var(--c);
+  box-shadow: 0 0 0 1.5px var(--c) inset; /* Tu borde intacto */
+  transition: background 0.18s, color 0.18s, transform 0.15s, box-shadow 0.18s;
 }
 
 .tabla-btn:hover {
+  background: var(--c);
+  color: #ffffff;
   transform: translateY(-2px);
 }
 
@@ -30,6 +58,30 @@
   transform: none;
 }
 
+/* VARIANTES DE COLOR */
+.tabla-btn-ver        { --c: var(--balam); }
+.tabla-btn-aprobar    { --c: var(--verde-vivo); }
+.tabla-btn-agregar    { --c: var(--verde-vivo); }
+.tabla-btn-descargar  { --c: var(--gris); }
+.tabla-btn-reasignar  { --c: var(--gris); }
+.tabla-btn-edit       { --c: var(--ambar); }
+.tabla-btn-rechazar   { --c: var(--rojo); }
+.tabla-btn-del        { --c: var(--vino); }
+.tabla-btn-crear      { --c: var(--siniestro); }
+
+/* AVISADO (ya avisado, no clickeable) */
+.tabla-btn-avisado {
+  --c: var(--ok);
+  background: #f0faf4 !important;
+  color: var(--ok) !important;
+  cursor: not-allowed !important;
+  opacity: 0.75;
+}
+.tabla-btn-avisado:hover {
+  transform: none !important;
+}
+
+/* Spinner */
 .tabla-spinner {
   width: 14px;
   height: 14px;
@@ -45,66 +97,6 @@
   }
 }
 
-/* VER — verde sólido → hover blanco con borde */
-.tabla-btn-ver {
-   background: #ffffff;
-  color: #0F4C3A;
-  box-shadow: 0 0 0 1.5px #0F4C3A inset;
-  
-}
-.tabla-btn-ver:hover {
- background: #0F4C3A;
-  color: #ffffff;
-}
-
-/* EDITAR — dorado quemado → hover blanco con borde */
-.tabla-btn-edit {
-  background: #ffffff;
-  color: #B8860B;
-  box-shadow: 0 0 0 1.5px #B8860B inset;
-  
-}
-.tabla-btn-edit:hover {
-  background: #BA9241;
-  color: #ffffff;
-}
-
-/* ELIMINAR — rojo sólido → hover blanco con borde */
-.tabla-btn-del {
-    background: #ffffff;
-  color: #C0392B;
-  box-shadow: 0 0 0 1.5px #C0392B inset;
-  
-}
-.tabla-btn-del:hover {
-background: #C0392B;
-  color: #ffffff;
-}
-
-.tabla-btn-agregar {
-  background: #ffffff;
-  color: #07241b;
-  box-shadow: 0 0 0 1.5px #07241b inset;
-}
-.tabla-btn-agregar:hover {
-  background: #051f17;
-  color: #ffffff;
-}
-
-
-.tabla-btn-avisado {
-  background: #f0faf4 !important;
-  color: #4caf50 !important;
-  box-shadow: 0 0 0 1.5px #4caf50 inset !important;
-  cursor: not-allowed !important;
-  opacity: 0.75;
-}
-.tabla-btn-avisado:hover {
-  transform: none !important;
-  background: #f0faf4 !important;
-  color: #4caf50 !important;
-}
-
 /* Responsive: en pantallas muy pequeñas reducir botones */
 @media (max-width: 480px) {
   .tabla-btn {
@@ -114,6 +106,9 @@ background: #C0392B;
   }
 }
 
+/* ==========================================================
+   FOTOS
+   ========================================================== */
 .tabla-celda-foto {
   width: 70px;
   padding: 4px !important;
@@ -139,4 +134,40 @@ background: #C0392B;
   font-size: 10px;
   color: #999;
   margin: 0 auto;
+}
+
+/* ==========================================================
+   BADGES (Estatus y Prioridad) — sin azules, solo paleta de marca
+   ========================================================== */
+.badge-tabla {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+/* Estatus */
+.badge-documentacion-pendiente { background: #fdf3dc; color: #8a5f0a; }
+.badge-dictaminado             { background: #e3f1ea; color: #1f6b4f; }
+.badge-cancelado               { background: #eceef0; color: #5b6470; }
+.badge-en-proceso              { background: #f3ecdc; color: #7a6130; }
+
+/* Estatus (Evidencias) */
+.badge-pendiente { background: #fdf3dc; color: #8a5f0a; }
+.badge-validada  { background: #e3f1ea; color: #1f6b4f; }
+.badge-rechazada { background: #fbe6df; color: #a8432a; }
+
+/* Prioridad */
+.badge-urgente { background: #fbe6df; color: #a8432a; }
+.badge-media   { background: #fdf3dc; color: #8a5f0a; }
+.badge-baja    { background: #e9efec; color: #4f6b5f; }
+
+/* ==========================================================
+   FILAS (opcional): fondo crema en filas alternas
+   ========================================================== */
+.table-striped > tbody > tr:nth-of-type(odd) > * {
+  --bs-table-bg-type: #f8f5ee;
 }

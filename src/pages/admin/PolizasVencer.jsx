@@ -17,8 +17,7 @@ import ReceiptIcon        from "@mui/icons-material/Receipt";
 import EventIcon          from "@mui/icons-material/Event";
 import NotesIcon          from "@mui/icons-material/Notes";
 import CheckCircleIcon    from "@mui/icons-material/CheckCircle";
-import Snackbar           from "@mui/material/Snackbar";
-import Alert              from "@mui/material/Alert";
+import ErrorOutlineIcon   from "@mui/icons-material/ErrorOutline";
 
 import PrimaryButton       from "../../components/PrimaryButton";
 import TablaForm           from "../../components/TablaForm";
@@ -29,9 +28,12 @@ import RenovarPolizaModal  from "../../components/RenovarPolizaModal";
 import DescargarModal      from "../../components/DescargarModal";
 
 import { PolizasVencerData } from "../../components/PolizasVencerData";
+import "../../css/Clientes.css";
 import "../../css/PolizasVencer.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
+
+const AVISO_EXITO_MS = 3500;
 
 const ESTATUS_DIAS = {
   Todos:        30,
@@ -70,7 +72,8 @@ const PolizasVencer = () => {
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState(null);
 
-  const [search,       setSearch]       = useState("");
+  const [searchTerm,   setSearchTerm]   = useState("");
+  const [searchInput,  setSearchInput]  = useState("");
   const [estatus,      setEstatus]      = useState("Todos");
   const [currentPage,  setCurrentPage]  = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
@@ -81,13 +84,26 @@ const PolizasVencer = () => {
   const [showDescarga, setShowDescarga] = useState(false);
   const [selected,     setSelected]     = useState(null);
 
-  const [snackOpen,     setSnackOpen]     = useState(false);
-  const [snackMsg,      setSnackMsg]      = useState("");
-  const [snackSeverity, setSnackSeverity] = useState("success");
+  const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', titulo, mensaje }
 
-  const showSnack = (msg, severity = "success") => {
-    setSnackMsg(msg); setSnackSeverity(severity); setSnackOpen(true);
-  };
+  const mostrarAviso = useCallback((tipo, titulo, mensaje) => {
+    setAviso({ tipo, titulo, mensaje });
+  }, []);
+
+  // Los avisos de éxito se cierran solos
+  useEffect(() => {
+    if (aviso?.tipo !== "exito") return;
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const fetchPolizas = useCallback(async (estatusFiltro) => {
     setLoading(true);
@@ -100,11 +116,11 @@ const PolizasVencer = () => {
     } catch (err) {
       console.error(err);
       setError("No se pudieron cargar las pólizas. Intenta de nuevo.");
-      showSnack("Error al cargar pólizas", "error");
+      mostrarAviso("error", "No se pudieron cargar las pólizas", "Ocurrió un error al cargar las pólizas por vencer. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mostrarAviso]);
 
   useEffect(() => {
     fetchPolizas(estatus);
@@ -112,7 +128,7 @@ const PolizasVencer = () => {
   }, [estatus, fetchPolizas]);
 
   const filtered = polizas.filter((p) => {
-    const q = search.toLowerCase();
+    const q = searchTerm.toLowerCase();
     const matchSearch =
       p.nombre.toLowerCase().includes(q)   ||
       p.apellido.toLowerCase().includes(q) ||
@@ -123,10 +139,20 @@ const PolizasVencer = () => {
     return matchSearch && matchEstatus;
   });
 
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleSearch  = (e) => { setSearch(e.target.value);  setCurrentPage(1); };
+  if (loading && polizas.length === 0) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success"></div>
+          <p className="mt-2">Cargando pólizas por vencer...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleEstatus = (e) => { setEstatus(e.target.value); };
 
   const openAvisar  = (p) => { setSelected(p); setAvisarOpen(true);  };
@@ -134,13 +160,13 @@ const PolizasVencer = () => {
   const openRenovar = (p) => { setSelected(p); setRenovarOpen(true); };
 
   const handleEnviado = () => {
-    showSnack(`Correo enviado a ${selected?.correo || "cliente"}`);
+    mostrarAviso("exito", "Aviso enviado", `Correo enviado a ${selected?.correo || "cliente"}.`);
     fetchPolizas(estatus);
   };
 
   const handleConfirmRenovar = (data) => {
     setRenovarOpen(false);
-    showSnack(`Póliza ${data.nPoliza} renovada exitosamente`);
+    mostrarAviso("exito", "Póliza renovada", `La póliza ${data.nPoliza} se renovó exitosamente.`);
     fetchPolizas(estatus);
   };
 
@@ -166,17 +192,6 @@ const PolizasVencer = () => {
     { icon: <NotesIcon />,         label: "Observaciones",        value: selected.observaciones   || "—"  },
   ] : [];
 
-  if (loading && polizas.length === 0) {
-    return (
-      <div className="container py-4">
-        <div className="text-center py-5">
-          <div className="spinner-border text-success"></div>
-          <p className="mt-2">Cargando pólizas por vencer...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container py-4">
       <h1 className="h2 fw-bold mb-3">Pólizas por vencer</h1>
@@ -191,8 +206,8 @@ const PolizasVencer = () => {
               type="text"
               className="search-custom"
               placeholder="Buscar póliza..."
-              value={search}
-              onChange={handleSearch}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
         </div>
@@ -277,26 +292,35 @@ const PolizasVencer = () => {
         open={showDescarga}
         onClose={() => setShowDescarga(false)}
         url={`${API_URL}/exportar/polizas-vencer`}
-        params={{ search, estatus, dias: ESTATUS_DIAS[estatus] ?? 30 }}
+        params={{ search: searchTerm, estatus, dias: ESTATUS_DIAS[estatus] ?? 30 }}
         nombreArchivo="polizas_por_vencer"
         titulo="Descargar listado de pólizas por vencer"
         nota={
-          search || estatus !== "Todos"
-            ? `Se exportarán las pólizas por vencer con los filtros actuales${search ? ` (búsqueda: "${search}")` : ""}${estatus !== "Todos" ? ` (estatus: ${estatus})` : ""}.`
+          searchTerm || estatus !== "Todos"
+            ? `Se exportarán las pólizas por vencer con los filtros actuales${searchTerm ? ` (búsqueda: "${searchTerm}")` : ""}${estatus !== "Todos" ? ` (estatus: ${estatus})` : ""}.`
             : "Se exportarán todas las pólizas por vencer."
         }
       />
 
-      <Snackbar
-        open={snackOpen}
-        autoHideDuration={2500}
-        onClose={() => setSnackOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity={snackSeverity} variant="filled" onClose={() => setSnackOpen(false)}>
-          {snackMsg}
-        </Alert>
-      </Snackbar>
+      {/* ---------- Aviso (éxito / error) ---------- */}
+      {aviso && (
+        <div
+          className="balam-overlay"
+          style={{ zIndex: 3000 }}
+          onClick={(e) => e.target === e.currentTarget && setAviso(null)}
+        >
+          <div className="balam-modal evi-aviso">
+            <div className={`evi-aviso-icono ${aviso.tipo}`}>
+              {aviso.tipo === "exito"
+                ? <CheckCircleIcon style={{ fontSize: 40 }} />
+                : <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+            </div>
+            <h3>{aviso.titulo}</h3>
+            <p style={{ whiteSpace: "pre-line" }}>{aviso.mensaje}</p>
+            <button className="balam-btn save" onClick={() => setAviso(null)}>Aceptar</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
