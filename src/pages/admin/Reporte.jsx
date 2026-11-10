@@ -162,6 +162,7 @@ const Reportes = () => {
   const [ocupado, setOcupado] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(getFormVacio());
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -181,6 +182,14 @@ const Reportes = () => {
     const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
     return () => clearTimeout(t);
   }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Limpia el temporizador al desmontar
   useEffect(() => () => clearTimeout(timerPolizaRef.current), []);
@@ -483,11 +492,8 @@ const Reportes = () => {
               type="text"
               className="search-custom"
               placeholder="Buscar reportes..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
         </div>

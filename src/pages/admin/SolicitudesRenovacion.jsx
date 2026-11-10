@@ -57,7 +57,8 @@ const FORM_VACIO = {
 const SolicitudesRenovacion = () => {
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -79,6 +80,14 @@ const SolicitudesRenovacion = () => {
     return () => clearTimeout(t);
   }, [aviso]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
   const cargarSolicitudes = useCallback(async () => {
     setLoading(true);
     try {
@@ -86,7 +95,7 @@ const SolicitudesRenovacion = () => {
       const response = await axios.get(`${API_URL}/renovaciones`, {
         params: { 
           page: currentPage, 
-          search: search, 
+          search: searchTerm,
           per_page: itemsPerPage,
           estatus: estatusFilter 
         },
@@ -104,7 +113,7 @@ const SolicitudesRenovacion = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, search, itemsPerPage, estatusFilter, mostrarAviso]);
+  }, [currentPage, searchTerm, itemsPerPage, estatusFilter, mostrarAviso]);
 
   useEffect(() => {
     cargarSolicitudes();
@@ -143,11 +152,6 @@ const SolicitudesRenovacion = () => {
       );
       return null;
     }
-  };
-
-  const handleSearch = (e) => { 
-    setSearch(e.target.value); 
-    setCurrentPage(1); 
   };
 
   const handleRenovar = async (poliza) => {
@@ -221,7 +225,7 @@ const SolicitudesRenovacion = () => {
           <div className="pv-search-wrapper">
             <SearchIcon />
             <input type="text" className="pv-search" placeholder="Buscar póliza..."
-              value={search} onChange={handleSearch} />
+              value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
           </div>
         </div>
 

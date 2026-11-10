@@ -72,7 +72,8 @@ const PolizasVencer = () => {
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState(null);
 
-  const [search,       setSearch]       = useState("");
+  const [searchTerm,   setSearchTerm]   = useState("");
+  const [searchInput,  setSearchInput]  = useState("");
   const [estatus,      setEstatus]      = useState("Todos");
   const [currentPage,  setCurrentPage]  = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(8);
@@ -95,6 +96,14 @@ const PolizasVencer = () => {
     const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
     return () => clearTimeout(t);
   }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const fetchPolizas = useCallback(async (estatusFiltro) => {
     setLoading(true);
@@ -119,7 +128,7 @@ const PolizasVencer = () => {
   }, [estatus, fetchPolizas]);
 
   const filtered = polizas.filter((p) => {
-    const q = search.toLowerCase();
+    const q = searchTerm.toLowerCase();
     const matchSearch =
       p.nombre.toLowerCase().includes(q)   ||
       p.apellido.toLowerCase().includes(q) ||
@@ -133,7 +142,17 @@ const PolizasVencer = () => {
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleSearch  = (e) => { setSearch(e.target.value);  setCurrentPage(1); };
+  if (loading && polizas.length === 0) {
+    return (
+      <div className="container py-4">
+        <div className="text-center py-5">
+          <div className="spinner-border text-success"></div>
+          <p className="mt-2">Cargando pólizas por vencer...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleEstatus = (e) => { setEstatus(e.target.value); };
 
   const openAvisar  = (p) => { setSelected(p); setAvisarOpen(true);  };
@@ -173,17 +192,6 @@ const PolizasVencer = () => {
     { icon: <NotesIcon />,         label: "Observaciones",        value: selected.observaciones   || "—"  },
   ] : [];
 
-  if (loading && polizas.length === 0) {
-    return (
-      <div className="container py-4">
-        <div className="text-center py-5">
-          <div className="spinner-border text-success"></div>
-          <p className="mt-2">Cargando pólizas por vencer...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container py-4">
       <h1 className="h2 fw-bold mb-3">Pólizas por vencer</h1>
@@ -198,8 +206,8 @@ const PolizasVencer = () => {
               type="text"
               className="search-custom"
               placeholder="Buscar póliza..."
-              value={search}
-              onChange={handleSearch}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
         </div>
@@ -284,12 +292,12 @@ const PolizasVencer = () => {
         open={showDescarga}
         onClose={() => setShowDescarga(false)}
         url={`${API_URL}/exportar/polizas-vencer`}
-        params={{ search, estatus, dias: ESTATUS_DIAS[estatus] ?? 30 }}
+        params={{ search: searchTerm, estatus, dias: ESTATUS_DIAS[estatus] ?? 30 }}
         nombreArchivo="polizas_por_vencer"
         titulo="Descargar listado de pólizas por vencer"
         nota={
-          search || estatus !== "Todos"
-            ? `Se exportarán las pólizas por vencer con los filtros actuales${search ? ` (búsqueda: "${search}")` : ""}${estatus !== "Todos" ? ` (estatus: ${estatus})` : ""}.`
+          searchTerm || estatus !== "Todos"
+            ? `Se exportarán las pólizas por vencer con los filtros actuales${searchTerm ? ` (búsqueda: "${searchTerm}")` : ""}${estatus !== "Todos" ? ` (estatus: ${estatus})` : ""}.`
             : "Se exportarán todas las pólizas por vencer."
         }
       />

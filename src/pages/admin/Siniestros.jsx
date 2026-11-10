@@ -175,6 +175,7 @@ const Siniestros = () => {
   const [editingSiniestro, setEditingSiniestro] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO_SINIESTRO);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -249,6 +250,14 @@ const Siniestros = () => {
   useEffect(() => {
     cargarSiniestros();
   }, [cargarSiniestros]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // =========================================================
   // CARGAR AJUSTADORES (para el formulario y el modal de reasignación)
@@ -975,11 +984,6 @@ const Siniestros = () => {
   // =========================================================
   // BÚSQUEDA Y PAGINACIÓN
   // =========================================================
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
-
   const handleItemsPerPageChange = (newItems) => {
     setItemsPerPage(newItems);
     setCurrentPage(1);
@@ -1055,8 +1059,8 @@ const Siniestros = () => {
               type="text"
               className="search-custom"
               placeholder="Buscar número de siniestro..."
-              value={searchTerm}
-              onChange={handleSearch}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
         </div>

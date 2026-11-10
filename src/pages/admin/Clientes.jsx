@@ -123,6 +123,7 @@ const Clientes = () => {
   const [editingCliente, setEditingCliente] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO);
   const [itemsPerPage, setItemsPerPage] = useState(8);
@@ -141,6 +142,14 @@ const Clientes = () => {
     const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
     return () => clearTimeout(t);
   }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // GET: Cargar clientes con paginación y filtros
   const cargarClientes = useCallback(async () => {
@@ -304,11 +313,6 @@ const Clientes = () => {
     setShowDetalleModal(true);
   };
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
-
   if (loading && clientes.length === 0) {
     return (
       <div className="container py-4">
@@ -336,8 +340,8 @@ const Clientes = () => {
               type="text"
               className="search-custom"
               placeholder="Buscar cliente..."
-              value={searchTerm}
-              onChange={handleSearch}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
         </div>

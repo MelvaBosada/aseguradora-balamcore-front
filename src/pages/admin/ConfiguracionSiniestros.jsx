@@ -169,6 +169,7 @@ export default function ConfiguracionSiniestros() {
       <h1 className="h2 fw-bold mb-3">Configuración de siniestros</h1>
       <hr className="mt-2 mb-3" />
 
+      {errorCarga && <div className="sd-alerta error">{errorCarga}</div>}
       {!puedeEditar && <div className="sd-alerta info">Solo puedes consultar esta configuración. Para cambiarla se necesita el permiso "Configurar siniestros".</div>}
 
       <div className="sd-card">
@@ -220,7 +221,7 @@ export default function ConfiguracionSiniestros() {
           <h3 style={{ margin: 0 }}>Documentos requeridos por tipo de siniestro</h3>
           <div className="sd-acciones">
             <select className="form-select" style={{ width: 220 }} value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-              <option value="">Todos los tipos</option>
+              <option value="">Ver todos</option>
               {TIPOS.map(([k, t]) => (
                 <option key={k} value={k}>{t}</option>
               ))}

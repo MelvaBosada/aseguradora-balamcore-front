@@ -417,6 +417,7 @@ const Bienes = () => {
   const [aviso, setAviso] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [tipoFilter, setTipoFilter] = useState("Todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO);
@@ -434,6 +435,14 @@ const Bienes = () => {
     const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
     return () => clearTimeout(t);
   }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Limpia el temporizador del RFC al desmontar
   useEffect(() => () => clearTimeout(timerRfcRef.current), []);
@@ -892,11 +901,8 @@ const Bienes = () => {
               type="text"
               className="search-custom"
               placeholder="Buscar por bien, cliente o RFC..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
         </div>

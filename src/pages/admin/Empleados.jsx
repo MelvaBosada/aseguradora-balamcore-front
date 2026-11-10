@@ -190,6 +190,7 @@ const Empleados = () => {
   const [empDetalle, setEmpDetalle] = useState(null);
   const [editingEmp, setEditingEmp] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -207,6 +208,14 @@ const Empleados = () => {
     const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
     return () => clearTimeout(t);
   }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Helper para generar cabeceras unificadas en todas las peticiones
   const getHeaders = () => {
@@ -420,7 +429,6 @@ const Empleados = () => {
 
   const totalPages = Math.ceil(filteredEmps.length / itemsPerPage) || 1;
   const paginated = filteredEmps.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  const handleSearch = (e) => { setSearchTerm(e.target.value); setCurrentPage(1); };
   const handleVerDetalle = (e) => { setEmpDetalle(e); setShowDetalleModal(true); };
 
   const detalleItems = empDetalle ? [
@@ -483,7 +491,7 @@ const Empleados = () => {
           <div className="search-input-wrapper">
             <SearchIcon className="search-icon" />
             <input type="text" className="search-custom" placeholder="Buscar empleados..."
-              value={searchTerm} onChange={handleSearch} />
+              value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
           </div>
         </div>
         <div className="d-flex gap-2 flex-wrap">

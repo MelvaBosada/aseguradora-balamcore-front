@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
+import "../../css/Clientes.css";
 import "../../css/SiniestroDetalle.css";
 import Modal, { PieAcciones } from "./Modal";
 import DesgloseCalculo from "./DesgloseCalculo";
 import { EstatusEvaluacion } from "./Badges";
+import PrimaryButton from "../PrimaryButton";
 import { api, dinero, fmtFecha, mensajeError } from "../../services/siniestroApi";
 import { obtenerUsuario, puedeAutorizarNivel } from "../../utils/permisos";
+import AddCircleOutlinedIcon from "@mui/icons-material/AddCircleOutlined";
+import SendIcon from "@mui/icons-material/Send";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+
+const AVISO_EXITO_MS = 3500;
 
 const RECOMENDACIONES = [
   ["reparar", "Reparar"],
@@ -65,8 +74,8 @@ export default function TabEvaluacion({ detalle, onCambio }) {
   const miEmpleado = obtenerUsuario().id_empleado;
 
   const [lista, setLista] = useState(null);
-  const [error, setError] = useState("");
-  const [aviso, setAviso] = useState("");
+  const [errorCarga, setErrorCarga] = useState("");
+  const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', titulo, mensaje }
   const [ocupado, setOcupado] = useState(false);
 
   const [formAbierto, setFormAbierto] = useState(false);
@@ -76,15 +85,28 @@ export default function TabEvaluacion({ detalle, onCambio }) {
   const [vista, setVista] = useState(null); // { calculo, nivel }
   const [errorVista, setErrorVista] = useState("");
 
+  const [confirmarEnvio, setConfirmarEnvio] = useState(false);
   const [resolver, setResolver] = useState(null); // "aprobar" | "devolver"
   const [motivo, setMotivo] = useState("");
+
+  const mostrarAviso = useCallback((tipo, titulo, mensaje) => {
+    setAviso({ tipo, titulo, mensaje });
+  }, []);
+
+  // Los avisos de éxito se cierran solos
+  useEffect(() => {
+    if (aviso?.tipo !== "exito") return;
+    const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
+    return () => clearTimeout(t);
+  }, [aviso]);
 
   const cargar = useCallback(async () => {
     try {
       const r = await api.get(`/siniestros/${id}/evaluaciones`);
       setLista(r.data);
+      setErrorCarga("");
     } catch (e) {
-      setError(mensajeError(e));
+      setErrorCarga(mensajeError(e));
     }
   }, [id]);
 
@@ -119,7 +141,6 @@ export default function TabEvaluacion({ detalle, onCambio }) {
   const abrirForm = async (evaluacion = null) => {
     setEditando(evaluacion);
     setF(evaluacion ? aFormulario(evaluacion) : formVacio());
-    setError("");
     setVista(null);
     setFormAbierto(true);
     if (detalle.poliza_id) {
@@ -132,18 +153,23 @@ export default function TabEvaluacion({ detalle, onCambio }) {
     }
   };
 
-  const ejecutar = async (fn, ok) => {
+  /**
+   * Ejecuta una acción del servidor y muestra el aviso.
+   * exito: { titulo, mensaje } o una función (respuesta) => { titulo, mensaje }
+   * tituloError: título del aviso si la acción falla
+   */
+  const ejecutar = async (fn, exito, tituloError) => {
+    if (ocupado) return false; // evita doble clic mientras se guarda
     setOcupado(true);
-    setError("");
-    setAviso("");
     try {
       const r = await fn();
-      if (ok) setAviso(typeof ok === "function" ? ok(r) : ok);
       await cargar();
       onCambio && onCambio();
+      const { titulo, mensaje } = typeof exito === "function" ? exito(r) : exito;
+      mostrarAviso("exito", titulo, mensaje);
       return true;
     } catch (e) {
-      setError(mensajeError(e));
+      mostrarAviso("error", tituloError, mensajeError(e));
       return false;
     } finally {
       setOcupado(false);
@@ -154,23 +180,32 @@ export default function TabEvaluacion({ detalle, onCambio }) {
     const payload = aPayload(f);
     const ok = await ejecutar(
       () => (editando ? api.put(`/evaluaciones/${editando.id}`, payload) : api.post(`/siniestros/${id}/evaluaciones`, payload)),
-      "Dictamen guardado como borrador."
+      { titulo: "Dictamen guardado", mensaje: "El dictamen quedó como borrador." },
+      "No se pudo guardar el dictamen"
     );
     if (ok) setFormAbierto(false);
   };
 
-  const enviar = () => {
-    if (!window.confirm("¿Enviar el dictamen? Después ya no se podrá editar.")) return;
-    ejecutar(
+  const enviar = async () => {
+    const ok = await ejecutar(
       () => api.post(`/evaluaciones/${actual.id}/enviar`),
-      (r) => (r.data.estatus === "aprobada" ? "Dictamen autorizado automáticamente." : "Dictamen enviado a autorización.")
+      (r) =>
+        r.data.estatus === "aprobada"
+          ? { titulo: "Dictamen autorizado", mensaje: "El dictamen se autorizó automáticamente." }
+          : { titulo: "Dictamen enviado", mensaje: "El dictamen se envió a autorización." },
+      "No se pudo enviar el dictamen"
     );
+    if (ok) setConfirmarEnvio(false);
   };
 
   const confirmarResolucion = async () => {
+    const aprobar = resolver === "aprobar";
     const ok = await ejecutar(
       () => api.post(`/evaluaciones/${actual.id}/resolver`, { accion: resolver, motivo }),
-      resolver === "aprobar" ? "Dictamen aprobado." : "Dictamen devuelto al ajustador."
+      aprobar
+        ? { titulo: "Dictamen aprobado", mensaje: "El dictamen se aprobó correctamente." }
+        : { titulo: "Dictamen devuelto", mensaje: "El dictamen volvió al ajustador." },
+      aprobar ? "No se pudo aprobar el dictamen" : "No se pudo devolver el dictamen"
     );
     if (ok) {
       setResolver(null);
@@ -180,7 +215,7 @@ export default function TabEvaluacion({ detalle, onCambio }) {
 
   const cambiar = (e) => setF({ ...f, [e.target.name]: e.target.value });
 
-  if (!lista) return <div className="sd-card sd-vacio">{error || "Cargando…"}</div>;
+  if (!lista) return <div className="sd-card sd-vacio">{errorCarga || "Cargando…"}</div>;
 
   const puedeResolver =
     actual?.estatus === "en_revision" &&
@@ -189,8 +224,7 @@ export default function TabEvaluacion({ detalle, onCambio }) {
 
   return (
     <>
-      {error && !formAbierto && <div className="sd-alerta error">{error}</div>}
-      {aviso && <div className="sd-alerta info">{aviso}</div>}
+      {errorCarga && <div className="sd-alerta error">{errorCarga}</div>}
 
       {detalle.estatus_valor === "documentacion_pendiente" && lista.length === 0 && (
         <div className="sd-alerta aviso">No se puede dictaminar mientras falten documentos obligatorios. Revisa la pestaña Documentos.</div>
@@ -200,10 +234,12 @@ export default function TabEvaluacion({ detalle, onCambio }) {
         <div className="sd-card">
           <div className="sd-vacio">Este siniestro todavía no tiene dictamen.</div>
           {puedeCrear && (
-            <div style={{ textAlign: "center" }}>
-              <button className="sd-btn primario" onClick={() => abrirForm()}>
-                + Nuevo dictamen
-              </button>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <PrimaryButton
+                text="Nuevo dictamen"
+                icon={<AddCircleOutlinedIcon />}
+                onClick={() => abrirForm()}
+              />
             </div>
           )}
         </div>
@@ -225,25 +261,33 @@ export default function TabEvaluacion({ detalle, onCambio }) {
                   <button className="sd-btn" disabled={ocupado} onClick={() => abrirForm(actual)}>
                     Editar
                   </button>
-                  <button className="sd-btn primario" disabled={ocupado} onClick={enviar}>
-                    Enviar a autorización
-                  </button>
+                  <PrimaryButton
+                    text="Enviar a autorización"
+                    icon={<SendIcon />}
+                    disabled={ocupado}
+                    onClick={() => setConfirmarEnvio(true)}
+                  />
                 </>
               )}
               {puedeResolver && (
                 <>
-                  <button className="sd-btn primario" disabled={ocupado} onClick={() => setResolver("aprobar")}>
-                    Aprobar
-                  </button>
+                  <PrimaryButton
+                    text="Aprobar"
+                    icon={<CheckCircleOutlineIcon />}
+                    disabled={ocupado}
+                    onClick={() => setResolver("aprobar")}
+                  />
                   <button className="sd-btn peligro" disabled={ocupado} onClick={() => setResolver("devolver")}>
                     Devolver
                   </button>
                 </>
               )}
               {puedeCrear && actual.estatus !== "borrador" && (
-                <button className="sd-btn" onClick={() => abrirForm()}>
-                  + Nuevo dictamen
-                </button>
+                <PrimaryButton
+                  text="Nuevo dictamen"
+                  icon={<AddCircleOutlinedIcon />}
+                  onClick={() => abrirForm()}
+                />
               )}
             </div>
           </div>
@@ -301,7 +345,6 @@ export default function TabEvaluacion({ detalle, onCambio }) {
           />
         }
       >
-        {error && <div className="sd-alerta error">{error}</div>}
         <div className="sd-form-grid">
           <div>
             <label>Fecha de inspección</label>
@@ -370,6 +413,29 @@ export default function TabEvaluacion({ detalle, onCambio }) {
         </div>
       </Modal>
 
+      {/* ---------- Confirmar envío ---------- */}
+      <Modal
+        open={confirmarEnvio}
+        titulo="Enviar dictamen"
+        subtitulo="Después de enviarlo ya no se podrá editar."
+        onClose={() => setConfirmarEnvio(false)}
+        pie={
+          <PieAcciones
+            onCancelar={() => setConfirmarEnvio(false)}
+            onConfirmar={enviar}
+            ocupado={ocupado}
+            textoConfirmar="Enviar"
+          />
+        }
+      >
+        {actual && (
+          <div>
+            <p><strong>Dictamen #{actual.id}</strong></p>
+            <p>Monto recomendado: {dinero(actual.monto_recomendado)}</p>
+          </div>
+        )}
+      </Modal>
+
       {/* ---------- Aprobar / devolver ---------- */}
       <Modal
         open={!!resolver}
@@ -386,7 +452,6 @@ export default function TabEvaluacion({ detalle, onCambio }) {
           />
         }
       >
-        {error && <div className="sd-alerta error">{error}</div>}
         {actual && <DesgloseCalculo calculo={actual.calculo} nivel={actual.nivel_autorizacion} />}
         <div className="sd-form-grid" style={{ marginTop: 12 }}>
           <div className="completo">
@@ -395,6 +460,26 @@ export default function TabEvaluacion({ detalle, onCambio }) {
           </div>
         </div>
       </Modal>
+
+      {/* ---------- Aviso (éxito / error) ---------- */}
+      {aviso && (
+        <div
+          className="balam-overlay"
+          style={{ zIndex: 3000 }}
+          onClick={(e) => e.target === e.currentTarget && setAviso(null)}
+        >
+          <div className="balam-modal evi-aviso">
+            <div className={`evi-aviso-icono ${aviso.tipo}`}>
+              {aviso.tipo === "exito"
+                ? <CheckCircleIcon style={{ fontSize: 40 }} />
+                : <ErrorOutlineIcon style={{ fontSize: 40 }} />}
+            </div>
+            <h3>{aviso.titulo}</h3>
+            <p style={{ whiteSpace: "pre-line" }}>{aviso.mensaje}</p>
+            <button className="balam-btn save" onClick={() => setAviso(null)}>Aceptar</button>
+          </div>
+        </div>
+      )}
     </>
   );
 }

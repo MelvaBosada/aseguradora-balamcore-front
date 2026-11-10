@@ -592,6 +592,7 @@ const Evidencias = () => {
   const [aviso, setAviso] = useState(null);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO_EVIDENCIA);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -612,6 +613,14 @@ const Evidencias = () => {
     const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
     return () => clearTimeout(t);
   }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   // Limpia el temporizador de búsqueda al desmontar
   useEffect(() => () => clearTimeout(timerSiniestroRef.current), []);
@@ -1012,11 +1021,6 @@ const Evidencias = () => {
     }
   };
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
-
   const handleItemsPerPageChange = (newItems) => {
     setItemsPerPage(newItems);
     setCurrentPage(1);
@@ -1052,8 +1056,8 @@ const Evidencias = () => {
               type="text"
               className="search-custom"
               placeholder="Buscar por nombre de archivo..."
-              value={searchTerm}
-              onChange={handleSearch}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
           </div>
         </div>

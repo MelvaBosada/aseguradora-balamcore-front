@@ -67,6 +67,7 @@ const Evaluaciones = () => {
   const [pendientes, setPendientes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [estatusFilter, setEstatusFilter] = useState("Todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(5);
@@ -99,6 +100,14 @@ const Evaluaciones = () => {
     const t = setTimeout(() => setAviso(null), AVISO_EXITO_MS);
     return () => clearTimeout(t);
   }, [aviso]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setCurrentPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const cargarEvaluaciones = useCallback(async () => {
     setLoading(true);
@@ -146,11 +155,6 @@ const Evaluaciones = () => {
   useEffect(() => {
     cargarPendientes();
   }, [cargarPendientes]);
-
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-    setCurrentPage(1);
-  };
 
   const handleVerPDF = async (fila) => {
     const detalle = await cargarDetalleEvaluacion(fila.id);
@@ -221,7 +225,7 @@ const Evaluaciones = () => {
               <div className="fw-bold mb-2">Búsqueda</div>
               <div className="search-input-wrapper">
                 <SearchIcon className="search-icon" />
-                <input type="text" className="search-custom" placeholder="Buscar número de evaluación..." value={searchTerm} onChange={handleSearch} />
+                <input type="text" className="search-custom" placeholder="Buscar número de evaluación..." value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
               </div>
             </div>
 

@@ -13,6 +13,14 @@ export default function DesgloseCalculo({ calculo, nivel }) {
 
   const topes = (calculo.topes || []).filter((t) => t.aplicado);
   const rechaza = calculo.recomendacion === "rechazar";
+  const esVida = calculo.ramo === "vida";
+  const infraseguro = Number(calculo.factor_infraseguro) < 1;
+  const salvamentoAsegurado = Number(calculo.salvamento_descontado) > 0;
+  const salvamentoAseguradora =
+    calculo.conserva_salvamento === "aseguradora" &&
+    ["reemplazar", "indemnizar"].includes(calculo.recomendacion) &&
+    Number(calculo.valor_residual) > 0 &&
+    !esVida;
 
   return (
     <div>
@@ -27,18 +35,47 @@ export default function DesgloseCalculo({ calculo, nivel }) {
           <tbody>
             {calculo.cobertura && (
               <tr>
-                <td>Cobertura aplicada</td>
+                <td>Cobertura aplicada{calculo.primer_riesgo ? " (primer riesgo)" : ""}</td>
                 <td>{calculo.cobertura}</td>
               </tr>
             )}
             <tr>
-              <td>Daño evaluado</td>
+              <td>{esVida ? "Suma asegurada vigente" : calculo.ramo === "gastos_medicos" ? "Gastos médicos procedentes" : "Daño evaluado"}</td>
               <td>{dinero(calculo.monto_evaluado)}</td>
             </tr>
-            <tr>
-              <td className="menos">(−) Deducible</td>
-              <td className="menos">{dinero(calculo.deducible)}</td>
-            </tr>
+            {salvamentoAsegurado && (
+              <tr>
+                <td className="menos">Ya descontado el salvamento que conserva el asegurado</td>
+                <td className="menos">{dinero(calculo.salvamento_descontado)}</td>
+              </tr>
+            )}
+            {salvamentoAseguradora && (
+              <tr>
+                <td>Salvamento (lo conserva la aseguradora, no se descuenta)</td>
+                <td>{dinero(calculo.valor_residual)}</td>
+              </tr>
+            )}
+            {infraseguro && (
+              <>
+                <tr>
+                  <td>
+                    Regla proporcional: suma asegurada {dinero(calculo.suma_asegurada)} ÷ valor real {dinero(calculo.valor_real_bien)} ={" "}
+                    {(Number(calculo.factor_infraseguro) * 100).toFixed(1)}%
+                  </td>
+                  <td />
+                </tr>
+                <tr>
+                  <td className="menos">(−) Reducción por infraseguro</td>
+                  <td className="menos">{dinero(calculo.reduccion_infraseguro)}</td>
+                </tr>
+              </>
+            )}
+            {!esVida && (
+              <tr>
+                <td className="menos">(−) Deducible</td>
+                <td className="menos">{dinero(calculo.deducible)}</td>
+              </tr>
+            )}
             {Number(calculo.coaseguro) > 0 && (
               <tr>
                 <td className="menos">(−) Coaseguro (la aseguradora paga {calculo.porcentaje_cobertura}%)</td>
