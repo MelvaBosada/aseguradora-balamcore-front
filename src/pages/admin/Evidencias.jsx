@@ -5,6 +5,7 @@ import "../../css/Clientes.css";
 import logo from "../../assets/Logo.png";
 import ReporteEvidencias from "./ReporteEvidencias";
 import DescargarModal from "../../components/DescargarModal";
+import { EstatusEvidencia } from "../../components/siniestro/Badges";
 
 // Iconos
 import AddCircleOutlinedIcon from '@mui/icons-material/AddCircleOutlined';
@@ -362,30 +363,8 @@ const VistaArchivo = ({ evidencia, compacto = false }) => {
 // ----------------------------------------------------------------------
 // Estatus (badge) y detalle
 // ----------------------------------------------------------------------
-const COLOR_ESTATUS = {
-  pendiente: { bg: '#FFF4D6', color: '#9A6B00' },
-  validada: { bg: '#DDF3E7', color: '#1B6B45' },
-  rechazada: { bg: '#FBE0DC', color: '#B3281B' }
-};
 
-const EstatusBadge = ({ estatus }) => {
-  const c = COLOR_ESTATUS[estatus] || { bg: '#eee', color: '#555' };
-  return (
-    <span
-      style={{
-        background: c.bg,
-        color: c.color,
-        padding: '3px 10px',
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 600,
-        textTransform: 'capitalize'
-      }}
-    >
-      {estatus || '—'}
-    </span>
-  );
-};
+
 
 // Historial (bitácora de movimientos) dentro del detalle
 const HistorialEvidencia = ({ historial }) => {
@@ -430,7 +409,7 @@ const construirItemsDetalle = (d, historial) => {
     { icon: <CategoryIcon />, label: "Tipo", value: d.tipo || "—" },
     { icon: <InfoIcon />, label: "Categoría", value: d.categoria || "—" },
     { icon: <AssignmentIcon />, label: "Siniestro", value: numeroSiniestro(d) },
-    { icon: <GavelIcon />, label: "Estatus de validación", value: <EstatusBadge estatus={d.estatus_validacion} /> },
+    { icon: <GavelIcon />, label: "Estatus de validación", value: <EstatusEvidencia valor={d.estatus_validacion} /> },
     { icon: <PersonIcon />, label: "Subida por", value: d.subido_por || "—" }
   ];
 
@@ -1096,6 +1075,9 @@ const Evidencias = () => {
           columna={columnas}
           data={evidencias}
           campos={campos}
+          renderers={{
+            estatus_validacion: (e) => <EstatusEvidencia valor={e.estatus_validacion} />,
+          }}
           acciones={[
             {
               titulo: "Validar",

@@ -24,6 +24,7 @@ import "../../css/PolizasVencer.css";
 import DescargarModal from "../../components/DescargarModal";
 import { tienePermiso } from "../../utils/permisos";
 import { dinero } from "../../services/siniestroApi";
+import { EstatusEvaluacion, PrioridadSiniestro, NivelAutorizacion } from "../../components/siniestro/Badges";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -39,8 +40,6 @@ const columnas = ["N° Siniestro", "Dictamen", "Monto recomendado", "Ajustador",
 
 const camposPendientes = ["nSiniestro", "tipo", "ajustador", "recomendacion", "monto", "nivel", "enviado"];
 const columnasPendientes = ["N° Siniestro", "Tipo", "Ajustador", "Recomendación", "Monto", "Nivel", "Enviado", "Acciones"];
-
-const NIVELES = { supervisor: "Supervisor", gerente: "Gerencia" };
 
 const authHeaders = () => ({
   headers: {
@@ -179,7 +178,7 @@ const Evaluaciones = () => {
     nSiniestro: p.numero_siniestro,
     recomendacion: p.recomendacion,
     monto: dinero(p.monto_recomendado),
-    nivel: NIVELES[p.nivel_autorizacion] || p.nivel_autorizacion,
+    nivel: p.nivel_autorizacion, // valor crudo: el badge lo traduce
     enviado: p.fecha_envio,
   }));
 
@@ -208,6 +207,9 @@ const Evaluaciones = () => {
             columna={columnasPendientes}
             data={filasPendientes}
             campos={camposPendientes}
+            renderers={{
+              nivel: (f) => <NivelAutorizacion valor={f.nivel} />,
+            }}
             acciones={[
               {
                 titulo: "Revisar y autorizar",
@@ -258,6 +260,10 @@ const Evaluaciones = () => {
               columna={columnas}
               data={evaluaciones}
               campos={campos}
+              renderers={{
+                estatus: (e) => <EstatusEvaluacion valor={e.estatus} />,
+                prioridad: (e) => <PrioridadSiniestro valor={e.prioridad} />,
+              }}
               acciones={[
                 {
                   titulo: "Ver expediente",

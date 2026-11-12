@@ -40,16 +40,49 @@ const CustomTooltip = ({ active, payload, label }) => {
     );
 };
 
+const TIPOS = {
+    gastos_medicos: "Gastos médicos",
+    vida: "Vida",
+    auto: "Auto",
+    hogar: "Hogar",
+    dental: "Dental",
+    vision: "Visión",
+    viaje: "Viaje",
+    mascotas: "Mascotas",
+    responsabilidad_civil: "Responsabilidad civil",
+    negocio: "Negocio",
+    salud: "Salud",
+    invalidez: "Invalidez",
+    accidentes: "Accidentes",
+    funerario: "Funerario",
+    educacion: "Educación",
+    retiro: "Retiro",
+    otro: "Otro",
+};
+
+const formatTipo = (tipo) => {
+    if (!tipo) return "-";
+    if (TIPOS[tipo]) return TIPOS[tipo];
+    // Respaldo: quita "_" y pone mayúscula inicial
+    const texto = String(tipo).replace(/_/g, " ");
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+};
+
+const ESTADOS = {
+    abierto:       { label: "Abierto",       clase: "badge-activo" },
+    en_proceso:    { label: "En proceso",    clase: "badge-activo" },
+    en_evaluacion: { label: "En evaluación", clase: "badge-pendiente" },
+    resuelto:      { label: "Resuelto",      clase: "badge-pendiente" },
+    cerrado:       { label: "Cerrado",       clase: "badge-vencido" },
+    rechazado:     { label: "Rechazado",     clase: "badge-vencido" },
+    dictaminado:   { label: "Dictaminado",   clase: "badge-activo" },
+};
+
 const badgeEstado = (estado) => {
-    const map = {
-        abierto: "badge-activo",
-        en_proceso: "badge-activo",
-        en_evaluacion: "badge-pendiente",
-        resuelto: "badge-pendiente",
-        cerrado: "badge-vencido",
-        rechazado: "badge-vencido",
-    };
-    return <span className={`badge-estado ${map[estado] ?? ""}`}>{estado}</span>;
+    const info = ESTADOS[estado];
+    // Si llega un estado que no está en el mapa, lo mostramos sin "_" como respaldo
+    const label = info?.label ?? String(estado ?? "-").replace(/_/g, " ");
+    return <span className={`badge-estado ${info?.clase ?? ""}`}>{label}</span>;
 };
 
 const FiltroBtn = ({ valor, actual, onChange }) => (
@@ -99,7 +132,7 @@ const Dashboard = () => {
                 ]);
 
                 setKpis(kpisRes.data ?? null);
-                setPolizasTipo(toArray(polizasRes.data));
+                setPolizasTipo(toArray(polizasRes.data).map(p => ({ ...p, name: formatTipo(p.name) })));
                 setUltimosSiniestros(toArray(siniestrosRes.data));
             } catch (err) {
                 if (axios.isCancel(err)) return;
@@ -324,7 +357,7 @@ const Dashboard = () => {
                                     <tr key={s.id ?? `sin-${i}`}>
                                         <td><strong>{s.id}</strong></td>
                                         <td>{s.cliente}</td>
-                                        <td>{s.tipo}</td>
+                                        <td>{formatTipo(s.tipo)}</td>
                                         <td>{s.fecha ? new Date(s.fecha).toLocaleDateString("es-MX") : "-"}</td>
                                         <td>{badgeEstado(s.estado)}</td>
                                     </tr>

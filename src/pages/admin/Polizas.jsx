@@ -36,6 +36,7 @@ import PolizaDetalleModal from "../../components/PolizaDetalleModal";
 import PolizaCoberturasModal from "../../components/PolizaCoberturasModal";
 import FichaCobertura, { NOMBRES_RAMO, dinero0 } from "../../components/FichaCobertura";
 import DescargarModal from "../../components/DescargarModal";
+import { EstatusPoliza } from "../../components/siniestro/Badges";
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -57,6 +58,15 @@ const TIPO_POR_BIEN = { vehiculo: 'autos', inmueble: 'hogar', electronico: 'hoga
 // Cada cuántos meses se paga según la forma de pago (contado y anual: un solo pago)
 const MESES_POR_FORMA = { mensual: 1, trimestral: 3, semestral: 6, anual: 12 };
 
+// Formas de pago en las que se elige el día de pago (contado y anual: un solo pago)
+const DIA_PAGO_APLICA = ['mensual', 'trimestral', 'semestral'];
+
+// Del 1 al 28 para que el día exista en todos los meses
+const OPCIONES_DIA_PAGO = Array.from({ length: 28 }, (_, i) => ({
+  value: String(i + 1),
+  label: `Día ${i + 1} de cada periodo`,
+}));
+
 // Textos que se muestran mientras el sistema aún no asigna el número (se asigna al guardar)
 const TEXTO_NUMERO_AUTO = "Se asigna automáticamente al guardar";
 const TEXTO_ENDOSO_AUTO = "Se asigna automáticamente (N° de póliza + -E001)";
@@ -68,8 +78,10 @@ const columnas = ["N° Póliza", "Cliente", "Estatus", "Endoso", "Acciones"];
 const OPCIONES_RAMO = ["autos", "hogar", "empresarial", "responsabilidad_civil", "vida", "gastos_medicos", "otro"]
   .map((v) => ({ value: v, label: NOMBRES_RAMO[v] }));
 
-// El ramo no se puede cambiar una vez emitida la póliza; IVA y prima total los calcula el sistema
-const getCampos = (editando) => [
+// El ramo no se puede cambiar una vez emitida la póliza; IVA y prima total los calcula el sistema.
+// Los datos de emisión y el calendario de pagos solo aparecen al editar (los llena el sistema).
+// El día de pago sí lo elige el usuario (solo en pagos periódicos).
+const getCampos = (editando, formaPago) => [
   { label: "RFC del Cliente", name: "rfc_buscar", type: "text", seccion: "Buscar Cliente", fullWidth: true },
   { label: "Nombre del cliente", name: "nombre_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
   { label: "Correo", name: "correo_cliente", type: "email", seccion: "Información del Cliente", readOnly: true },
@@ -77,8 +89,14 @@ const getCampos = (editando) => [
   { label: "Domicilio", name: "domicilio_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
   { label: "CURP", name: "curp_cliente", type: "text", seccion: "Información del Cliente", readOnly: true },
   { label: "N° PÓLIZA", name: "numero_poliza", type: "text", seccion: "DATOS DE LA PÓLIZA", readOnly: true },
+  ...(editando
+    ? [
+      { label: "FECHA DE EMISIÓN", name: "fecha_emision", type: "text", seccion: "DATOS DE LA PÓLIZA", readOnly: true },
+      { label: "EMITIDA POR", name: "empleado_nombre", type: "text", seccion: "DATOS DE LA PÓLIZA", readOnly: true },
+    ]
+    : []),
   editando
-    ? { label: "RAMO (no se puede cambiar)", name: "tipo_texto", type: "text", seccion: "DATOS DE LA PÓLIZA", readOnly: true }
+    ? { label: "RAMO (no se puede cambiar)", name: "tipo_texto", type: "text", seccion: "DATOS DE LA PÓLIZA", readOnly: true, disabled: true }
     : { label: "RAMO", name: "tipo", type: "select", options: OPCIONES_RAMO, seccion: "DATOS DE LA PÓLIZA", required: true },
   { label: "FECHA DE INICIO", name: "fecha_inicio", type: "date", seccion: "DATOS DE LA PÓLIZA", required: true },
   { label: "FECHA DE FIN", name: "fecha_fin", type: "date", seccion: "DATOS DE LA PÓLIZA", required: true },
@@ -88,19 +106,33 @@ const getCampos = (editando) => [
   { label: "IVA (lo calcula el sistema)", name: "iva", type: "number", seccion: "DATOS DE LA PÓLIZA", readOnly: true },
   { label: "PRIMA TOTAL", name: "prima_total", type: "number", seccion: "DATOS DE LA PÓLIZA", readOnly: true },
   { label: "FORMA DE PAGO", name: "forma_pago", type: "select", options: ["contado", "mensual", "trimestral", "semestral", "anual"], seccion: "DATOS DE LA PÓLIZA", required: true },
-  { label: "OBSERVACIONES", name: "observaciones", type: "textarea", seccion: "DATOS DE LA PÓLIZA" },
+  // Solo en pagos periódicos; el usuario lo puede cambiar (también al editar, sin endoso)
+  ...(DIA_PAGO_APLICA.includes(formaPago)
+    ? [{ label: "DÍA DE PAGO", name: "dia_pago", type: "select", options: OPCIONES_DIA_PAGO, seccion: "DATOS DE LA PÓLIZA" }]
+    : []),
+  ...(editando
+    ? [
+      { label: "FECHA DEL PRIMER PAGO", name: "fecha_primer_pago", type: "text", seccion: "DATOS DE LA PÓLIZA", readOnly: true },
+      { label: "SIGUIENTE PAGO", name: "siguiente_pago", type: "text", seccion: "DATOS DE LA PÓLIZA", readOnly: true },
+    ]
+    : []),
+  { label: "OBSERVACIONES", name: "observaciones", type: "textarea", seccion: "DATOS DE LA PÓLIZA", fullWidth: true, rows: 4 },
 ];
 
-// CAMBIO: derecho_poliza y forma_pago arrancan con un valor por defecto para no olvidarlos
+// derecho_poliza y forma_pago arrancan con un valor por defecto para no olvidarlos.
+// Los campos de emisión y de calendario (primer / siguiente pago) son solo de lectura:
+// se llenan al editar y NO se envían al guardar.
 const FORM_VACIO = {
   rfc_buscar: "", id_cliente: "", nombre_cliente: "", correo_cliente: "", telefono_cliente: "",
   domicilio_cliente: "", curp_cliente: "", numero_poliza: "", tipo: "", tipo_texto: "", fecha_inicio: "", fecha_fin: "",
   suma_asegurada: "", prima_neta: "", derecho_poliza: "0", iva: "", prima_total: "", forma_pago: "contado", observaciones: "",
+  fecha_emision: "", empleado_nombre: "", dia_pago: "", fecha_primer_pago: "", siguiente_pago: "",
   bienes_seleccionados: [],
   precios_bienes: {},
   coberturas_ids: [],
   tiene_endoso: false,
-  descripcion_endoso: ""
+  descripcion_endoso: "",
+  fecha_efecto: ""
 };
 
 // Mismos estilos que usa EditModal para sus mensajes
@@ -133,8 +165,18 @@ const mensajeError = (error, defecto) => {
 const num = (v) => parseFloat(v) || 0;
 const fmt = (n) => (n > 0 ? n.toFixed(2) : "");
 
-// CAMBIO: un campo numérico cuenta como "capturado" si no está vacío (el 0 es válido)
+// Un campo numérico cuenta como "capturado" si no está vacío (el 0 es válido)
 const vacio = (v) => v === "" || v === null || v === undefined;
+
+// Recorta timestamps ("2026-02-11 04:47:51" / ISO) a YYYY-MM-DD
+const soloFecha = (v) => (v ? String(v).slice(0, 10) : "");
+
+// Acepta texto o un objeto { nombre, apellidos } y devuelve un nombre legible (nunca un id)
+const nombreDe = (v) => {
+  if (!v || typeof v === 'number') return "";
+  if (typeof v === 'object') return [v.nombre, v.apellidos || v.apellido].filter(Boolean).join(' ').trim();
+  return String(v);
+};
 
 const sumaBienes = (precios, seleccionados) =>
   seleccionados.reduce((total, id) => total + num(precios?.[id]), 0);
@@ -143,6 +185,13 @@ const sumaBienes = (precios, seleccionados) =>
 const hoyLocal = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+// Día de pago sugerido: el día de inicio de la vigencia (máximo 28)
+const diaSugerido = (fecha) => {
+  if (!fecha) return "";
+  const dia = Number(String(fecha).split('-')[2]);
+  return dia ? String(Math.min(dia, 28)) : "";
 };
 
 // Suma un año a una fecha "YYYY-MM-DD" (el 29 de febrero pasa al 28 del año siguiente)
@@ -175,7 +224,7 @@ const rangoDe = (c) => {
   return [min > 0 ? min : null, max > 0 ? max : null];
 };
 
-// NUEVO: solo se endosa una póliza emitida/activa (no borrador, cancelada ni vencida)
+// Solo se endosa una póliza emitida/activa (no borrador, cancelada ni vencida)
 const estatusDe = (p) => String(p?.estatus || "").toLowerCase();
 const puedeEndosar = (p) => {
   const est = estatusDe(p);
@@ -226,7 +275,7 @@ const Polizas = () => {
   const [aviso, setAviso] = useState(null);
 
   // Indica qué campos el usuario ya escribió a mano: esos dejan de llenarse solos.
-  const manual = useRef({ fin: false, suma: false });
+  const manual = useRef({ fin: false, suma: false, dia: false });
 
   // Valores de la póliza al abrir la edición: sirven para saber si hay cambios que exigen endoso
   const original = useRef(null);
@@ -332,8 +381,8 @@ const Polizas = () => {
 
       const revisar = bienesSel.length
         ? bienesSel
-            .filter((b) => !(c.tipos_bien && c.tipos_bien.length) || c.tipos_bien.includes(b.tipo))
-            .map((b) => ({ id: b.id, nombre: b.descripcion || `bien ${b.tipo}`, valor: num(f.precios_bienes?.[b.id] ?? b.valor) }))
+          .filter((b) => !(c.tipos_bien && c.tipos_bien.length) || c.tipos_bien.includes(b.tipo))
+          .map((b) => ({ id: b.id, nombre: b.descripcion || `bien ${b.tipo}`, valor: num(f.precios_bienes?.[b.id] ?? b.valor) }))
         : [{ id: null, nombre: 'la suma asegurada', valor: num(f.suma_asegurada) }];
 
       revisar.forEach((r) => {
@@ -352,7 +401,8 @@ const Polizas = () => {
 
   const erroresCob = validarCoberturas(formData);
 
-  // Cambios que modifican el contrato de una póliza ya emitida (exigen endoso)
+  // Cambios que modifican el contrato de una póliza ya emitida (exigen endoso).
+  // El día de pago NO cuenta: es operativo y se cambia sin endoso.
   const cambiosContractuales = () => {
     const o = original.current;
     if (!editingPoliza || !o) return [];
@@ -516,13 +566,16 @@ const Polizas = () => {
     // Lo que el usuario escribe a mano deja de llenarse solo; si lo borra, vuelve a ser automático
     if (name === 'fecha_fin') m.fin = value !== '';
     if (name === 'suma_asegurada') m.suma = value !== '';
+    if (name === 'dia_pago') m.dia = value !== '';
 
     setFormData(prev => {
       const next = { ...prev, [name]: value };
 
-      // La vigencia dura un año desde el inicio
-      if (name === 'fecha_inicio' && !m.fin) {
-        next.fecha_fin = sumarAnio(value);
+      if (name === 'fecha_inicio') {
+        // La vigencia dura un año desde el inicio
+        if (!m.fin) next.fecha_fin = sumarAnio(value);
+        // El día de pago sugerido es el día de inicio
+        if (!m.dia) next.dia_pago = diaSugerido(value);
       }
 
       // Al elegir el ramo se conservan las coberturas seleccionadas por el usuario.
@@ -631,23 +684,23 @@ const Polizas = () => {
   };
 
   const handleNuevaPoliza = () => {
-    manual.current = { fin: false, suma: false };
+    manual.current = { fin: false, suma: false, dia: false };
     original.current = null;
 
     // La vigencia arranca hoy y termina en un año
     const hoy = hoyLocal();
 
     setEditingPoliza(null);
-    setFormData({ ...FORM_VACIO, fecha_inicio: hoy, fecha_fin: sumarAnio(hoy) });
+    setFormData({ ...FORM_VACIO, fecha_inicio: hoy, fecha_fin: sumarAnio(hoy), dia_pago: diaSugerido(hoy) });
     setBienesCliente([]);
     resetDocumentos();
     setShowModal(true);
   };
 
-  // CAMBIO: segundo parámetro para abrir la edición con el endoso ya activado
+  // Segundo parámetro: abre la edición con el endoso ya activado
   const handleEditar = async (poliza, conEndoso = false) => {
-    // Al editar se respetan los valores guardados: vigencia y suma no se tocan solos.
-    manual.current = { fin: true, suma: true };
+    // Al editar se respetan los valores guardados: vigencia, suma y día de pago no se tocan solos.
+    manual.current = { fin: true, suma: true, dia: true };
 
     setEditingPoliza(poliza);
     resetDocumentos();
@@ -667,7 +720,7 @@ const Polizas = () => {
         preciosIniciales[bien.id] = bien.valor || 0;
       });
 
-      // CAMBIO: "??" en vez de "||" para que un 0 guardado (ej. derecho de póliza = 0) no se vuelva ""
+      // "??" en vez de "||" para que un 0 guardado (ej. derecho de póliza = 0) no se vuelva ""
       const cargado = {
         rfc_buscar: data.cliente_rfc || "",
         id_cliente: data.id_cliente || "",
@@ -688,11 +741,19 @@ const Polizas = () => {
         prima_total: data.prima_total ?? "",
         forma_pago: data.formaPago || "",
         observaciones: data.observaciones || "",
+        // Solo lectura: los registra / calcula el sistema
+        fecha_emision: soloFecha(data.fechaEmision ?? data.fecha_emision),
+        empleado_nombre: nombreDe(data.empleado ?? data.empleado_nombre),
+        fecha_primer_pago: soloFecha(data.fechaPrimerPago ?? data.fecha_primer_pago),
+        siguiente_pago: soloFecha(data.siguientePago ?? data.siguiente_pago),
+        // Editable: el día de pago se cambia sin endoso
+        dia_pago: data.diaPago != null ? String(data.diaPago) : "",
         bienes_seleccionados: bienesAsociados,
         precios_bienes: preciosIniciales,
         coberturas_ids: data.coberturas_ids || data.coberturas?.map((c) => c.id) || [],
         tiene_endoso: conEndoso === true,
-        descripcion_endoso: ""
+        descripcion_endoso: "",
+        fecha_efecto: hoyLocal()
       };
 
       original.current = JSON.parse(JSON.stringify(cargado));
@@ -712,7 +773,7 @@ const Polizas = () => {
     }
   };
 
-  // NUEVO: abre la edición con "Sí, agregar endoso" ya elegido (botón de la fila y del modal de coberturas)
+  // Abre la edición con "Sí, agregar endoso" ya elegido (botón de la fila y del modal de coberturas)
   const handleAgregarEndoso = (p) => {
     if (!puedeEndosar(p)) {
       const est = estatusDe(p);
@@ -727,7 +788,7 @@ const Polizas = () => {
     handleEditar(p, true);
   };
 
-  // CAMBIO NUEVO: revisa TODOS los datos obligatorios antes de pegarle al servidor
+  // Revisa TODOS los datos obligatorios antes de pegarle al servidor
   // y devuelve la lista de lo que falta, en español.
   const validarFormulario = () => {
     const f = formData;
@@ -754,7 +815,6 @@ const Polizas = () => {
 
   const handleGuardar = async () => {
     try {
-      // CAMBIO: una sola validación que lista todo lo que falta
       const faltan = validarFormulario();
       if (faltan.length > 0) {
         mostrarAviso('error', 'Faltan datos', faltan.join('\n'));
@@ -796,7 +856,8 @@ const Polizas = () => {
       }
 
       // Se envía como FormData porque lleva archivos PDF.
-      // El N° de póliza, el IVA y la prima total NO se envían: los calcula el servidor.
+      // NO se envían: N° de póliza, IVA, prima total, fecha de emisión, empleado,
+      // primer pago ni siguiente pago: los calcula / registra el servidor.
       const fd = new FormData();
       const simples = {
         id_cliente: formData.id_cliente,
@@ -811,6 +872,11 @@ const Polizas = () => {
       };
       Object.entries(simples).forEach(([k, v]) => fd.append(k, v ?? ""));
 
+      // Día de pago: solo en pagos periódicos (el servidor calcula el siguiente pago)
+      if (DIA_PAGO_APLICA.includes(formData.forma_pago) && formData.dia_pago) {
+        fd.append('dia_pago', formData.dia_pago);
+      }
+
       fd.append('bienes_sync', '1');
       formData.bienes_seleccionados.forEach(id => fd.append('bienes_ids[]', id));
       Object.entries(formData.precios_bienes).forEach(([id, precio]) => fd.append(`precios_bienes[${id}]`, precio));
@@ -824,15 +890,26 @@ const Polizas = () => {
       if (formData.tiene_endoso) {
         fd.append('descripcion_endoso', formData.descripcion_endoso.trim());
         fd.append('endoso_documento', docEndoso);
+        if (editingPoliza && formData.fecha_efecto) fd.append('fecha_efecto', formData.fecha_efecto);
       }
 
       if (editingPoliza) {
         fd.append('_method', 'PUT');
-        await axios.post(`${API_URL}/polizas/${editingPoliza.id}`, fd, { headers: headers() });
+        const r = await axios.post(`${API_URL}/polizas/${editingPoliza.id}`, fd, { headers: headers() });
 
         setShowModal(false);
         cargarPolizas();
-        mostrarAviso('exito', 'Póliza actualizada', 'Los cambios se guardaron correctamente.');
+
+        const e = r.data?.endoso;
+        const ajuste = Number(e?.ajuste_prima || 0);
+        mostrarAviso(
+          'exito',
+          'Póliza actualizada',
+          e
+            ? `Se emitió el endoso ${e.numero_endoso} (tipo ${e.tipo_endoso}).` +
+            (ajuste !== 0 ? `\nAjuste de prima a prorrata: ${ajuste > 0 ? 'cobrar' : 'devolver'} ${dinero0(Math.abs(ajuste))}.` : '')
+            : 'Los cambios se guardaron correctamente.'
+        );
         return;
       }
 
@@ -848,7 +925,7 @@ const Polizas = () => {
   };
 
   const getIconoPorTipoBien = (tipo) => {
-    switch(tipo) {
+    switch (tipo) {
       case 'vehiculo': return <CarIcon fontSize="small" />;
       case 'inmueble': return <HomeIcon fontSize="small" />;
       case 'electronico': return <ComputerIcon fontSize="small" />;
@@ -874,16 +951,28 @@ const Polizas = () => {
 
       const data = res.data;
       const coberturas = (coberturasRes.data?.coberturas || []).filter((c) => c.asignada);
+
+      const emision = soloFecha(data.fechaEmision ?? data.fecha_emision);
+      const emitidaPor = nombreDe(data.empleado ?? data.empleado_nombre);
+      const diaPago = data.diaPago ?? data.dia_pago;
+      const primerPago = soloFecha(data.fechaPrimerPago ?? data.fecha_primer_pago);
+      const siguientePago = soloFecha(data.siguientePago ?? data.siguiente_pago);
+
       const items = [
         { icon: <AssignmentIcon />, label: "N° Póliza", value: data.nPoliza },
         { icon: <AssignmentIcon />, label: "Ramo", value: NOMBRES_RAMO[data.tipo] || data.tipo },
         { icon: <AssignmentIcon />, label: "Endoso", value: data.endoso },
         { icon: <PersonIcon />, label: "Cliente", value: data.cliente },
+        { icon: <PersonIcon />, label: "Emitida por", value: emitidaPor || "—" },
+        { icon: <DateRangeIcon />, label: "Fecha de emisión", value: emision || "—" },
         { icon: <DateRangeIcon />, label: "Fecha de inicio", value: data.fechaInicio },
         { icon: <DateRangeIcon />, label: "Fecha final", value: data.fechaFinal },
-        { icon: <InfoIcon />, label: "Estatus", value: data.estatus },
+        { icon: <InfoIcon />, label: "Estatus", value: <EstatusPoliza valor={data.estatus} /> },
         { icon: <AttachMoneyIcon />, label: "Suma asegurada", value: `$${Number(data.sumaAsegurada).toLocaleString()}` },
         { icon: <PaymentIcon />, label: "Forma de pago", value: data.numero_pagos > 1 ? `${data.formaPago}: ${data.numero_pagos} pagos de ${dinero0(data.pago_periodico)}` : data.formaPago },
+        { icon: <PaymentIcon />, label: "Día de pago", value: diaPago ? `Día ${diaPago} de cada periodo` : "—" },
+        { icon: <DateRangeIcon />, label: "Fecha del primer pago", value: primerPago || "—" },
+        { icon: <DateRangeIcon />, label: "Siguiente pago", value: siguientePago || "—" },
         { icon: <MonetizationOnIcon />, label: "Prima neta", value: `$${Number(data.prima_neta).toLocaleString()}` },
         { icon: <MonetizationOnIcon />, label: "Derecho de póliza", value: `$${Number(data.derecho_poliza).toLocaleString()}` },
         { icon: <MonetizationOnIcon />, label: data.iva_exento ? "IVA (exento)" : `IVA (${data.tasa_iva}%)`, value: `$${Number(data.iva).toLocaleString()}` },
@@ -1016,6 +1105,9 @@ const Polizas = () => {
           columna={columnas}
           data={polizas}
           campos={campos}
+          renderers={{
+            estatus: (p) => <EstatusPoliza valor={p.estatus} />,
+          }}
           acciones={[
             {
               titulo: "Ver detalle",
@@ -1029,12 +1121,11 @@ const Polizas = () => {
               icono: <VerifiedUserIcon fontSize="small" />,
               onClick: (p) => setPolizaCob({ id: p.id, nPoliza: p.nPoliza, estatus: p.estatus, tipo: p.tipo })
             },
-            
             {
               titulo: "Agregar endoso",
               clase: "tabla-btn-edit",
               icono: <NoteAddIcon fontSize="small" />,
-              visible: (p) => puedeEndosar(p), // si tu TablaForm no soporta "visible", el botón se muestra siempre y avisa al hacer clic
+              visible: (p) => puedeEndosar(p),
               onClick: (p) => handleAgregarEndoso(p)
             },
             {
@@ -1073,7 +1164,7 @@ const Polizas = () => {
         titulo={editingPoliza ? "Editar póliza" : "Agregar nueva póliza"}
         subtitulo={editingPoliza ? "Una póliza emitida solo cambia con un endoso" : "Ingresa el RFC del cliente, el ramo, los bienes y las coberturas"}
         btnTexto={editingPoliza ? "Guardar cambios" : "Agregar póliza"}
-        campos={getCampos(!!editingPoliza)}
+        campos={getCampos(!!editingPoliza, formData.forma_pago)}
         // En una póliza nueva el N° se muestra como texto informativo; el real lo asigna el servidor
         formData={{ ...formData, numero_poliza: editingPoliza ? formData.numero_poliza : TEXTO_NUMERO_AUTO }}
         onChange={handleInputChange}
@@ -1278,11 +1369,17 @@ const Polizas = () => {
                     </td>
                   </tr>
                 )}
+                {DIA_PAGO_APLICA.includes(formData.forma_pago) && formData.dia_pago && (
+                  <tr>
+                    <td style={{ padding: '5px 0', color: '#6B7280' }}>Día de pago</td>
+                    <td style={{ padding: '5px 0', textAlign: 'right' }}>Día {formData.dia_pago} de cada periodo</td>
+                  </tr>
+                )}
                 {formData.fecha_inicio && MESES_POR_FORMA[formData.forma_pago] && (
                   <tr>
                     <td style={{ padding: '5px 0', color: '#6B7280' }}>Primer pago / siguiente</td>
                     <td style={{ padding: '5px 0', textAlign: 'right' }}>
-                      {formData.fecha_inicio} / {sumarMeses(formData.fecha_inicio, MESES_POR_FORMA[formData.forma_pago])}
+                      {formData.fecha_primer_pago || formData.fecha_inicio} / {formData.siguiente_pago || sumarMeses(formData.fecha_inicio, MESES_POR_FORMA[formData.forma_pago])}
                     </td>
                   </tr>
                 )}
@@ -1360,6 +1457,20 @@ const Polizas = () => {
 
             {formData.tiene_endoso && (
               <>
+                {editingPoliza && (
+                  <div className="balam-field">
+                    <label>EL ENDOSO ENTRA EN VIGOR EL</label>
+                    <input
+                      type="date"
+                      value={formData.fecha_efecto}
+                      min={original.current?.fecha_inicio || ''}
+                      max={original.current?.fecha_fin || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, fecha_efecto: e.target.value }))}
+                    />
+                    <span style={estiloAyuda}>El ajuste de prima se calcula a prorrata desde esta fecha hasta el fin de la vigencia</span>
+                  </div>
+                )}
+
                 {/* El N° de endoso lo asigna el sistema a partir del N° de póliza */}
                 <div className="balam-field">
                   <label>N° DE ENDOSO</label>

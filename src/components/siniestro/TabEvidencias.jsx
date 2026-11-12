@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../css/SiniestroDetalle.css";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import Modal, { PieAcciones } from "./Modal";
+import PrimaryButton from "../PrimaryButton";
+import OutlineButton from "../OutlineButton";
+import TableViewIcon from '@mui/icons-material/TableView';
+import useAccionAsync from "../../hooks/useAccionAsync";
 import { EstatusEvidencia } from "./Badges";
 import { api, descargarArchivo, fmtFecha, mensajeError } from "../../services/siniestroApi";
 
@@ -67,6 +72,9 @@ export default function TabEvidencias({ detalle }) {
     }
   };
 
+  // Si tarda más de 2 s sale el loader de letras de BalamCore
+  const [subirAsync, subiendo] = useAccionAsync(subir);
+
   return (
     <>
       {error && !abierto && <div className="sd-alerta error">{error}</div>}
@@ -75,16 +83,17 @@ export default function TabEvidencias({ detalle }) {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <h3 style={{ margin: 0 }}>Evidencias (fotos, videos y audios del hecho)</h3>
           <div className="sd-acciones">
-            <button
-              className="sd-btn"
+            <OutlineButton
+              text="Abrir en Evidencias"
+              icon={<TableViewIcon />}
               onClick={() => navigate("/admin/evidencias", { state: { siniestroId: id, numeroSiniestro: detalle.numero_siniestro } })}
-            >
-              Abrir en Evidencias
-            </button>
+            />
             {!cerrado && (
-              <button className="sd-btn primario" onClick={() => setAbierto(true)}>
-                + Subir evidencia
-              </button>
+              <PrimaryButton
+                text="Subir evidencia"
+                icon={<AddCircleIcon />}
+                onClick={() => setAbierto(true)}
+              />
             )}
           </div>
         </div>
@@ -120,9 +129,16 @@ export default function TabEvidencias({ detalle }) {
                   </td>
                   <td>{fmtFecha(e.fecha_subida)}</td>
                   <td className="der">
-                    <button className="sd-btn mini" onClick={() => descargarArchivo(`/evidencias/${e.id}/descargar`, e.nombre_archivo).catch((er) => setError(mensajeError(er)))}>
-                      Descargar
-                    </button>
+                    <OutlineButton
+                      text="Descargar"
+                      compact
+                      square
+                      onClick={() =>
+                        descargarArchivo(`/evidencias/${e.id}/descargar`, e.nombre_archivo).catch((er) =>
+                          setError(mensajeError(er))
+                        )
+                      }
+                    />
                   </td>
                 </tr>
               ))}
@@ -136,7 +152,14 @@ export default function TabEvidencias({ detalle }) {
         titulo="Subir evidencia"
         subtitulo={detalle.numero_siniestro}
         onClose={() => setAbierto(false)}
-        pie={<PieAcciones onCancelar={() => setAbierto(false)} onConfirmar={subir} ocupado={ocupado} textoConfirmar="Subir" />}
+        pie={
+          <PieAcciones
+            onCancelar={() => setAbierto(false)}
+            onConfirmar={subirAsync}
+            ocupado={ocupado || subiendo}
+            textoConfirmar="Subir"
+          />
+        }
       >
         {error && <div className="sd-alerta error">{error}</div>}
         <div className="sd-form-grid">
