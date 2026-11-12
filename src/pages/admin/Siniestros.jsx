@@ -22,7 +22,8 @@ import AssignmentIndIcon from "@mui/icons-material/AssignmentInd";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-
+import LocationOnIcon from "@mui/icons-material/LocationOn";
+import MyLocationIcon from "@mui/icons-material/MyLocation";
 
 // Componentes
 import PrimaryButton from "../../components/PrimaryButton";
@@ -33,6 +34,8 @@ import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 import DescargarModal from "../../components/DescargarModal";
 import AsignarAjustadorModal from "../../components/siniestro/AsignarAjustadorModal";
+import { EstatusSiniestro, PrioridadSiniestro } from "../../components/siniestro/Badges";
+import { tienePermiso } from "../../utils/permisos";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
@@ -116,6 +119,18 @@ const FORM_CAMPOS_SINIESTRO = [
     required: true
   },
   {
+    label: "Ubicación del siniestro",
+    name: "ubicacion_siniestro",
+    type: "text",
+    seccion: "Datos del Siniestro"
+  },
+  {
+    label: "Coordenadas (se llenan solas, lat, lng)",
+    name: "coordenadas",
+    type: "text",
+    seccion: "Datos del Siniestro"
+  },
+  {
     label: "Ajustador asignado (opcional)",
     name: "id_empleado",
     type: "select",
@@ -134,6 +149,8 @@ const FORM_VACIO_SINIESTRO = {
   tipo: "",
   prioridad: "",
   monto_reclamado: "",
+  ubicacion_siniestro: "",
+  coordenadas: "",
   id_empleado: "" // "" = auto-asignar
 };
 
@@ -154,6 +171,22 @@ const mensajeError = (error, defecto) => {
   const errores = error.response?.data?.errors;
   if (errores) return Object.values(errores).flat().join("\n");
   return error.response?.data?.message || defecto || error.message;
+};
+
+// Convierte una dirección en "lat, lng" usando Nominatim (OpenStreetMap)
+const obtenerCoordenadas = async (direccion) => {
+  try {
+    const url =
+      `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=mx&q=${encodeURIComponent(direccion)}`;
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.length) return null;
+    return `${Number(data[0].lat).toFixed(6)}, ${Number(data[0].lon).toFixed(6)}`;
+  } catch (error) {
+    console.error("Error al geocodificar:", error);
+    return null;
+  }
 };
 
 // Estilos del icono del aviso de advertencia (por si el CSS no define .advertencia)
@@ -195,6 +228,7 @@ const Siniestros = () => {
   const [aviso, setAviso] = useState(null);
 
   const timerRfcRef = useRef(null);
+  const timerGeoRef = useRef(null);
 
   const mostrarAviso = useCallback((tipo, titulo, mensaje, alAceptar = null) => {
     setAviso({ tipo, titulo, mensaje, alAceptar });
@@ -215,6 +249,9 @@ const Siniestros = () => {
 
   // Limpia el temporizador del RFC al desmontar
   useEffect(() => () => clearTimeout(timerRfcRef.current), []);
+
+  // Limpia el temporizador de la geocodificación al desmontar
+  useEffect(() => () => clearTimeout(timerGeoRef.current), []);
 
   // =========================================================
   // CARGAR SINIESTROS
@@ -370,8 +407,19 @@ const Siniestros = () => {
             .filter(Boolean)
             .join(" "),
           id_poliza: idPoliza,
-          id_reporte: String(reporteId)
+          id_reporte: String(reporteId),
+          ubicacion_siniestro: reporteActual.ubicacion_accidente || ""
         });
+
+        // Si el reporte trae ubicación, se buscan las coordenadas en línea
+        const ubicacionReporte = reporteActual.ubicacion_accidente;
+        if (ubicacionReporte) {
+          obtenerCoordenadas(ubicacionReporte).then((coords) => {
+            if (coords) {
+              setFormData((prev) => ({ ...prev, coordenadas: coords }));
+            }
+          });
+        }
 
         setEditingSiniestro(null);
         setShowModal(true);
@@ -552,6 +600,21 @@ const Siniestros = () => {
       [name]: value
     }));
 
+    if (name === "ubicacion_siniestro") {
+      // Al escribir la ubicación, se buscan las coordenadas en línea
+      clearTimeout(timerGeoRef.current);
+      const direccion = value.trim();
+
+      if (direccion.length >= 8) {
+        timerGeoRef.current = setTimeout(async () => {
+          const coords = await obtenerCoordenadas(direccion);
+          if (coords) {
+            setFormData((prev) => ({ ...prev, coordenadas: coords }));
+          }
+        }, 1000);
+      }
+    }
+
     if (name === "id_poliza") {
       // Al cambiar la póliza, cargar sus reportes.
       setFormData((prev) => ({
@@ -589,6 +652,10 @@ const Siniestros = () => {
 
     if (timerRfcRef.current) {
       clearTimeout(timerRfcRef.current);
+    }
+
+    if (timerGeoRef.current) {
+      clearTimeout(timerGeoRef.current);
     }
   };
 
@@ -682,6 +749,8 @@ const Siniestros = () => {
         tipo: data.tipo_raw,
         prioridad: data.prioridad_raw,
         monto_reclamado: data.monto_reclamado ?? "",
+        ubicacion_siniestro: data.ubicacion_siniestro ?? "",
+        coordenadas: data.coordenadas ?? "",
         id_empleado: data.id_empleado ? String(data.id_empleado) : ""
       });
 
@@ -735,7 +804,10 @@ const Siniestros = () => {
         prioridad: formData.prioridad,
         monto_reclamado: parseFloat(
           formData.monto_reclamado
-        )
+        ),
+        // Opcionales: vacíos se mandan como null
+        ubicacion_siniestro: formData.ubicacion_siniestro || null,
+        coordenadas: formData.coordenadas || null
       };
 
       const idToEdit =
@@ -843,12 +915,12 @@ const Siniestros = () => {
       {
         icon: <InfoIcon />,
         label: "Estatus",
-        value: data.estatus || "—"
+        value: <EstatusSiniestro valor={data.estatus} />
       },
       {
         icon: <PriorityHighIcon />,
         label: "Prioridad",
-        value: data.prioridad || "—"
+        value: <PrioridadSiniestro valor={data.prioridad} />
       },
       {
         icon: <AttachMoneyIcon />,
@@ -869,9 +941,29 @@ const Siniestros = () => {
           : "—"
       },
       {
+        icon: <LocationOnIcon />,
+        label: "Ubicación del Siniestro",
+        value: data.ubicacion_siniestro || "—"
+      },
+      {
+        icon: <MyLocationIcon />,
+        label: "Coordenadas",
+        value: data.coordenadas || "—"
+      },
+      {
         icon: <DateRangeIcon />,
         label: "Fecha de Creación",
         value: data.fecha_creacion || "—"
+      },
+      {
+        icon: <DateRangeIcon />,
+        label: "Fecha de Arribo",
+        value: data.fecha_arribo || "—"
+      },
+      {
+        icon: <DateRangeIcon />,
+        label: "Última Actualización",
+        value: data.fecha_actualizacion || "—"
       },
       {
         icon: <DateRangeIcon />,
@@ -887,6 +979,11 @@ const Siniestros = () => {
         icon: <PersonIcon />,
         label: "Cliente",
         value: data.cliente || "—"
+      },
+      {
+        icon: <AssignmentIndIcon />,
+        label: "Ajustador",
+        value: data.ajustador || "—"
       },
       {
         icon: <AssignmentIcon />,
@@ -1112,6 +1209,10 @@ const Siniestros = () => {
           columna={columnas}
           data={siniestros}
           campos={campos}
+          renderers={{
+            estatus: (s) => <EstatusSiniestro valor={s.estatus} />,
+            prioridad: (s) => <PrioridadSiniestro valor={s.prioridad} />,
+          }}
           acciones={[
             {
               titulo: "Expediente",
@@ -1119,14 +1220,18 @@ const Siniestros = () => {
               icono: <FolderSharedIcon fontSize="small" />,
               onClick: (s) => navigate(`/admin/siniestros/${s.id}`)
             },
-            {
-              // El tooltip depende de la fila (TablaForm ya lo soporta)
-              titulo: (s) =>
-                s.id_empleado ? "Reasignar Ajustador" : "Asignar Ajustador",
-              clase: "tabla-btn-reasignar",
-              icono: <AssignmentIndIcon fontSize="small" />,
-              onClick: handleAsignarClick
-            },
+            ...(tienePermiso("siniestros.reasignar")
+              ? [
+                  {
+                    // El tooltip depende de la fila (TablaForm ya lo soporta)
+                    titulo: (s) =>
+                      s.id_empleado ? "Reasignar Ajustador" : "Asignar Ajustador",
+                    clase: "tabla-btn-reasignar",
+                    icono: <AssignmentIndIcon fontSize="small" />,
+                    onClick: handleAsignarClick
+                  }
+                ]
+              : []),
             {
               titulo: "Editar",
               clase: "tabla-btn-edit",

@@ -32,6 +32,7 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 import DescargarModal from "../../components/DescargarModal";
+import { EstadoBien, NivelRiesgoBien, TipoBien } from "../../components/siniestro/Badges";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
@@ -57,8 +58,8 @@ const TIPOS_BIEN = [
 ];
 
 // Tabla compacta: lo demás se ve en el botón "Ver"
-const columnas = ["Foto", "Cliente", "Tipo", "Descripción", "Marca", "Valor", "Estado", "Acciones"];
-const campos = ["foto_vista", "cliente_vista", "tipo", "descripcion", "marca", "valor", "estado_bienes"];
+const columnas = ["Foto", "Cliente", "Tipo", "Descripción", "Marca", "Valor", "Riesgo", "Estado", "Acciones"];
+const campos = ["foto_vista", "cliente_vista", "tipo_vista", "descripcion", "marca", "valor", "riesgo_vista", "estado_vista"];
 
 const CAMPOS_ESPECIFICOS = {
   vehiculo: [
@@ -269,31 +270,6 @@ const leerError = async (response, defecto) => {
   const data = await response.json().catch(() => ({}));
   const detalle = data.errors ? Object.values(data.errors).flat().join("\n") : null;
   return detalle || data.message || defecto;
-};
-
-const COLOR_RIESGO = {
-  bajo: { bg: "#DDF3E7", color: "#1B6B45" },
-  medio: { bg: "#FFF4D6", color: "#9A6B00" },
-  alto: { bg: "#FBE0DC", color: "#B3281B" },
-};
-
-const RiesgoBadge = ({ nivel }) => {
-  const c = COLOR_RIESGO[nivel] || { bg: "#eee", color: "#555" };
-  return (
-    <span
-      style={{
-        background: c.bg,
-        color: c.color,
-        padding: "3px 10px",
-        borderRadius: 999,
-        fontSize: 12,
-        fontWeight: 600,
-        textTransform: "capitalize",
-      }}
-    >
-      {nivel || "—"}
-    </span>
-  );
 };
 
 // Celda de la columna "Foto": miniatura grande con el nombre del archivo como leyenda
@@ -753,6 +729,9 @@ const Bienes = () => {
       valor: dinero(item.valor),
       foto_vista: <FotoCelda bien={item} />,
       cliente_vista: <ClienteCelda cliente={item.cliente} />,
+      tipo_vista: <TipoBien valor={item.tipo} />,
+      riesgo_vista: <NivelRiesgoBien valor={item.nivel_riesgo} />,
+      estado_vista: <EstadoBien valor={item.estado_bienes} />,
     }));
 
   // ---------------------------------------------------------------
@@ -784,6 +763,7 @@ const Bienes = () => {
         { value: "bajo", label: "Bajo" },
         { value: "medio", label: "Medio" },
         { value: "alto", label: "Alto" },
+        { value: "muy_alto", label: "Muy alto" },
       ],
     },
     {
@@ -798,6 +778,9 @@ const Bienes = () => {
         { value: "malo", label: "Malo" },
       ],
     },
+
+    { label: "Número de Factura", name: "numero_factura", type: "text", seccion: "Datos de Compra" },
+    { label: "Proveedor", name: "proveedor", type: "text", seccion: "Datos de Compra" },
 
     ...(CAMPOS_ESPECIFICOS[formData.tipo] || []).map((c) => ({
       ...c,
@@ -823,8 +806,6 @@ const Bienes = () => {
     const b = bienDetalle;
     const cliente = b.cliente;
 
-    const etiquetaTipo = TIPOS_BIEN.find((t) => t.value === b.tipo)?.label || capitalizar(b.tipo);
-
     const items = [
       {
         icon: <ImageIcon />,
@@ -847,15 +828,15 @@ const Bienes = () => {
     }
 
     items.push(
-      { icon: <CategoryIcon />, label: "Categoría", value: etiquetaTipo },
+      { icon: <CategoryIcon />, label: "Categoría", value: <TipoBien valor={b.tipo} /> },
       { icon: <DescriptionIcon />, label: "Descripción", value: b.descripcion || "—" },
       { icon: <BrandingWatermarkIcon />, label: "Marca", value: b.marca || "—" },
       { icon: <DescriptionIcon />, label: "Modelo", value: b.modelo || "—" },
       { icon: <DescriptionIcon />, label: "# de Serie", value: b.numero_serie || "—" },
       { icon: <AttachMoneyIcon />, label: "Valor estimado", value: dinero(b.valor) },
       { icon: <CalendarMonthIcon />, label: "Fecha de adquisición", value: b.fecha_adquisicion || "—" },
-      { icon: <AssignmentIndIcon />, label: "Estado físico", value: capitalizar(b.estado_bienes) },
-      { icon: <InfoIcon />, label: "Nivel de riesgo", value: <RiesgoBadge nivel={b.nivel_riesgo} /> },
+      { icon: <AssignmentIndIcon />, label: "Estado físico", value: <EstadoBien valor={b.estado_bienes} /> },
+      { icon: <InfoIcon />, label: "Nivel de riesgo", value: <NivelRiesgoBien valor={b.nivel_riesgo} /> },
       { icon: <DescriptionIcon />, label: "Número de factura", value: b.numero_factura || "—" },
       { icon: <DescriptionIcon />, label: "Proveedor", value: b.proveedor || "—" },
     );

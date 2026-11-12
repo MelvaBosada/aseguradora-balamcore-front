@@ -20,11 +20,15 @@ export const tienePermiso = (clave) => {
   return Array.isArray(lista) && lista.includes(clave);
 };
 
-/** El backend decide siempre; esto solo evita mostrar botones que darían 403. */
+// Mismos niveles y permisos que EvaluacionService::puedeAutorizar en el backend.
+// El backend decide siempre; esto solo evita mostrar botones que darían 403.
 export const puedeAutorizarNivel = (nivel) => {
-  if (nivel === "Administrador") return tienePermiso("evaluaciones.autorizar_alto");
-  if (nivel === "supervisor") {
-    return tienePermiso("evaluaciones.autorizar") || tienePermiso("evaluaciones.autorizar_alto");
+  switch (nivel) {
+    case "supervisor":
+      return tienePermiso("evaluaciones.autorizar") || tienePermiso("evaluaciones.autorizar_alto");
+    case "gerente":
+      return tienePermiso("evaluaciones.autorizar_alto");
+    default:
+      return false;
   }
-  return false;
 };

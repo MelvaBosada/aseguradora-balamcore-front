@@ -20,6 +20,7 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 import DescargarModal from "../../components/DescargarModal";
+import { EstatusCliente } from "../../components/siniestro/Badges";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
 const API_URL = `${API_BASE}/clientes`;
@@ -44,17 +45,31 @@ const mensajeError = (error, defecto) => {
   return detalle || data.message || defecto;
 };
 
-const campos = ["rfc", "nombre", "apellido", "telefono", "correo"];
-const columnas = ["RFC", "Nombre", "Apellido(s)", "Teléfono", "Correo", "Acciones"];
+// "nombre_completo" y "fecha_registro_txt" se arman en el componente
+const campos = [
+  "rfc",
+  "nombre_completo",
+  "telefono",
+  "correo",
+  "ocupacion",
+  "estatus",
+];
+const columnas = [
+  "RFC",
+  "Nombre",
+  "Teléfono",
+  "Correo",
+  "Ocupación",
+  "Estatus",
+  "Acciones",
+];
 
+// Cada campo lleva su "seccion"; se agrupan en el orden en que aparecen
 const FORM_CAMPOS = [
-  { label: "Nombre", name: "nombre", type: "text", required: true },
-  { label: "Apellido", name: "apellido", type: "text", required: true },
-  { label: "RFC", name: "rfc", type: "text", required: true },
-  { label: "CURP", name: "curp", type: "text", required: true },
-  { label: "Teléfono", name: "telefono", type: "text", required: true },
-  { label: "Correo", name: "correo", type: "email", required: true },
-  { label: "Fecha de nacimiento", name: "fecha_nacimiento", type: "date", required: true },
+  // ---- DATOS PERSONALES ----
+  { label: "Nombre", name: "nombre", type: "text", required: true, seccion: "Datos personales" },
+  { label: "Apellido", name: "apellido", type: "text", required: true, seccion: "Datos personales" },
+  { label: "Fecha de nacimiento", name: "fecha_nacimiento", type: "date", required: true, seccion: "Datos personales" },
   {
     label: "Género",
     name: "genero",
@@ -62,6 +77,7 @@ const FORM_CAMPOS = [
     options: ["masculino", "femenino", "otro"],
     required: true,
     defaultValue: "masculino",
+    seccion: "Datos personales",
   },
   {
     label: "Estado civil",
@@ -70,8 +86,11 @@ const FORM_CAMPOS = [
     options: ["soltero", "casado", "divorciado", "viudo", "union_libre"],
     required: true,
     defaultValue: "soltero",
+    seccion: "Datos personales",
   },
-  { label: "Nacionalidad", name: "nacionalidad", type: "text", defaultValue: "Mexicana" },
+  { label: "Nacionalidad", name: "nacionalidad", type: "text", defaultValue: "Mexicana", seccion: "Datos personales" },
+  { label: "CURP", name: "curp", type: "text", required: true, seccion: "Datos personales" },
+  { label: "RFC", name: "rfc", type: "text", required: true, seccion: "Datos personales" },
   {
     label: "Tipo identificación",
     name: "tipo_identificacion",
@@ -79,14 +98,31 @@ const FORM_CAMPOS = [
     options: ["ine", "pasaporte", "cedula_profesional", "licencia"],
     required: true,
     defaultValue: "ine",
+    seccion: "Datos personales",
   },
-  { label: "Número identificación", name: "numero_identificacion", type: "text", required: true },
-  { label: "Domicilio", name: "domicilio", type: "text", required: true },
-  { label: "Municipio", name: "municipio", type: "text", required: true },
-  { label: "Estado", name: "estado", type: "text", required: true },
-  { label: "Código postal", name: "codigo_postal", type: "text", required: true },
-  { label: "Ocupación", name: "ocupacion", type: "text", required: true },
-  { label: "Teléfono alternativo", name: "telefono_alternativo", type: "text" },
+  { label: "No. identificación", name: "numero_identificacion", type: "text", required: true, seccion: "Datos personales" },
+
+  // ---- CONTACTO ----
+  { label: "Teléfono", name: "telefono", type: "text", required: true, seccion: "Contacto" },
+  { label: "Teléfono alternativo", name: "telefono_alternativo", type: "text", seccion: "Contacto" },
+  { label: "Correo", name: "correo", type: "email", required: true, seccion: "Contacto" },
+
+  // ---- DOMICILIO ----
+  { label: "Domicilio", name: "domicilio", type: "text", required: true, seccion: "Domicilio" },
+  { label: "Municipio", name: "municipio", type: "text", required: true, seccion: "Domicilio" },
+  { label: "Estado", name: "estado", type: "text", required: true, seccion: "Domicilio" },
+  { label: "Código postal", name: "codigo_postal", type: "text", required: true, seccion: "Domicilio" },
+
+  // ---- INFORMACIÓN ADICIONAL ----
+  { label: "Ocupación", name: "ocupacion", type: "text", required: true, seccion: "Información adicional" },
+  {
+    label: "Estatus",
+    name: "estatus",
+    type: "select",
+    options: ["activo", "inactivo", "suspendido"],
+    defaultValue: "activo",
+    seccion: "Información adicional",
+  },
 ];
 
 const FORM_VACIO = {
@@ -108,6 +144,100 @@ const FORM_VACIO = {
   estado: "",
   codigo_postal: "",
   ocupacion: "",
+  estatus: "activo",
+};
+
+// ---------- Estilos de los campos (look del modal de empleados) ----------
+const ESTILO_LABEL = {
+  display: "block",
+  fontSize: 12,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.02em",
+  color: "#14573A",
+  marginBottom: 6,
+};
+
+const ESTILO_INPUT = {
+  width: "100%",
+  padding: "10px 12px",
+  fontSize: 14,
+  borderRadius: 10,
+  border: "1px solid #E5E7EB",
+  background: "#FAFAFA",
+  color: "#111827",
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+// "union_libre" -> "Union libre"
+const bonito = (txt) => {
+  const t = String(txt).replace(/_/g, " ");
+  return t.charAt(0).toUpperCase() + t.slice(1);
+};
+
+// Un campo individual (text / email / date / select)
+const Campo = ({ campo, valor, onChange }) => {
+  const id = `cli-${campo.name}`;
+  return (
+    <div>
+      <label htmlFor={id} style={ESTILO_LABEL}>{campo.label}</label>
+      {campo.type === "select" ? (
+        <select id={id} name={campo.name} value={valor ?? ""} onChange={onChange} style={ESTILO_INPUT}>
+          {campo.options.map((o) => {
+            const value = typeof o === "object" ? o.value : o;
+            const label = typeof o === "object" ? o.label : bonito(o);
+            return <option key={value} value={value}>{label}</option>;
+          })}
+        </select>
+      ) : (
+        <input
+          id={id}
+          name={campo.name}
+          type={campo.type}
+          value={valor ?? ""}
+          onChange={onChange}
+          placeholder={campo.type === "date" ? "" : `Ingresa ${campo.label.toLowerCase()}`}
+          style={ESTILO_INPUT}
+        />
+      )}
+    </div>
+  );
+};
+
+// Agrupa los campos por sección: título con línea + cuadrícula de 3 columnas
+const Seccion = ({ items, formData, onChange }) => {
+  const grupos = [];
+  items.forEach((c) => {
+    const nombre = c.seccion || "Otros";
+    let g = grupos.find((x) => x.nombre === nombre);
+    if (!g) {
+      g = { nombre, campos: [] };
+      grupos.push(g);
+    }
+    g.campos.push(c);
+  });
+
+  return grupos.map((g) => (
+    <div key={g.nombre} style={{ marginBottom: 24 }}>
+      <div className="balam-section-title" style={{ marginBottom: 14 }}>{g.nombre}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "16px 20px" }}>
+        {g.campos.map((c) => (
+          <Campo key={c.name} campo={c} valor={formData[c.name]} onChange={onChange} />
+        ))}
+      </div>
+    </div>
+  ));
+};
+
+// Une nombre y apellido en una sola cadena
+const nombreCompleto = (c) =>
+  [c.nombre, c.apellido ?? c.apellidos].filter(Boolean).join(" ").trim() || "—";
+
+const formatearFecha = (valor) => {
+  if (!valor) return "—";
+  const f = new Date(valor);
+  return isNaN(f.getTime()) ? String(valor) : f.toLocaleDateString("es-MX");
 };
 
 const Clientes = () => {
@@ -165,7 +295,17 @@ const Clientes = () => {
         },
       });
 
-      setClientes(response.data.data || []);
+      const data = response.data.data || [];
+
+      // Se conservan los datos originales (para editar/ver/eliminar)
+      // y se agregan los campos armados para la tabla
+      setClientes(
+        data.map((c) => ({
+          ...c,
+          nombre_completo: nombreCompleto(c),
+          fecha_registro_txt: formatearFecha(c.fecha_registro),
+        }))
+      );
       setTotalPages(response.data.last_page || 1);
     } catch (error) {
       console.error("Error al cargar clientes:", error.response?.data || error.message);
@@ -219,6 +359,7 @@ const Clientes = () => {
       estado: cliente.estado || "",
       codigo_postal: cliente.codigo_postal || "",
       ocupacion: cliente.ocupacion || "",
+      estatus: cliente.estatus || "activo",
     });
     setShowModal(true);
   };
@@ -260,6 +401,7 @@ const Clientes = () => {
       ...formData,
       nacionalidad: formData.nacionalidad || "Mexicana",
       telefono_alternativo: formData.telefono_alternativo || null,
+      estatus: formData.estatus || "activo",
     };
 
     const isEdit = !!editingCliente;
@@ -383,6 +525,9 @@ const Clientes = () => {
           columna={columnas}
           data={clientes}
           campos={campos}
+          renderers={{
+            estatus: (c) => <EstatusCliente valor={c.estatus} />,
+          }}
           acciones={[
             {
               titulo: "Ver",
@@ -414,6 +559,7 @@ const Clientes = () => {
         onItemsPerPageChange={setItemsPerPage}
       />
 
+      {/* Los campos se pintan en <Seccion/>, por eso campos={[]} */}
       <EditModal
         open={showModal}
         onClose={() => setShowModal(false)}
@@ -426,10 +572,12 @@ const Clientes = () => {
             : "Ingresa los datos para registrar al cliente"
         }
         btnTexto={editingCliente ? "Guardar cambios" : "Agregar cliente"}
-        campos={FORM_CAMPOS}
+        campos={[]}
         formData={formData}
         onChange={handleInputChange}
-      />
+      >
+        <Seccion items={FORM_CAMPOS} formData={formData} onChange={handleInputChange} />
+      </EditModal>
 
       <ConfirmDeleteModal
         open={showDeleteModal}
@@ -444,9 +592,7 @@ const Clientes = () => {
         {clienteToDelete && (
           <div>
             <p>
-              <strong>
-                {clienteToDelete.nombre} {clienteToDelete.apellido}
-              </strong>
+              <strong>{clienteToDelete.nombre_completo}</strong>
             </p>
             <p>ID: {clienteToDelete.id}</p>
             <p>Teléfono: {clienteToDelete.telefono}</p>

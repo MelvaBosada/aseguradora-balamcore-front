@@ -44,7 +44,9 @@ function BotonAccion({ accion, fila, icono, clase, disabled }) {
   );
 }
 
-function TablaForm({ columna, data, campos, acciones }) {
+// `renderers` (opcional): { nombreDelCampo: (fila) => <JSX/> }
+// Si un campo tiene renderer se usa ese; si no, todo funciona como antes.
+function TablaForm({ columna, data, campos, acciones, renderers = {} }) {
   return (
     <Table striped bordered hover responsive>
       <thead>
@@ -65,7 +67,9 @@ function TablaForm({ columna, data, campos, acciones }) {
 
               return (
                 <td key={i} className={esImagen ? "tabla-celda-foto" : ""}>
-                  {esImagen ? (
+                  {renderers[campo] ? (
+                    renderers[campo](fila)
+                  ) : esImagen ? (
                     valor ? (
                       <img
                         src={valor}
@@ -89,10 +93,13 @@ function TablaForm({ columna, data, campos, acciones }) {
             <td style={{ textAlign: "center" }}>
               <div className="tabla-acciones">
                 {acciones?.map((accion, i) => {
+                  // Soporta `oculto` (el original) y `visible` (el que usa Pólizas)
                   const oculto =
-                    typeof accion.oculto === "function"
+                    (typeof accion.oculto === "function"
                       ? accion.oculto(fila)
-                      : Boolean(accion.oculto);
+                      : Boolean(accion.oculto)) ||
+                    (typeof accion.visible === "function" &&
+                      !accion.visible(fila));
 
                   if (oculto) {
                     return null;

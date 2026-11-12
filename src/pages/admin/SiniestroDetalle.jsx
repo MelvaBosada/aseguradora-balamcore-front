@@ -5,7 +5,16 @@ import "../../css/SiniestroDetalle.css";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
+import CancelIcon from "@mui/icons-material/Cancel";
 
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import ReplayIcon from "@mui/icons-material/Replay";
+
+import PrimaryButton from "../../components/PrimaryButton";
+import OutlineButton from "../../components/OutlineButton";
+import useAccionAsync from "../../hooks/useAccionAsync";
 import Modal, { PieAcciones } from "../../components/siniestro/Modal";
 import { EstatusSiniestro } from "../../components/siniestro/Badges";
 import TabDatos from "../../components/siniestro/TabDatos";
@@ -22,13 +31,18 @@ const MOTIVO_MIN = 5;
 // Estilos del icono de advertencia (por si el CSS no define .advertencia)
 const ESTILO_ICONO_ADVERTENCIA = { background: "#FFF4D6", color: "#9A6B00" };
 
+// Colores de los botones de acción
+const COLOR_NORMAL = { color: "#295E4E", hover: "#357564" };
+const COLOR_PELIGRO = { color: "#C0392B", hover: "#A33025" };
+
 // Pasos que una persona puede dar a mano. Los demás los mueve el sistema.
+// contorno: true -> botón blanco con borde de color que se invierte al pasar el mouse
 const ACCIONES = {
-  rechazado: { texto: "Rechazar siniestro", peligro: true, motivo: true, exito: "El siniestro se rechazó." },
-  cancelado: { texto: "Cancelar siniestro", peligro: true, motivo: true, exito: "El siniestro se canceló." },
-  reabierto: { texto: "Reabrir", motivo: true, exito: "El siniestro se reabrió." },
-  cerrado: { texto: "Cerrar", motivo: false, exito: "El siniestro se cerró." },
-  en_evaluacion: { texto: "Reconsiderar (volver a evaluación)", motivo: true, exito: "El siniestro volvió a evaluación." },
+  rechazado: { texto: "Rechazar siniestro", icono: <RemoveCircleIcon />, peligro: true, contorno: true, motivo: true, exito: "El siniestro se rechazó." },
+  cancelado: { texto: "Cancelar siniestro", icono: <CancelIcon />, peligro: true, motivo: true, exito: "El siniestro se canceló." },
+  reabierto: { texto: "Reabrir", icono: <LockOpenIcon />, motivo: true, exito: "El siniestro se reabrió." },
+  cerrado: { texto: "Cerrar", icono: <LockOutlinedIcon />, motivo: false, exito: "El siniestro se cerró." },
+  en_evaluacion: { texto: "Reconsiderar (volver a evaluación)", icono: <ReplayIcon />, motivo: true, exito: "El siniestro volvió a evaluación." },
 };
 
 const TABS = [
@@ -113,10 +127,17 @@ export default function SiniestroDetalle() {
     }
   };
 
+  // Si tarda más de 2 s sale el loader de letras de BalamCore
+  const [confirmarEstatus, enviando] = useAccionAsync(cambiarEstatus);
+
   if (error) {
     return (
       <div className="container py-4">
-        <button className="sd-back" onClick={() => navigate("/admin/siniestros")}>← Siniestros</button>
+        <nav className="sd-crumbs" aria-label="Ruta de navegación">
+          <button className="sd-crumb-link" onClick={() => navigate("/admin/siniestros")}>Siniestros</button>
+          <span className="sd-crumb-sep">/</span>
+          <span className="sd-crumb-actual">Expediente</span>
+        </nav>
         <div className="sd-alerta error">{error}</div>
       </div>
     );
@@ -137,7 +158,11 @@ export default function SiniestroDetalle() {
     <div className="container py-4">
       <div className="sd-header">
         <div>
-          <button className="sd-back" onClick={() => navigate("/admin/siniestros")}>← Siniestros</button>
+          <nav className="sd-crumbs" aria-label="Ruta de navegación">
+            <button className="sd-crumb-link" onClick={() => navigate("/admin/siniestros")}>Siniestros</button>
+            <span className="sd-crumb-sep">/</span>
+            <span className="sd-crumb-actual">Expediente</span>
+          </nav>
           <h1 className="sd-title">
             {detalle.numero_siniestro} <EstatusSiniestro valor={detalle.estatus_valor} />
           </h1>
@@ -146,18 +171,20 @@ export default function SiniestroDetalle() {
           </div>
         </div>
         <div className="sd-acciones">
-          {(detalle.transiciones || []).filter((t) => ACCIONES[t]).map((t) => (
-            <button
-              key={t}
-              className={`sd-btn ${ACCIONES[t].peligro ? "peligro" : ""}`}
-              onClick={() => {
-                setAccion(t);
-                setMotivo("");
-              }}
-            >
-              {ACCIONES[t].texto}
-            </button>
-          ))}
+          {(detalle.transiciones || []).filter((t) => ACCIONES[t]).map((t) => {
+            const a = ACCIONES[t];
+            const paleta = a.peligro ? COLOR_PELIGRO : COLOR_NORMAL;
+            const abrir = () => {
+              setAccion(t);
+              setMotivo("");
+            };
+
+            return a.contorno ? (
+              <OutlineButton key={t} text={a.texto} icon={a.icono} color={paleta.color} onClick={abrir} />
+            ) : (
+              <PrimaryButton key={t} text={a.texto} icon={a.icono} color={paleta.color} hover={paleta.hover} onClick={abrir} />
+            );
+          })}
         </div>
       </div>
 
@@ -201,8 +228,8 @@ export default function SiniestroDetalle() {
         pie={
           <PieAcciones
             onCancelar={cerrarAccion}
-            onConfirmar={cambiarEstatus}
-            ocupado={ocupado}
+            onConfirmar={confirmarEstatus}
+            ocupado={ocupado || enviando}
             peligro={info?.peligro}
             textoConfirmar="Confirmar"
           />

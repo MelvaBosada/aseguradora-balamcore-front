@@ -10,6 +10,7 @@ function PrimaryButton({
   dataTour,
   loading = false,
   disabled = false,
+  compact = false,
 }) {
   const [handleClick, busy] = useAccionAsync(onClick);
   const isBusy = loading || busy;
@@ -28,8 +29,10 @@ function PrimaryButton({
           textTransform: "none",
           fontWeight: "bold",
           borderRadius: "999px",
-          px: 3,
-          py: 1.2,
+          px: compact ? 2.2 : 3,
+          py: compact ? 0.8 : 1.2,
+          minHeight: compact ? 38 : undefined,
+          fontSize: compact ? "0.9rem" : undefined,
           boxShadow: "none",
           "&:hover": {
             backgroundColor: hover,
@@ -41,7 +44,7 @@ function PrimaryButton({
       <span style={{ visibility: isBusy ? "hidden" : "visible" }}>{text}</span>
       {isBusy && (
         <CircularProgress
-          size={20}
+          size={compact ? 18 : 20}
           thickness={5}
           sx={{ color: "#fff", position: "absolute" }}
         />
