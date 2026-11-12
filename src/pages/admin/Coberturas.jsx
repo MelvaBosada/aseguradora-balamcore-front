@@ -56,15 +56,30 @@ const mensajeError = (error, defecto) => {
 const columnas = ["Nombre", "Ramos", "Deducible", "Paga la aseguradora", "Tope por siniestro", "Estatus", "Acciones"];
 const campos = ["nombre", "ramos_txt", "deducible_txt", "paga_txt", "tope_txt", "estatus"];
 
+// Cada campo lleva su "seccion"; se agrupan en el orden en que aparecen
 const FORM_CAMPOS = [
-  { label: "Nombre", name: "nombre", type: "text" },
-  { label: "Descripción", name: "descripcion", type: "text" },
-  { label: "Deducible (monto fijo)", name: "deducible", type: "number" },
-  { label: "Deducible (porcentaje %)", name: "porcentaje_deducible", type: "number" },
+  // ---- DATOS GENERALES ----
+  { label: "Nombre", name: "nombre", type: "text", seccion: "Datos generales" },
+  { label: "Descripción", name: "descripcion", type: "text", seccion: "Datos generales" },
+  {
+    label: "Estatus",
+    name: "estatus",
+    type: "select",
+    seccion: "Datos generales",
+    options: [
+      { value: "activa", label: "Activo" },
+      { value: "inactiva", label: "Inactivo" },
+    ],
+  },
+
+  // ---- DEDUCIBLE ----
+  { label: "Deducible (monto fijo)", name: "deducible", type: "number", seccion: "Deducible" },
+  { label: "Deducible (porcentaje %)", name: "porcentaje_deducible", type: "number", seccion: "Deducible" },
   {
     label: "Cómo se calcula el deducible",
     name: "tipo_calculo",
     type: "select",
+    seccion: "Deducible",
     options: [
       { value: "monto_fijo", label: "Monto fijo" },
       { value: "porcentaje", label: "Porcentaje" },
@@ -75,6 +90,7 @@ const FORM_CAMPOS = [
     label: "El porcentaje se calcula sobre",
     name: "aplica_sobre",
     type: "select",
+    seccion: "Deducible",
     options: [
       { value: "valor_bien", label: "Valor del bien" },
       { value: "suma_asegurada", label: "Suma asegurada" },
@@ -82,19 +98,12 @@ const FORM_CAMPOS = [
       { value: "costo_reparacion", label: "Costo de reparación" },
     ],
   },
-  { label: "% que paga la aseguradora (coaseguro; vacío = 100)", name: "porcentaje_cobertura", type: "number" },
-  { label: "Tope por siniestro (vacío = la suma asegurada)", name: "monto_maximo_siniestro", type: "number" },
-  { label: "Valor asegurable mínimo (0 = sin mínimo)", name: "monto_minimo", type: "number" },
-  { label: "Valor asegurable máximo (0 = sin máximo)", name: "monto_maximo", type: "number" },
-  {
-    label: "Estatus",
-    name: "estatus",
-    type: "select",
-    options: [
-      { value: "activa", label: "Activo" },
-      { value: "inactiva", label: "Inactivo" },
-    ],
-  },
+
+  // ---- MONTOS Y LÍMITES ----
+  { label: "% que paga la aseguradora (coaseguro; vacío = 100)", name: "porcentaje_cobertura", type: "number", seccion: "Montos y límites" },
+  { label: "Tope por siniestro (vacío = la suma asegurada)", name: "monto_maximo_siniestro", type: "number", seccion: "Montos y límites" },
+  { label: "Valor asegurable mínimo (0 = sin mínimo)", name: "monto_minimo", type: "number", seccion: "Montos y límites" },
+  { label: "Valor asegurable máximo (0 = sin máximo)", name: "monto_maximo", type: "number", seccion: "Montos y límites" },
 ];
 
 const NUMERICOS = [
@@ -102,23 +111,126 @@ const NUMERICOS = [
   "monto_minimo", "monto_maximo", "monto_maximo_siniestro",
 ];
 
-// Grupo de casillas para una lista de opciones
-const Casillas = ({ titulo, ayuda, opciones, valores, onCambio }) => (
-  <div style={{ marginBottom: 14 }}>
-    <div style={{ fontWeight: 600 }}>{titulo}</div>
-    <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 6 }}>{ayuda}</div>
-    {Object.entries(opciones).map(([v, t]) => (
-      <label key={v} style={{ marginRight: 14 }}>
+// ---------- Estilos de los campos (look del modal de empleados) ----------
+const ESTILO_LABEL = {
+  display: "block",
+  fontSize: 12,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.02em",
+  color: "#14573A",
+  marginBottom: 6,
+};
+
+const ESTILO_INPUT = {
+  width: "100%",
+  padding: "10px 12px",
+  fontSize: 14,
+  borderRadius: 10,
+  border: "1px solid #E5E7EB",
+  background: "#FAFAFA",
+  color: "#111827",
+  outline: "none",
+  boxSizing: "border-box",
+};
+
+// Un campo individual (text / number / select)
+const Campo = ({ campo, valor, onChange }) => {
+  const id = `cob-${campo.name}`;
+  return (
+    <div>
+      <label htmlFor={id} style={ESTILO_LABEL}>{campo.label}</label>
+      {campo.type === "select" ? (
+        <select id={id} name={campo.name} value={valor ?? ""} onChange={onChange} style={ESTILO_INPUT}>
+          {campo.options.map((o) => {
+            const value = typeof o === "object" ? o.value : o;
+            const label = typeof o === "object" ? o.label : o;
+            return <option key={value} value={value}>{label}</option>;
+          })}
+        </select>
+      ) : (
         <input
-          type="checkbox"
-          checked={(valores || []).includes(v)}
-          onChange={(e) => onCambio(e.target.checked ? [...(valores || []), v] : (valores || []).filter((x) => x !== v))}
-        />{" "}
-        {t}
-      </label>
-    ))}
-  </div>
-);
+          id={id}
+          name={campo.name}
+          type={campo.type}
+          value={valor ?? ""}
+          onChange={onChange}
+          min={campo.type === "number" ? 0 : undefined}
+          step={campo.type === "number" ? "any" : undefined}
+          placeholder={campo.type === "number" ? "0" : ""}
+          style={ESTILO_INPUT}
+        />
+      )}
+    </div>
+  );
+};
+
+// Agrupa los campos por sección y pinta: título con línea + cuadrícula de 3 columnas
+const Seccion = ({ campos: lista, formData, onChange }) => {
+  const grupos = [];
+  lista.forEach((c) => {
+    const nombre = c.seccion || "Otros";
+    let g = grupos.find((x) => x.nombre === nombre);
+    if (!g) {
+      g = { nombre, campos: [] };
+      grupos.push(g);
+    }
+    g.campos.push(c);
+  });
+
+  return grupos.map((g) => (
+    <div key={g.nombre} style={{ marginBottom: 24 }}>
+      <div className="balam-section-title" style={{ marginBottom: 14 }}>{g.nombre}</div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: "16px 20px" }}>
+        {g.campos.map((c) => (
+          <Campo key={c.name} campo={c} valor={formData[c.name]} onChange={onChange} />
+        ))}
+      </div>
+    </div>
+  ));
+};
+
+// Grupo de opciones como "chips" seleccionables, en cuadrícula
+const Casillas = ({ titulo, ayuda, opciones, valores, onCambio }) => {
+  const seleccionados = valores || [];
+  const alternar = (v) =>
+    onCambio(seleccionados.includes(v) ? seleccionados.filter((x) => x !== v) : [...seleccionados, v]);
+
+  return (
+    <div style={{ marginBottom: 22 }}>
+      <div className="balam-section-title" style={{ marginBottom: 4 }}>{titulo}</div>
+      <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 10 }}>
+        {ayuda}
+        {seleccionados.length === 0 && <strong style={{ color: "#14573A" }}> · Hoy aplica a todos.</strong>}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 8 }}>
+        {Object.entries(opciones).map(([v, t]) => {
+          const activo = seleccionados.includes(v);
+          return (
+            <label
+              key={v}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", borderRadius: 8, cursor: "pointer",
+                fontSize: 13, fontWeight: activo ? 600 : 400, userSelect: "none",
+                border: `1px solid ${activo ? "#86EFAC" : "#E5E7EB"}`,
+                background: activo ? "#F0FDF4" : "#fff",
+                color: activo ? "#14573A" : "#374151",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={activo}
+                onChange={() => alternar(v)}
+                style={{ width: 16, height: 16, accentColor: "#14573A", flexShrink: 0, margin: 0 }}
+              />
+              {t}
+            </label>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const lista = (arr, nombres, vacio) => (arr && arr.length ? arr.map((x) => nombres[x] || x).join(", ") : vacio);
 
@@ -387,53 +499,71 @@ const Cobertura = () => {
         onItemsPerPageChange={setItemsPerPage}
       />
 
+      {/* Los campos se pintan en <Seccion/>, por eso campos={[]} */}
       <EditModal
         open={showModal}
         onClose={() => setShowModal(false)}
         onSave={handleGuardar}
         titulo={editingCobertura ? "Editar Cobertura" : "Nueva Cobertura"}
         btnTexto={editingCobertura ? "Actualizar" : "Guardar"}
-        campos={FORM_CAMPOS}
+        campos={[]}
         formData={formData}
         onChange={handleInputChange}
       >
-        <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 12 }}>
+        <Seccion campos={FORM_CAMPOS} formData={formData} onChange={handleInputChange} />
+
+        <div
+          style={{
+            background: "#F0F9FF", border: "1px solid #BAE6FD", color: "#075985",
+            borderRadius: 8, padding: "10px 12px", fontSize: 12, lineHeight: 1.5, marginBottom: 20,
+          }}
+        >
           El «valor asegurable» (mínimo y máximo) se revisa al <strong>contratar</strong> la póliza; no limita lo que se paga en un siniestro.
           Lo que limita el pago es el deducible, el % que paga la aseguradora, el tope por siniestro y la suma asegurada.
         </div>
 
         <Casillas
           titulo="¿En qué ramos se contrata?"
-          ayuda="Solo aparecerá al hacer pólizas de estos ramos (ninguno marcado = todos)."
+          ayuda="Solo aparecerá al hacer pólizas de estos ramos."
           opciones={NOMBRES_RAMO}
           valores={formData.ramos}
           onCambio={(v) => setFormData({ ...formData, ramos: v })}
         />
         <Casillas
           titulo="¿A qué tipos de bien se le revisa el valor asegurable?"
-          ayuda="Ninguno marcado = a todos los bienes de la póliza."
+          ayuda="Se aplica solo a esos bienes de la póliza."
           opciones={NOMBRES_BIEN}
           valores={formData.tipos_bien}
           onCambio={(v) => setFormData({ ...formData, tipos_bien: v })}
         />
         <Casillas
           titulo="¿A qué tipos de siniestro responde?"
-          ayuda="Ninguno marcado = a todos. Si no lo defines, «Robo total» se usaría también para un incendio."
+          ayuda="Si no marcas ninguno, «Robo total», por ejemplo, también respondería a un incendio."
           opciones={NOMBRES_SINIESTRO}
           valores={formData.tipos_siniestro}
           onCambio={(v) => setFormData({ ...formData, tipos_siniestro: v })}
         />
 
-        <label style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <div className="balam-section-title" style={{ marginBottom: 8 }}>Regla proporcional</div>
+        <label
+          style={{
+            display: "flex", gap: 12, alignItems: "flex-start", cursor: "pointer", padding: "12px 14px", borderRadius: 8,
+            border: `1px solid ${formData.primer_riesgo ? "#86EFAC" : "#E5E7EB"}`,
+            background: formData.primer_riesgo ? "#F0FDF4" : "#fff",
+          }}
+        >
           <input
             type="checkbox"
             checked={!!formData.primer_riesgo}
             onChange={(e) => setFormData({ ...formData, primer_riesgo: e.target.checked })}
-            style={{ marginTop: 3 }}
+            style={{ width: 18, height: 18, marginTop: 2, accentColor: "#14573A", flexShrink: 0 }}
           />
-          <span>
-            <strong>Primer riesgo absoluto.</strong> No se aplica la regla proporcional (infraseguro): si el daño es menor a la suma
-            asegurada se paga completo (menos deducible), sin importar cuánto valgan todos los bienes. Típico en contenidos del hogar o inventarios.
+          <span style={{ fontSize: 13, lineHeight: 1.5 }}>
+            <strong>Primer riesgo absoluto</strong>
+            <span style={{ display: "block", color: "#6B7280", fontSize: 12, marginTop: 2 }}>
+              No se aplica la regla proporcional (infraseguro): si el daño es menor a la suma asegurada se paga completo
+              (menos deducible), sin importar cuánto valgan todos los bienes. Típico en contenidos del hogar o inventarios.
+            </span>
           </span>
         </label>
       </EditModal>

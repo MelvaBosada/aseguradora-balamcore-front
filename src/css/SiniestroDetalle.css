@@ -69,3 +69,38 @@
 .sd-modal-body { max-height: 70vh; overflow-y: auto; }
 .sd-check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .sd-check input { width: auto; }
+
+/* Breadcrumb */
+.sd-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.sd-crumb-link {
+  background: none;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  color: #295e4e;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sd-crumb-link:hover {
+  background: #e6f0ec;
+  color: #1d4538;
+}
+
+.sd-crumb-sep {
+  color: #9aa8a3;
+}
+
+.sd-crumb-actual {
+  color: #6b7a75;
+  font-weight: 500;
+  padding: 4px 4px;
+}

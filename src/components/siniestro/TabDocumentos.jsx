@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Button } from "@mui/material";
 import "../../css/SiniestroDetalle.css";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
 import Modal, { PieAcciones } from "./Modal";
+import OutlineButton from "../OutlineButton";
+import useAccionAsync from "../../hooks/useAccionAsync";
 import { EstadoDocumento } from "./Badges";
 import { api, descargarArchivo, fmtFecha, mensajeError } from "../../services/siniestroApi";
 
 const MAX_MB = 5;
 const CERRADOS = ["cerrado", "cancelado", "pagado"];
+
+const COLOR_PELIGRO = "#C0392B";
+const COLOR_APROBAR = "#2E9E5B";
 
 export default function TabDocumentos({ detalle, onCambio }) {
   const id = detalle.id;
@@ -15,6 +22,7 @@ export default function TabDocumentos({ detalle, onCambio }) {
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
   const [ocupado, setOcupado] = useState(false);
+  const [subiendoId, setSubiendoId] = useState(null); // documento que se está subiendo
   const [modal, setModal] = useState(null); // { tipo: "rechazar" | "exentar" | "nuevo", doc }
   const [motivo, setMotivo] = useState("");
   const [nuevo, setNuevo] = useState({ nombre: "", descripcion: "", obligatorio: true, dias_limite: "" });
@@ -35,7 +43,7 @@ export default function TabDocumentos({ detalle, onCambio }) {
     cargar();
   }, [cargar]);
 
-  const ejecutar = async (fn, mensajeOk = "") => {
+  const ejecutarBase = async (fn, mensajeOk = "") => {
     setOcupado(true);
     setError("");
     setAviso("");
@@ -53,22 +61,33 @@ export default function TabDocumentos({ detalle, onCambio }) {
     }
   };
 
+  // Si tarda más de 2 s sale el loader de letras de BalamCore
+  const [ejecutar, ejecutando] = useAccionAsync(ejecutarBase);
+
   const pedirArchivo = (doc) => {
     docParaSubir.current = doc;
     inputRef.current?.click();
   };
 
-  const alElegirArchivo = (e) => {
+  const alElegirArchivo = async (e) => {
     const archivo = e.target.files?.[0];
     e.target.value = "";
-    if (!archivo || !docParaSubir.current) return;
+    const doc = docParaSubir.current;
+    if (!archivo || !doc) return;
     if (archivo.size > MAX_MB * 1024 * 1024) {
       setError(`"${archivo.name}" pesa más de ${MAX_MB} MB.`);
       return;
     }
     const fd = new FormData();
     fd.append("archivo", archivo);
-    ejecutar(() => api.post(`/siniestros/${id}/documentos/${docParaSubir.current.id}/archivo`, fd), "Archivo cargado. Queda por revisar.");
+
+    // El spinner se queda en el botón Subir/Reemplazar de ese documento
+    setSubiendoId(doc.id);
+    try {
+      await ejecutar(() => api.post(`/siniestros/${id}/documentos/${doc.id}/archivo`, fd), "Archivo cargado. Queda por revisar.");
+    } finally {
+      setSubiendoId(null);
+    }
   };
 
   const revisar = (doc, accion, texto) =>
@@ -101,6 +120,7 @@ export default function TabDocumentos({ detalle, onCambio }) {
 
   const { documentos, resumen } = datos;
   const porcentaje = resumen.obligatorios ? Math.round((resumen.resueltos / resumen.obligatorios) * 100) : 100;
+  const bloqueado = ocupado || ejecutando;
 
   return (
     <>
@@ -125,26 +145,41 @@ export default function TabDocumentos({ detalle, onCambio }) {
           {!cerrado && (
             <div className="sd-acciones">
               {resumen.total === 0 && (
-                <button
-                  className="sd-btn"
-                  disabled={ocupado}
+                <OutlineButton
+                  text="Generar checklist"
+                  disabled={bloqueado}
+                  compact
                   onClick={() => ejecutar(() => api.post(`/siniestros/${id}/documentos/generar`), "Checklist generado.")}
-                >
-                  Generar checklist
-                </button>
+                />
               )}
               {detalle.estatus_valor === "documentacion_pendiente" && (
-                <button
-                  className="sd-btn"
-                  disabled={ocupado}
+                <OutlineButton
+                  text="Recordar al cliente"
+                  disabled={bloqueado}
+                  compact
                   onClick={() => ejecutar(() => api.post(`/siniestros/${id}/documentos/notificar`), "Se enviará un correo al cliente.")}
-                >
-                  Recordar al cliente
-                </button>
+                />
               )}
-              <button className="sd-btn primario" onClick={() => setModal({ tipo: "nuevo" })}>
-                + Pedir documento
-              </button>
+              <Button
+                variant="contained"
+                startIcon={<AddCircleIcon />}
+                onClick={() => setModal({ tipo: "nuevo" })}
+                sx={{
+                  backgroundColor: "#295E4E",
+                  textTransform: "none",
+                  fontWeight: "bold",
+                  borderRadius: "999px",
+                  border: "1.5px solid transparent",
+                  px: 2,
+                  py: 0.4,
+                  fontSize: "0.85rem",
+                  boxShadow: "none",
+                  "& .MuiSvgIcon-root": { fontSize: 18 },
+                  "&:hover": { backgroundColor: "#357564", boxShadow: "none" },
+                }}
+              >
+                Pedir documento
+              </Button>
             </div>
           )}
         </div>
@@ -194,40 +229,70 @@ export default function TabDocumentos({ detalle, onCambio }) {
                   <td>
                     <div className="acciones">
                       {d.tiene_archivo && (
-                        <button className="sd-btn mini" onClick={() => descargarArchivo(`/siniestros/${id}/documentos/${d.id}/descargar`, d.nombre_archivo).catch((e) => setError(mensajeError(e)))}>
-                          Descargar
-                        </button>
+                        <OutlineButton
+                          text="Descargar"
+                          compact
+                          square
+                          onClick={() =>
+                            descargarArchivo(`/siniestros/${id}/documentos/${d.id}/descargar`, d.nombre_archivo).catch((e) =>
+                              setError(mensajeError(e))
+                            )
+                          }
+                        />
                       )}
                       {!cerrado && (
                         <>
                           {["pendiente", "rechazado", "recibido"].includes(d.estado) && (
-                            <button className="sd-btn mini" disabled={ocupado} onClick={() => pedirArchivo(d)}>
-                              {d.tiene_archivo ? "Reemplazar" : "Subir"}
-                            </button>
+                            <OutlineButton
+                              text={d.tiene_archivo ? "Reemplazar" : "Subir"}
+                              compact
+                              square
+                              loading={subiendoId === d.id}
+                              disabled={bloqueado}
+                              onClick={() => pedirArchivo(d)}
+                            />
                           )}
                           {d.estado === "recibido" && (
-                            <button className="sd-btn mini primario" disabled={ocupado} onClick={() => revisar(d, "aprobar")}>
-                              Aprobar
-                            </button>
+                            <OutlineButton
+                              text="Aprobar"
+                              color={COLOR_APROBAR}
+                              compact
+                              square
+                              disabled={bloqueado}
+                              onClick={() => revisar(d, "aprobar")}
+                            />
                           )}
                           {["recibido", "aprobado"].includes(d.estado) && (
-                            <button className="sd-btn mini peligro" disabled={ocupado} onClick={() => setModal({ tipo: "rechazar", doc: d })}>
-                              Rechazar
-                            </button>
+                            <OutlineButton
+                              text="Rechazar"
+                              color={COLOR_PELIGRO}
+                              compact
+                              square
+                              disabled={bloqueado}
+                              onClick={() => setModal({ tipo: "rechazar", doc: d })}
+                            />
                           )}
                           {["pendiente", "rechazado", "recibido"].includes(d.estado) && (
-                            <button className="sd-btn mini" disabled={ocupado} onClick={() => setModal({ tipo: "exentar", doc: d })}>
-                              Exentar
-                            </button>
+                            <OutlineButton
+                              text="Exentar"
+                              compact
+                              square
+                              disabled={bloqueado}
+                              onClick={() => setModal({ tipo: "exentar", doc: d })}
+                            />
                           )}
                           {d.manual && d.estado !== "aprobado" && (
-                            <button
-                              className="sd-btn mini peligro"
-                              disabled={ocupado}
-                              onClick={() => window.confirm("¿Eliminar este documento?") && ejecutar(() => api.delete(`/siniestros/${id}/documentos/${d.id}`))}
-                            >
-                              Eliminar
-                            </button>
+                            <OutlineButton
+                              text="Eliminar"
+                              color={COLOR_PELIGRO}
+                              compact
+                              square
+                              disabled={bloqueado}
+                              onClick={() =>
+                                window.confirm("¿Eliminar este documento?") &&
+                                ejecutar(() => api.delete(`/siniestros/${id}/documentos/${d.id}`))
+                              }
+                            />
                           )}
                         </>
                       )}
@@ -249,7 +314,7 @@ export default function TabDocumentos({ detalle, onCambio }) {
           <PieAcciones
             onCancelar={() => setModal(null)}
             onConfirmar={confirmarModal}
-            ocupado={ocupado}
+            ocupado={bloqueado}
             peligro={modal?.tipo === "rechazar"}
             textoConfirmar={modal?.tipo === "nuevo" ? "Agregar" : modal?.tipo === "rechazar" ? "Rechazar" : "Exentar"}
           />

@@ -23,14 +23,16 @@ import EditModal from "../../components/EditModal";
 import ClienteDetalleModal from "../../components/ClienteDetalleModal";
 import Paginacion from "../../components/Paginacion";
 import DescargarModal from "../../components/DescargarModal";
+import { EstadoLaboral } from "../../components/siniestro/Badges";
 
 const API = import.meta.env.VITE_API_URL || '/api';
 
 const AVISO_EXITO_MS = 3500;
 const SIN_CONEXION = "No hay conexión con el servidor.";
 
-const campos = ["nombre", "apellidos", "curp", "numero_de_telefono", "correo", "rol"];
-const columnas = ["Nombre", "Apellidos", "CURP", "Teléfono", "Correo", "Rol", "Acciones"];
+// "nombre_completo" se arma en el componente (nombre + apellidos)
+const campos = ["nombre_completo", "puesto", "departamento", "numero_de_telefono", "correo", "rol", "estado_laboral"];
+const columnas = ["Nombre", "Puesto", "Departamento", "Teléfono", "Correo", "Rol", "Estado", "Acciones"];
 
 // Extrae un mensaje legible de un error de axios
 const mensajeError = (error, defecto) => {
@@ -40,6 +42,18 @@ const mensajeError = (error, defecto) => {
   return detalle || data.message || defecto;
 };
 
+const capitalizar = (t) => {
+  const s = String(t ?? "").replace(/_/g, " ").trim();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : "—";
+};
+
+// Los inputs type="date" solo aceptan YYYY-MM-DD
+const soloFecha = (v) => (v ? String(v).slice(0, 10) : "");
+
+// Datos antiguos guardados como M / F se muestran y editan como masculino / femenino
+const GENERO_ANTIGUO = { M: "masculino", F: "femenino" };
+const normalizarGenero = (g) => GENERO_ANTIGUO[g] || g || "";
+
 const FORM_VACIO = {
   nombre: "", apellidos: "", fecha_nacimiento: "", genero: "",
   estado_civil: "", nacionalidad: "", curp: "", rfc: "", nss: "",
@@ -47,24 +61,38 @@ const FORM_VACIO = {
   numero_de_telefono: "", telefono_alternativo: "", correo: "",
   domicilio: "", municipio: "", estado: "", codigo_postal: "",
   fecha_ingreso: "", departamento: "", tipo_empleado: "",
-  puesto: "", horario: "", estado_laboral: "",
+  puesto: "", horario: "", estado_laboral: "activo",
+  fecha_baja: "", motivo_baja: "",
   salario: "", tipo_nomina: "", banco: "",
   cuenta_bancaria: "", clabe_interbancaria: "",
-  cedula_profesional: "", especialidad: "",
+  cedula_profesional: "", fecha_vencimiento_cedula: "", especialidad: "",
   contacto_emergencia_nombre: "", contacto_emergencia_parentesco: "",
   contacto_emergencia_telefono: "",
+  correo_acceso: "",
   password: "",
   id_rol: "",
 };
 
-const generarCampos = (roles) => [
+// Campos de fecha (se normalizan al editar)
+const CAMPOS_FECHA = ["fecha_nacimiento", "fecha_ingreso", "fecha_baja", "fecha_vencimiento_cedula"];
+
+// Campos opcionales: si van vacíos se mandan como null
+const CAMPOS_OPCIONALES = [
+  "telefono_alternativo", "cedula_profesional", "fecha_vencimiento_cedula",
+  "especialidad", "fecha_baja", "motivo_baja",
+];
+
+const generarCampos = (roles, estadoLaboral) => [
   // ── Datos personales ──────────────────────────────
   { seccion: "Datos personales", label: "Nombre", name: "nombre", type: "text" },
   { seccion: "Datos personales", label: "Apellidos", name: "apellidos", type: "text" },
   { seccion: "Datos personales", label: "Fecha nacimiento", name: "fecha_nacimiento", type: "date" },
   {
     seccion: "Datos personales", label: "Género", name: "genero", type: "select",
-    options: [{ value: "M", label: "Masculino" }, { value: "F", label: "Femenino" }]
+    options: [
+      { value: "masculino", label: "Masculino" },
+      { value: "femenino", label: "Femenino" },
+    ]
   },
   {
     seccion: "Datos personales", label: "Estado civil", name: "estado_civil", type: "select",
@@ -146,12 +174,20 @@ const generarCampos = (roles) => [
       { value: "baja", label: "Baja" },
     ]
   },
+  // Solo aparecen cuando el empleado está dado de baja
+  ...(estadoLaboral === "baja"
+    ? [
+        { seccion: "Datos laborales", label: "Fecha de baja", name: "fecha_baja", type: "date" },
+        { seccion: "Datos laborales", label: "Motivo de baja", name: "motivo_baja", type: "text" },
+      ]
+    : []),
   {
     seccion: "Datos laborales", label: "Rol", name: "id_rol", type: "select",
     options: roles.map(r => ({ value: String(r.id), label: r.nombre }))
   },
 
   // ── Acceso al sistema ─────────────────────────────
+  { seccion: "Acceso al sistema", label: "Correo de acceso", name: "correo_acceso", type: "email" },
   { seccion: "Acceso al sistema", label: "Contraseña", name: "password", type: "password" },
 
   // ── Nómina ────────────────────────────────────────
@@ -170,6 +206,7 @@ const generarCampos = (roles) => [
 
   // ── Datos específicos ─────────────────────────────
   { seccion: "Datos específicos", label: "Cédula profesional", name: "cedula_profesional", type: "text" },
+  { seccion: "Datos específicos", label: "Vencimiento de cédula", name: "fecha_vencimiento_cedula", type: "date" },
   { seccion: "Datos específicos", label: "Especialidad", name: "especialidad", type: "text" },
 
   // ── Contacto de emergencia ────────────────────────
@@ -191,6 +228,7 @@ const Empleados = () => {
   const [editingEmp, setEditingEmp] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [estatusFilter, setEstatusFilter] = useState("Todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState(FORM_VACIO);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -226,7 +264,7 @@ const Empleados = () => {
     };
   };
 
-  // Normaliza las respuestas y formatea la columna 'rol' para TablaForm
+  // Normaliza las respuestas, arma el nombre completo y el nombre del rol
   const normalizarEmpleados = (data, listaRoles = []) => {
     const lista = Array.isArray(data) ? data : (data?.data || []);
     return lista.map(emp => {
@@ -243,7 +281,9 @@ const Empleados = () => {
       return {
         ...emp,
         id_rol: emp.id_rol ? String(emp.id_rol) : "",
-        rol: nombreRol
+        rol: nombreRol,
+        genero: normalizarGenero(emp.genero),
+        nombre_completo: [emp.nombre, emp.apellidos].filter(Boolean).join(" ").trim() || "—",
       };
     });
   };
@@ -314,17 +354,27 @@ const Empleados = () => {
 
   const handleNuevo = () => {
     setEditingEmp(null);
-    setFormData({ ...FORM_VACIO, id_aseguradora: usuario.id_aseguradora });
+    setFormData({ ...FORM_VACIO });
     setErrores({});
     setShowModal(true);
   };
 
+  // Solo se cargan al formulario los campos que existen en FORM_VACIO
+  // (así no se reenvían datos de más como created_at, rol o nombre_completo)
   const handleEditar = (emp) => {
-    setEditingEmp(emp);
-    setFormData({
-      ...emp,
-      id_rol: emp.id_rol ? String(emp.id_rol) : ""
+    const datos = {};
+    Object.keys(FORM_VACIO).forEach((k) => {
+      datos[k] = emp[k] ?? "";
     });
+    CAMPOS_FECHA.forEach((k) => {
+      datos[k] = soloFecha(emp[k]);
+    });
+    datos.genero = normalizarGenero(emp.genero);
+    datos.id_rol = emp.id_rol ? String(emp.id_rol) : "";
+    datos.password = ""; // la contraseña solo se manda si se escribe una nueva
+
+    setEditingEmp(emp);
+    setFormData(datos);
     setErrores({});
     setShowModal(true);
   };
@@ -340,8 +390,10 @@ const Empleados = () => {
       "horario", "estado_laboral", "salario", "tipo_nomina",
       "banco", "cuenta_bancaria", "clabe_interbancaria",
       "contacto_emergencia_nombre", "contacto_emergencia_parentesco",
-      "contacto_emergencia_telefono", "id_rol",
+      "contacto_emergencia_telefono", "id_rol", "correo_acceso",
       ...(!editingEmp ? ["password"] : []),
+      // Si está de baja, se exige la fecha y el motivo
+      ...(formData.estado_laboral === "baja" ? ["fecha_baja", "motivo_baja"] : []),
     ];
 
     requeridos.forEach(campo => {
@@ -364,7 +416,24 @@ const Empleados = () => {
     const isEdit = !!editingEmp;
 
     try {
-      const payload = { ...formData, id_aseguradora: usuario.id_aseguradora };
+      // Solo se envían los campos del formulario
+      const payload = {};
+      Object.keys(FORM_VACIO).forEach((k) => {
+        payload[k] = formData[k];
+      });
+      payload.id_aseguradora = usuario.id_aseguradora;
+
+      // Opcionales vacíos -> null
+      CAMPOS_OPCIONALES.forEach((k) => {
+        if (payload[k] === "" || payload[k] === undefined) payload[k] = null;
+      });
+
+      // Si ya no está de baja, se limpian los datos de baja
+      if (payload.estado_laboral !== "baja") {
+        payload.fecha_baja = null;
+        payload.motivo_baja = null;
+      }
+
       if (!payload.password) delete payload.password;
 
       const headers = getHeaders();
@@ -418,13 +487,17 @@ const Empleados = () => {
     }
   };
 
+  // Búsqueda por nombre, puesto, CURP o correo + filtro por estado laboral
   const filteredEmps = empleados.filter(e => {
     const q = searchTerm.toLowerCase();
-    return (
-      e.nombre?.toLowerCase().includes(q) ||
-      e.apellidos?.toLowerCase().includes(q) ||
-      e.curp?.toLowerCase().includes(q)
-    );
+    const coincideBusqueda =
+      !q ||
+      e.nombre_completo?.toLowerCase().includes(q) ||
+      e.puesto?.toLowerCase().includes(q) ||
+      e.curp?.toLowerCase().includes(q) ||
+      e.correo?.toLowerCase().includes(q);
+    const coincideEstado = estatusFilter === "Todos" || e.estado_laboral === estatusFilter;
+    return coincideBusqueda && coincideEstado;
   });
 
   const totalPages = Math.ceil(filteredEmps.length / itemsPerPage) || 1;
@@ -446,23 +519,30 @@ const Empleados = () => {
     { icon: <HomeIcon />, label: "Municipio", value: empDetalle.municipio },
     { icon: <HomeIcon />, label: "Estado", value: empDetalle.estado },
     { icon: <HomeIcon />, label: "Código postal", value: empDetalle.codigo_postal },
-    { icon: <BadgeIcon />, label: "Fecha nacimiento", value: empDetalle.fecha_nacimiento },
-    { icon: <BadgeIcon />, label: "Género", value: empDetalle.genero },
-    { icon: <BadgeIcon />, label: "Estado civil", value: empDetalle.estado_civil },
+    { icon: <BadgeIcon />, label: "Fecha nacimiento", value: soloFecha(empDetalle.fecha_nacimiento) },
+    { icon: <BadgeIcon />, label: "Género", value: capitalizar(empDetalle.genero) },
+    { icon: <BadgeIcon />, label: "Estado civil", value: capitalizar(empDetalle.estado_civil) },
     { icon: <BadgeIcon />, label: "Nacionalidad", value: empDetalle.nacionalidad },
     { icon: <BadgeIcon />, label: "Puesto", value: empDetalle.puesto },
-    { icon: <BadgeIcon />, label: "Departamento", value: empDetalle.departamento },
-    { icon: <BadgeIcon />, label: "Tipo empleado", value: empDetalle.tipo_empleado },
-    { icon: <BadgeIcon />, label: "Horario", value: empDetalle.horario },
-    { icon: <BadgeIcon />, label: "Estado laboral", value: empDetalle.estado_laboral },
-    { icon: <BadgeIcon />, label: "Fecha ingreso", value: empDetalle.fecha_ingreso },
+    { icon: <BadgeIcon />, label: "Departamento", value: capitalizar(empDetalle.departamento) },
+    { icon: <BadgeIcon />, label: "Tipo empleado", value: capitalizar(empDetalle.tipo_empleado) },
+    { icon: <BadgeIcon />, label: "Horario", value: capitalizar(empDetalle.horario) },
+    { icon: <BadgeIcon />, label: "Estado laboral", value: <EstadoLaboral valor={empDetalle.estado_laboral} /> },
+    ...(empDetalle.estado_laboral === "baja"
+      ? [
+          { icon: <BadgeIcon />, label: "Fecha de baja", value: soloFecha(empDetalle.fecha_baja) || "—" },
+          { icon: <BadgeIcon />, label: "Motivo de baja", value: empDetalle.motivo_baja || "—" },
+        ]
+      : []),
+    { icon: <BadgeIcon />, label: "Fecha ingreso", value: soloFecha(empDetalle.fecha_ingreso) },
     { icon: <BadgeIcon />, label: "Rol", value: empDetalle.rol },
     { icon: <BadgeIcon />, label: "Salario", value: empDetalle.salario ? `$${Number(empDetalle.salario).toLocaleString()}` : "—" },
-    { icon: <BadgeIcon />, label: "Tipo nómina", value: empDetalle.tipo_nomina },
+    { icon: <BadgeIcon />, label: "Tipo nómina", value: capitalizar(empDetalle.tipo_nomina) },
     { icon: <BadgeIcon />, label: "Banco", value: empDetalle.banco },
     { icon: <BadgeIcon />, label: "Cuenta bancaria", value: empDetalle.cuenta_bancaria },
     { icon: <BadgeIcon />, label: "CLABE interbancaria", value: empDetalle.clabe_interbancaria },
     { icon: <BadgeIcon />, label: "Cédula profesional", value: empDetalle.cedula_profesional || "—" },
+    { icon: <BadgeIcon />, label: "Vencimiento de cédula", value: soloFecha(empDetalle.fecha_vencimiento_cedula) || "—" },
     { icon: <BadgeIcon />, label: "Especialidad", value: empDetalle.especialidad || "—" },
     { icon: <PersonIcon />, label: "Contacto emergencia", value: empDetalle.contacto_emergencia_nombre },
     { icon: <BadgeIcon />, label: "Parentesco", value: empDetalle.contacto_emergencia_parentesco },
@@ -494,6 +574,26 @@ const Empleados = () => {
               value={searchInput} onChange={(e) => setSearchInput(e.target.value)} />
           </div>
         </div>
+
+        <div>
+          <div className="fw-bold mb-2">Estado</div>
+          <select
+            className="form-select"
+            style={{ width: "180px" }}
+            value={estatusFilter}
+            onChange={(e) => {
+              setEstatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+          >
+            <option value="Todos">Todos</option>
+            <option value="activo">Activo</option>
+            <option value="inactivo">Inactivo</option>
+            <option value="suspendido">Suspendido</option>
+            <option value="baja">Baja</option>
+          </select>
+        </div>
+
         <div className="d-flex gap-2 flex-wrap">
           <PrimaryButton
             text="Descargar"
@@ -509,6 +609,10 @@ const Empleados = () => {
           columna={columnas}
           data={paginated}
           campos={campos}
+          renderers={{
+            departamento: (e) => capitalizar(e.departamento),
+            estado_laboral: (e) => <EstadoLaboral valor={e.estado_laboral} />,
+          }}
           acciones={[
             { titulo: "Ver", clase: "tabla-btn-ver", icono: <VisibilityIcon fontSize="small" />, onClick: handleVerDetalle },
             { titulo: "Editar", clase: "tabla-btn-edit", icono: <EditIcon fontSize="small" />, onClick: handleEditar },
@@ -529,7 +633,7 @@ const Empleados = () => {
         titulo={editingEmp ? "Editar empleado" : "Agregar nuevo empleado"}
         subtitulo={editingEmp ? "Modifica los datos del empleado" : "Ingresa los datos del empleado"}
         btnTexto={editingEmp ? "Guardar cambios" : "Agregar empleado"}
-        campos={generarCampos(roles)}
+        campos={generarCampos(roles, formData.estado_laboral)}
         formData={formData}
         onChange={handleInputChange}
         errores={errores}
@@ -544,7 +648,7 @@ const Empleados = () => {
       >
         {empToDelete && (
           <div>
-            <p><strong>{empToDelete.nombre} {empToDelete.apellidos}</strong></p>
+            <p><strong>{empToDelete.nombre_completo}</strong></p>
             <p>ID: #{empToDelete.id}</p>
             <p>Correo: {empToDelete.correo}</p>
           </div>
@@ -554,9 +658,9 @@ const Empleados = () => {
       <ClienteDetalleModal
         open={showDetalleModal}
         onClose={() => { setShowDetalleModal(false); setEmpDetalle(null); }}
-        titulo={empDetalle ? `${empDetalle.nombre} ${empDetalle.apellidos}` : ""}
+        titulo={empDetalle ? empDetalle.nombre_completo : ""}
         subtitulo={empDetalle ? `ID #${empDetalle.id} · ${empDetalle.puesto}` : ""}
-        avatar={empDetalle ? empDetalle.nombre.charAt(0) : ""}
+        avatar={empDetalle ? (empDetalle.nombre || "?").charAt(0) : ""}
         items={detalleItems}
       />
 
@@ -564,7 +668,7 @@ const Empleados = () => {
         open={showDescarga}
         onClose={() => setShowDescarga(false)}
         url={`${API}/exportar/empleados`}
-        params={{ search: searchTerm }}
+        params={{ search: searchTerm, estatus: estatusFilter }}
         nombreArchivo="empleados"
         titulo="Descargar listado de empleados"
       />
