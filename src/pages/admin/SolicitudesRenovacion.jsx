@@ -1,5 +1,6 @@
 // pages/admin/SolicitudesRenovacion.jsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import axios from 'axios';
 import SearchIcon       from "@mui/icons-material/Search";
 import AutorenewIcon    from "@mui/icons-material/Autorenew";
@@ -31,10 +32,10 @@ const campos   = ["nPoliza", "nombre", "apellido", "tipo", "vigencia", "vence", 
 const columnas = ["N° Póliza", "Nombre", "Apellido(s)", "Tipo", "Vigencia", "Vence", "Asesor", "Estatus", "Acciones"];
 
 const CAMPOS_RENOVAR = [
-  { label: "Fecha de inicio", name: "fecha_inicio",   type: "date"   },
-  { label: "Fecha de fin",     name: "fecha_fin",     type: "date"   },
-  { label: "Forma de pago",    name: "forma_pago",    type: "select", options: ["contado", "mensual", "trimestral", "semestral", "anual"] },
-  { label: "Suma asegurada",   name: "suma_asegurada", type: "number", placeholder: "Ingresa la suma del seguro"    },
+  { label: "Fecha de inicio",  name: "fecha_inicio",   type: "date"   },
+  { label: "Fecha de fin",     name: "fecha_fin",      type: "date"   },
+  { label: "Forma de pago",    name: "forma_pago",     type: "select", options: ["contado", "mensual", "trimestral", "semestral", "anual"] },
+  { label: "Suma asegurada",   name: "suma_asegurada", type: "number", placeholder: "Ingresa la suma del seguro" },
   { label: "Prima neta",       name: "prima_neta",     type: "number", placeholder: "Ingresa la prima neta" },
   { label: "Derecho de póliza",name: "derecho_poliza", type: "number", placeholder: "Ingresa el derecho de póliza" },
   { label: "IVA",              name: "iva",            type: "number", placeholder: "Ingresa el IVA" },
@@ -54,7 +55,22 @@ const FORM_VACIO = {
   observaciones: ""
 };
 
+const CONTEXTO_VACIO = { poliza: null, coberturas: [], bienes: [] };
+
+const headersAuth = () => ({ Authorization: `Bearer ${localStorage.getItem('token')}` });
+
+const calcularTotal = (f) => {
+  const neta = parseFloat(f.prima_neta) || 0;
+  const derecho = parseFloat(f.derecho_poliza) || 0;
+  const iva = parseFloat(f.iva) || 0;
+  return (neta + derecho + iva).toFixed(2);
+};
+
 const SolicitudesRenovacion = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const yaAbiertoDesdeVencer = useRef(false);
+
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -68,6 +84,7 @@ const SolicitudesRenovacion = () => {
   const [estatusFilter, setEstatusFilter] = useState("Todos");
   const [formData, setFormData] = useState(FORM_VACIO);
   const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', titulo, mensaje }
+  const [contexto, setContexto] = useState(CONTEXTO_VACIO);
 
   const mostrarAviso = useCallback((tipo, titulo, mensaje) => {
     setAviso({ tipo, titulo, mensaje });
@@ -91,15 +108,14 @@ const SolicitudesRenovacion = () => {
   const cargarSolicitudes = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
       const response = await axios.get(`${API_URL}/renovaciones`, {
-        params: { 
-          page: currentPage, 
+        params: {
+          page: currentPage,
           search: searchTerm,
           per_page: itemsPerPage,
-          estatus: estatusFilter 
+          estatus: estatusFilter
         },
-        headers: { Authorization: `Bearer ${token}` }
+        headers: headersAuth()
       });
       setSolicitudes(response.data.data);
       setTotalPages(response.data.last_page || 1);
@@ -121,13 +137,35 @@ const SolicitudesRenovacion = () => {
 
   const cargarDetallePoliza = async (polizaId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/renovaciones/poliza/${polizaId}/detalle`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = response.data;
+      const headers = headersAuth();
+
+      const [detRes, polRes, cobRes] = await Promise.all([
+        axios.get(`${API_URL}/renovaciones/poliza/${polizaId}/detalle`, { headers }),
+        axios.get(`${API_URL}/polizas/${polizaId}`, { headers }),
+        axios.get(`${API_URL}/polizas/${polizaId}/coberturas`, { headers }),
+      ]);
+
+      const data = detRes.data;
+      const poliza = polRes.data;
+
+      // Bienes: los del cliente ligados a esta póliza
+      let bienes = [];
+      if (poliza.id_cliente) {
+        try {
+          const bienesRes = await axios.get(`${API_URL}/bienes/cliente/${poliza.id_cliente}`, { headers });
+          bienes = (bienesRes.data || []).filter((b) => b.id_poliza === polizaId);
+        } catch (error) {
+          console.error('Error al cargar bienes:', error);
+        }
+      }
+
       setDetallePoliza(data);
-      
+      setContexto({
+        poliza,
+        coberturas: (cobRes.data?.coberturas || []).filter((c) => c.asignada),
+        bienes,
+      });
+
       if (data.sugerencia) {
         setFormData({
           fecha_inicio: data.sugerencia.fecha_inicio,
@@ -141,7 +179,7 @@ const SolicitudesRenovacion = () => {
           observaciones: ""
         });
       }
-      
+
       return data;
     } catch (error) {
       console.error('Error:', error);
@@ -162,25 +200,37 @@ const SolicitudesRenovacion = () => {
     setModalOpen(true);
   };
 
-  const calcularPrimaTotal = () => {
-    const neta = parseFloat(formData.prima_neta) || 0;
-    const derecho = parseFloat(formData.derecho_poliza) || 0;
-    const iva = parseFloat(formData.iva) || 0;
-    const total = neta + derecho + iva;
-    setFormData(prev => ({ ...prev, prima_total: total.toFixed(2) }));
-  };
+  // Si llegan desde "Pólizas por vencer" con una póliza, abre directo el modal de renovación
+  useEffect(() => {
+    const poliza = location.state?.renovarPoliza;
+    if (!poliza || yaAbiertoDesdeVencer.current) return;
+    yaAbiertoDesdeVencer.current = true;
+
+    // Limpia el state para que al recargar la página no se vuelva a abrir
+    navigate(location.pathname, { replace: true, state: null });
+    handleRenovar(poliza);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-    if (['prima_neta', 'derecho_poliza', 'iva'].includes(name)) {
-      setTimeout(calcularPrimaTotal, 0);
-    }
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (['prima_neta', 'derecho_poliza', 'iva'].includes(name)) {
+        next.prima_total = calcularTotal(next);
+      }
+      return next;
+    });
+  };
+
+  const limpiarRenovacion = () => {
+    setFormData(FORM_VACIO);
+    setDetallePoliza(null);
+    setContexto(CONTEXTO_VACIO);
   };
 
   const handleConfirmRenovar = async () => {
     try {
-      const token = localStorage.getItem('token');
       const dataToSend = {
         id_poliza_anterior: selected.id,
         fecha_inicio: formData.fecha_inicio,
@@ -193,17 +243,14 @@ const SolicitudesRenovacion = () => {
         forma_pago: formData.forma_pago,
         observaciones: formData.observaciones
       };
-      
-      await axios.post(`${API_URL}/renovaciones`, dataToSend, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
+
+      await axios.post(`${API_URL}/renovaciones`, dataToSend, { headers: headersAuth() });
+
       setModalOpen(false);
       mostrarAviso("exito", "Póliza renovada", "La póliza se renovó exitosamente.");
       cargarSolicitudes();
-      setFormData(FORM_VACIO);
-      setDetallePoliza(null);
-      
+      limpiarRenovacion();
+
     } catch (error) {
       console.error('Error:', error);
       mostrarAviso("error", "No se pudo renovar", mensajeError(error, "Error al renovar la póliza."));
@@ -233,10 +280,10 @@ const SolicitudesRenovacion = () => {
           <div className="fw-bold mb-2">Filtrar por estado</div>
           <div className="d-flex align-items-center gap-2">
             <FilterListIcon style={{ color: '#6B7280' }} />
-            <select 
-              className="form-select" 
-              style={{ width: "180px" }} 
-              value={estatusFilter} 
+            <select
+              className="form-select"
+              style={{ width: "180px" }}
+              value={estatusFilter}
               onChange={(e) => {
                 setEstatusFilter(e.target.value);
                 setCurrentPage(1);
@@ -254,11 +301,11 @@ const SolicitudesRenovacion = () => {
       <TablaForm
         columna={columnas} data={solicitudes} campos={campos}
         acciones={[
-          { 
-            titulo: "Renovar", 
-            clase: "tabla-btn-edit", 
-            icono: <AutorenewIcon fontSize="small" />, 
-            onClick: handleRenovar 
+          {
+            titulo: "Renovar",
+            clase: "tabla-btn-edit",
+            icono: <AutorenewIcon fontSize="small" />,
+            onClick: handleRenovar
           },
         ]}
       />
@@ -275,12 +322,12 @@ const SolicitudesRenovacion = () => {
         open={modalOpen}
         onClose={() => {
           setModalOpen(false);
-          setDetallePoliza(null);
-          setFormData(FORM_VACIO);
+          limpiarRenovacion();
         }}
         onRenovar={handleConfirmRenovar}
         poliza={selected}
         detallePoliza={detallePoliza}
+        contexto={contexto}
         formData={formData}
         onInputChange={handleInputChange}
         camposNuevos={CAMPOS_RENOVAR}

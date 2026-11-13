@@ -1,31 +1,30 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 import SearchIcon         from "@mui/icons-material/Search";
 import NotificationsIcon  from "@mui/icons-material/Notifications";
 import AutorenewIcon      from "@mui/icons-material/Autorenew";
 import VisibilityIcon     from "@mui/icons-material/Visibility";
 import DownloadIcon       from "@mui/icons-material/Download";
-import PolicyIcon         from "@mui/icons-material/Policy";
-import BadgeIcon          from "@mui/icons-material/Badge";
-import AccessTimeIcon     from "@mui/icons-material/AccessTime";
-import CalendarTodayIcon  from "@mui/icons-material/CalendarToday";
-import SupportAgentIcon   from "@mui/icons-material/SupportAgent";
-import EmailIcon          from "@mui/icons-material/Email";
-import AttachMoneyIcon    from "@mui/icons-material/AttachMoney";
-import PaymentsIcon       from "@mui/icons-material/Payments";
-import ReceiptIcon        from "@mui/icons-material/Receipt";
-import EventIcon          from "@mui/icons-material/Event";
-import NotesIcon          from "@mui/icons-material/Notes";
 import CheckCircleIcon    from "@mui/icons-material/CheckCircle";
 import ErrorOutlineIcon   from "@mui/icons-material/ErrorOutline";
+import AssignmentIcon     from "@mui/icons-material/Assignment";
+import PersonIcon         from "@mui/icons-material/Person";
+import DateRangeIcon      from "@mui/icons-material/DateRange";
+import AttachMoneyIcon    from "@mui/icons-material/AttachMoney";
+import PaymentIcon        from "@mui/icons-material/Payment";
+import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
+import NotesIcon          from "@mui/icons-material/Notes";
+import InfoIcon           from "@mui/icons-material/Info";
 
 import PrimaryButton       from "../../components/PrimaryButton";
 import TablaForm           from "../../components/TablaForm";
 import Paginacion          from "../../components/Paginacion";
 import AvisarModal         from "../../components/AvisarModal";
-import ClienteDetalleModal from "../../components/ClienteDetalleModal";
-import RenovarPolizaModal  from "../../components/RenovarPolizaModal";
+import PolizaDetalleModal  from "../../components/PolizaDetalleModal";
 import DescargarModal      from "../../components/DescargarModal";
+import { NOMBRES_RAMO, dinero0 } from "../../components/FichaCobertura";
 
 import { PolizasVencerData } from "../../components/PolizasVencerData";
 import "../../css/Clientes.css";
@@ -33,7 +32,11 @@ import "../../css/PolizasVencer.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 
+// Ruta del módulo "Solicitudes de renovación" (ajústala a tu router)
+const RUTA_RENOVACIONES = "/admin/solicitudesP";
+
 const AVISO_EXITO_MS = 3500;
+const SIN_CONEXION = "No hay conexión con el servidor.";
 
 const ESTATUS_DIAS = {
   Todos:        30,
@@ -47,14 +50,26 @@ const ESTATUS_OPTIONS = ["Todos", "Urgente", "Por vencer", "Normal"];
 const campos   = ["nPoliza", "tipo", "vigencia", "estatus"];
 const columnas = ["N° Póliza", "Tipo", "Vigencia", "Estatus", "Acciones"];
 
-const CAMPOS_RENOVAR = [
-  { label: "Fecha de inicio", name: "fechaInicio",   type: "date" },
-  { label: "Fecha de corte",  name: "fechaCorte",    type: "date" },
-  { label: "Nueva vigencia",  name: "nuevaVigencia", opciones: ["1 mes", "3 meses", "6 meses", "1 año", "2 años"], placeholder: "Selecciona vigencia" },
-  { label: "Tipo de pago",    name: "tipoPago",      opciones: ["Mensual", "Trimestral", "Semestral", "Anual"], placeholder: "Selecciona tipo de pago" },
-  { label: "Suma asegurada",  name: "sumaAsegurada", type: "number", placeholder: "Ingresa la suma del seguro" },
-  { label: "Monto a pagar",   name: "montoAPagar",   type: "number", placeholder: "Ingresa lo que debe de pagar" },
-];
+const headers = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
+
+const mensajeError = (error, defecto) => {
+  if (!error.response) return SIN_CONEXION;
+  const errores = error.response?.data?.errors;
+  if (errores) return Object.values(errores).flat().join("\n");
+  return error.response?.data?.message || defecto || error.message;
+};
+
+// Mensaje legible cuando falla una descarga con responseType 'blob'
+const mensajeErrorBlob = async (error) => {
+  let mensaje = error.response ? "El documento no está disponible." : SIN_CONEXION;
+  try {
+    const texto = await error.response?.data?.text?.();
+    if (texto) mensaje = JSON.parse(texto).message || mensaje;
+  } catch {
+    /* se mantiene el mensaje por defecto */
+  }
+  return mensaje;
+};
 
 const formatVigencia = (dias) => {
   if (dias <= 0)  return "Vence hoy";
@@ -68,6 +83,8 @@ const formatVigencia = (dias) => {
 };
 
 const PolizasVencer = () => {
+  const navigate = useNavigate();
+
   const [polizas,      setPolizas]      = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState(null);
@@ -79,10 +96,11 @@ const PolizasVencer = () => {
   const [itemsPerPage, setItemsPerPage] = useState(8);
 
   const [avisarOpen,   setAvisarOpen]   = useState(false);
-  const [detalleOpen,  setDetalleOpen]  = useState(false);
-  const [renovarOpen,  setRenovarOpen]  = useState(false);
   const [showDescarga, setShowDescarga] = useState(false);
   const [selected,     setSelected]     = useState(null);
+
+  const [showDetalleModal, setShowDetalleModal] = useState(false);
+  const [polizaDetalle,    setPolizaDetalle]    = useState(null);
 
   const [aviso, setAviso] = useState(null); // { tipo: 'exito' | 'error', titulo, mensaje }
 
@@ -142,6 +160,77 @@ const PolizasVencer = () => {
   const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
   const paginated  = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+  const handleEstatus = (e) => { setEstatus(e.target.value); };
+
+  const openAvisar = (p) => { setSelected(p); setAvisarOpen(true); };
+
+  const handleEnviado = () => {
+    mostrarAviso("exito", "Aviso enviado", `Correo enviado a ${selected?.correo || "cliente"}.`);
+    fetchPolizas(estatus);
+  };
+
+  // Renovar: manda la póliza al módulo de renovaciones, que abre su modal con estos datos
+  const handleRenovar = (p) => {
+    navigate(RUTA_RENOVACIONES, { state: { renovarPoliza: p } });
+  };
+
+  // Abre un PDF protegido (necesita token) en una pestaña nueva
+  const abrirPdf = async (url) => {
+    const ventana = window.open("", "_blank");
+    try {
+      const res = await axios.get(url, { headers: headers(), responseType: "blob" });
+      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      if (ventana) ventana.location.href = blobUrl;
+      else window.location.href = blobUrl;
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } catch (err) {
+      if (ventana) ventana.close();
+      console.error("Error al abrir documento:", err);
+      mostrarAviso("error", "No se pudo abrir el documento", await mensajeErrorBlob(err));
+    }
+  };
+
+  // Ver póliza: mismo desglose que el módulo de Pólizas
+  const handleVerDetalle = async (poliza) => {
+    try {
+      const [res, coberturasRes] = await Promise.all([
+        axios.get(`${API_URL}/polizas/${poliza.id}`, { headers: headers() }),
+        axios.get(`${API_URL}/polizas/${poliza.id}/coberturas`, { headers: headers() }),
+      ]);
+
+      const data = res.data;
+      const coberturas = (coberturasRes.data?.coberturas || []).filter((c) => c.asignada);
+      const items = [
+        { icon: <AssignmentIcon />, label: "N° Póliza", value: data.nPoliza },
+        { icon: <AssignmentIcon />, label: "Ramo", value: NOMBRES_RAMO[data.tipo] || data.tipo },
+        { icon: <AssignmentIcon />, label: "Endoso", value: data.endoso },
+        { icon: <PersonIcon />, label: "Cliente", value: data.cliente },
+        { icon: <DateRangeIcon />, label: "Fecha de inicio", value: data.fechaInicio },
+        { icon: <DateRangeIcon />, label: "Fecha final", value: data.fechaFinal },
+        { icon: <InfoIcon />, label: "Estatus", value: data.estatus },
+        { icon: <AttachMoneyIcon />, label: "Suma asegurada", value: `$${Number(data.sumaAsegurada).toLocaleString()}` },
+        { icon: <PaymentIcon />, label: "Forma de pago", value: data.numero_pagos > 1 ? `${data.formaPago}: ${data.numero_pagos} pagos de ${dinero0(data.pago_periodico)}` : data.formaPago },
+        { icon: <MonetizationOnIcon />, label: "Prima neta", value: `$${Number(data.prima_neta).toLocaleString()}` },
+        { icon: <MonetizationOnIcon />, label: "Derecho de póliza", value: `$${Number(data.derecho_poliza).toLocaleString()}` },
+        { icon: <MonetizationOnIcon />, label: data.iva_exento ? "IVA (exento)" : `IVA (${data.tasa_iva}%)`, value: `$${Number(data.iva).toLocaleString()}` },
+        { icon: <MonetizationOnIcon />, label: "Prima total", value: `$${Number(data.prima_total).toLocaleString()}` },
+        {
+          icon: <InfoIcon />,
+          label: "Coberturas contratadas",
+          value: data.coberturas?.length ? data.coberturas.map((c) => c.nombre).join(", ") : "Sin coberturas asignadas",
+          fullWidth: true
+        },
+        { icon: <NotesIcon />, label: "Observaciones", value: data.observaciones || "—", fullWidth: true }
+      ];
+
+      setPolizaDetalle({ ...data, items, coberturas });
+      setShowDetalleModal(true);
+    } catch (err) {
+      console.error("Error al cargar detalles:", err);
+      mostrarAviso("error", "No se pudo abrir el detalle", mensajeError(err, "Error al cargar los detalles de la póliza."));
+    }
+  };
+
   if (loading && polizas.length === 0) {
     return (
       <div className="container py-4">
@@ -152,45 +241,6 @@ const PolizasVencer = () => {
       </div>
     );
   }
-
-  const handleEstatus = (e) => { setEstatus(e.target.value); };
-
-  const openAvisar  = (p) => { setSelected(p); setAvisarOpen(true);  };
-  const openDetalle = (p) => { setSelected(p); setDetalleOpen(true); };
-  const openRenovar = (p) => { setSelected(p); setRenovarOpen(true); };
-
-  const handleEnviado = () => {
-    mostrarAviso("exito", "Aviso enviado", `Correo enviado a ${selected?.correo || "cliente"}.`);
-    fetchPolizas(estatus);
-  };
-
-  const handleConfirmRenovar = (data) => {
-    setRenovarOpen(false);
-    mostrarAviso("exito", "Póliza renovada", `La póliza ${data.nPoliza} se renovó exitosamente.`);
-    fetchPolizas(estatus);
-  };
-
-  const detalleItems = selected ? [
-    { icon: <PolicyIcon />,        label: "N° Póliza",            value: selected.nPoliza                  },
-    { icon: <BadgeIcon />,         label: "Tipo",                 value: selected.tipo                     },
-    { icon: <BadgeIcon />,         label: "Estatus",              value: selected.estatus                  },
-    { icon: <AccessTimeIcon />,    label: "Vigencia",             value: selected.vigencia                 },
-    { icon: <CalendarTodayIcon />, label: "Fecha de emisión",     value: selected.fecha_emision   || "—"  },
-    { icon: <CalendarTodayIcon />, label: "Fecha de inicio",      value: selected.fecha_inicio    || "—"  },
-    { icon: <CalendarTodayIcon />, label: "Fecha de vencimiento", value: selected.vence                   },
-    { icon: <AttachMoneyIcon />,   label: "Suma asegurada",       value: selected.suma_asegurada  ? `$${Number(selected.suma_asegurada).toLocaleString()}` : "—" },
-    { icon: <AttachMoneyIcon />,   label: "Prima neta",           value: selected.prima_neta      ? `$${Number(selected.prima_neta).toLocaleString()}`      : "—" },
-    { icon: <ReceiptIcon />,       label: "Derecho de póliza",    value: selected.derecho_poliza  ? `$${Number(selected.derecho_poliza).toLocaleString()}`  : "—" },
-    { icon: <ReceiptIcon />,       label: "IVA",                  value: selected.iva             ? `$${Number(selected.iva).toLocaleString()}`             : "—" },
-    { icon: <AttachMoneyIcon />,   label: "Prima total",          value: selected.prima_total     ? `$${Number(selected.prima_total).toLocaleString()}`     : "—" },
-    { icon: <PaymentsIcon />,      label: "Forma de pago",        value: selected.forma_pago      || "—"  },
-    { icon: <EventIcon />,         label: "Día de pago",          value: selected.dia_pago        ?? "—"  },
-    { icon: <CalendarTodayIcon />, label: "Primer pago",          value: selected.fecha_primer_pago || "—"},
-    { icon: <CalendarTodayIcon />, label: "Siguiente pago",       value: selected.siguiente_pago  || "—"  },
-    { icon: <SupportAgentIcon />,  label: "Asesor",               value: selected.asesor                   },
-    { icon: <EmailIcon />,         label: "Correo cliente",       value: selected.correo          || "—"  },
-    { icon: <NotesIcon />,         label: "Observaciones",        value: selected.observaciones   || "—"  },
-  ] : [];
 
   return (
     <div className="container py-4">
@@ -238,6 +288,12 @@ const PolizasVencer = () => {
             campos={campos}
             acciones={[
               {
+                titulo: "Ver póliza",
+                clase:  "tabla-btn-reasignar",
+                icono:  <VisibilityIcon fontSize="small" />,
+                onClick: handleVerDetalle,
+              },
+              {
                 titulo:   "Avisar",
                 icono:    (row) => row.aviso_enviado_at
                             ? <CheckCircleIcon fontSize="small" />
@@ -248,8 +304,12 @@ const PolizasVencer = () => {
                 onClick:  (row) => !row.aviso_enviado_at && openAvisar(row),
                 disabled: (row) => !!row.aviso_enviado_at,
               },
-              { titulo: "Renovar",    clase: "tabla-btn-edit", icono: <AutorenewIcon  fontSize="small" />, onClick: openRenovar },
-              { titulo: "Ver póliza", clase: "tabla-btn-del",  icono: <VisibilityIcon fontSize="small" />, onClick: openDetalle },
+              {
+                titulo: "Renovar",
+                clase:  "tabla-btn-edit",
+                icono:  <AutorenewIcon fontSize="small" />,
+                onClick: handleRenovar,
+              },
             ]}
           />
         </div>
@@ -270,21 +330,19 @@ const PolizasVencer = () => {
         onEnviado={handleEnviado}
       />
 
-      <ClienteDetalleModal
-        open={detalleOpen}
-        onClose={() => setDetalleOpen(false)}
-        titulo={selected ? `${selected.nombre} ${selected.apellido}` : ""}
-        subtitulo={selected ? selected.nPoliza : ""}
-        avatar={selected ? `${selected.nombre.charAt(0)}${selected.apellido.charAt(0)}` : ""}
-        items={detalleItems}
-      />
-
-      <RenovarPolizaModal
-        open={renovarOpen}
-        onClose={() => setRenovarOpen(false)}
-        onRenovar={handleConfirmRenovar}
-        poliza={selected}
-        camposNuevos={CAMPOS_RENOVAR}
+      {/* DETALLE COMPLETO DE LA PÓLIZA (igual que en el módulo de Pólizas) */}
+      <PolizaDetalleModal
+        open={showDetalleModal}
+        onClose={() => setShowDetalleModal(false)}
+        titulo={polizaDetalle ? `Póliza #${polizaDetalle.nPoliza}` : ""}
+        subtitulo={polizaDetalle ? polizaDetalle.cliente : ""}
+        avatar="P"
+        items={polizaDetalle ? polizaDetalle.items : []}
+        coberturas={polizaDetalle?.coberturas || []}
+        documento={polizaDetalle?.tiene_documento ? { nombre: polizaDetalle.documento_nombre } : null}
+        onVerDocumento={() => abrirPdf(`${API_URL}/polizas/${polizaDetalle.id}/documento`)}
+        endosos={polizaDetalle ? polizaDetalle.endosos || [] : []}
+        onVerDocumentoEndoso={(e) => abrirPdf(`${API_URL}/polizas/${polizaDetalle.id}/endosos/${e.id}/documento`)}
       />
 
       {/* MODAL DE DESCARGA DEL LISTADO (PDF / Excel / CSV) */}
